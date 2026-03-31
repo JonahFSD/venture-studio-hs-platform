@@ -338,38 +338,32 @@ export default function VotingPage() {
                 </div>
 
                 {/* Video Thumbnail */}
-                <div className="relative w-48 sm:w-72 flex-shrink-0 bg-surface-elevated group cursor-pointer">
+                <div className="relative w-56 sm:w-80 flex-shrink-0 bg-surface-elevated group cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="p-2.5 rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-colors">
-                      <Play className="h-5 w-5 text-white fill-white" />
+                    <div className="p-3 rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-colors">
+                      <Play className="h-6 w-6 text-white fill-white" />
                     </div>
                   </div>
-                  <div className="absolute top-2 left-2">
-                    <Badge
-                      variant="brand"
-                      className="text-[10px] backdrop-blur-sm bg-brand-500/80 text-black"
-                    >
-                      {sub.score}
-                    </Badge>
-                  </div>
                   {/* Aspect ratio placeholder */}
-                  <div className="aspect-[16/11]" />
+                  <div className="aspect-[16/12]" />
                 </div>
 
                 {/* Details */}
-                <div className="flex-1 p-4 min-w-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-text-primary truncate">
-                        {sub.title}
-                      </h3>
-                      <p className="text-xs text-text-secondary line-clamp-1 mt-0.5">
-                        {sub.description}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2.5">
+                <div className="flex-1 p-5 min-w-0 overflow-hidden">
+                  <Badge
+                    variant="brand"
+                    className="text-xs bg-brand-500/80 text-black font-bold mb-2"
+                  >
+                    AI Score: {sub.score}
+                  </Badge>
+                  <h3 className="text-base font-semibold text-text-primary truncate">
+                    {sub.title}
+                  </h3>
+                  <p className="text-sm text-text-secondary line-clamp-2 mt-1">
+                    {sub.description}
+                  </p>
+                  <div className="flex items-center gap-2 mt-3">
                     <Avatar name={sub.user.name} size="sm" />
                     <div className="min-w-0">
                       <p className="text-xs font-medium text-text-primary truncate">
