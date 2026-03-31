@@ -338,23 +338,23 @@ export default function VotingPage() {
                 </div>
 
                 {/* Video Thumbnail */}
-                <div className="relative w-36 sm:w-44 flex-shrink-0 bg-surface-elevated group cursor-pointer">
+                <div className="relative w-48 sm:w-72 flex-shrink-0 bg-surface-elevated group cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20" />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-colors">
-                      <Play className="h-4 w-4 text-white fill-white" />
+                    <div className="p-2.5 rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-colors">
+                      <Play className="h-5 w-5 text-white fill-white" />
                     </div>
                   </div>
                   <div className="absolute top-2 left-2">
                     <Badge
                       variant="brand"
-                      className="text-[10px] backdrop-blur-sm bg-brand-500/80"
+                      className="text-[10px] backdrop-blur-sm bg-brand-500/80 text-black"
                     >
                       {sub.score}
                     </Badge>
                   </div>
                   {/* Aspect ratio placeholder */}
-                  <div className="aspect-[16/10]" />
+                  <div className="aspect-[16/11]" />
                 </div>
 
                 {/* Details */}
