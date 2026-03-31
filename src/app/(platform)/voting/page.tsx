@@ -346,7 +346,7 @@ export default function VotingPage() {
                     </div>
                   </div>
                   {/* Aspect ratio placeholder */}
-                  <div className="aspect-[16/12]" />
+                  <div className="aspect-[16/15]" />
                 </div>
 
                 {/* Details */}
