@@ -1,0 +1,216 @@
+// ============================================
+// Database Types for ACU Youth Venture Platform
+// ============================================
+
+export type UserRole = "member" | "admin" | "superadmin";
+
+export type ApplicationStatus = "pending" | "approved" | "rejected" | "more_info";
+
+export type MembershipStatus = "active" | "past_due" | "cancelled" | "trialing";
+
+export type SubmissionStatus =
+  | "draft"
+  | "submitted"
+  | "scoring"
+  | "scored"
+  | "voting"
+  | "archived";
+
+export type VotingRoundStatus = "upcoming" | "open" | "closed" | "finalized";
+
+export type PayoutStatus = "pending" | "paid" | "failed";
+
+export type NotificationType =
+  | "submission_received"
+  | "ai_score_ready"
+  | "voting_open"
+  | "vote_received"
+  | "winner_announced"
+  | "payout_sent"
+  | "application_approved"
+  | "application_rejected"
+  | "new_message"
+  | "venture_studio_flagged";
+
+// ============================================
+// Core Entities
+// ============================================
+
+export interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+  school_name: string | null;
+  graduation_year: number | null;
+  age: number | null;
+  role: UserRole;
+  skills: string[];
+  looking_for_cofounders: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Application {
+  id: string;
+  user_email: string;
+  full_name: string;
+  age: number;
+  school: string;
+  graduation_year: number;
+  faith_statement: string;
+  entrepreneurship_interest: string;
+  ai_interest: string;
+  video_intro_url: string | null;
+  parent_name: string;
+  parent_email: string;
+  parent_phone: string;
+  status: ApplicationStatus;
+  reviewer_id: string | null;
+  reviewer_notes: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface Membership {
+  id: string;
+  user_id: string;
+  stripe_customer_id: string;
+  stripe_subscription_id: string;
+  status: MembershipStatus;
+  current_period_start: string;
+  current_period_end: string;
+  created_at: string;
+}
+
+export interface Submission {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  video_url: string | null;
+  video_thumbnail_url: string | null;
+  github_url: string | null;
+  website_url: string | null;
+  slide_deck_url: string | null;
+  additional_links: Record<string, string>;
+  month_year: string;
+  status: SubmissionStatus;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  user?: User;
+  ai_score?: AIScore;
+  vote_count?: number;
+}
+
+export interface AIScore {
+  id: string;
+  submission_id: string;
+  rubric_version: string;
+  overall_score: number;
+  category_scores: CategoryScore[];
+  qualitative_feedback: string;
+  model_used: string;
+  scored_at: string;
+}
+
+export interface CategoryScore {
+  category: string;
+  score: number;
+  max_score: number;
+  feedback: string;
+}
+
+export interface VotingRound {
+  id: string;
+  month_year: string;
+  opens_at: string;
+  closes_at: string;
+  min_score_threshold: number;
+  status: VotingRoundStatus;
+  submissions?: Submission[];
+}
+
+export interface Vote {
+  id: string;
+  voting_round_id: string;
+  voter_user_id: string;
+  submission_id: string;
+  created_at: string;
+}
+
+export interface PrizePool {
+  id: string;
+  month_year: string;
+  total_collected: number;
+  operational_fee_pct: number;
+  net_prize: number;
+  winner_user_id: string | null;
+  payout_status: PayoutStatus;
+  stripe_transfer_id: string | null;
+  finalized_at: string | null;
+  winner?: User;
+}
+
+export interface Message {
+  id: string;
+  thread_id: string;
+  sender_user_id: string;
+  recipient_user_id: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+  sender?: User;
+  recipient?: User;
+}
+
+export interface MessageThread {
+  thread_id: string;
+  other_user: User;
+  last_message: Message;
+  unread_count: number;
+}
+
+export interface VentureStudioFlag {
+  id: string;
+  user_id: string;
+  flagged_by_admin_id: string;
+  notes: string;
+  created_at: string;
+  user?: User;
+  admin?: User;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  read: boolean;
+  action_url: string | null;
+  created_at: string;
+}
+
+// ============================================
+// Dashboard / Analytics
+// ============================================
+
+export interface DashboardStats {
+  total_members: number;
+  active_submissions: number;
+  current_pool: number;
+  pending_applications: number;
+  members_growth: number;
+  submissions_growth: number;
+}
+
+export interface MonthlyMetrics {
+  month: string;
+  members: number;
+  submissions: number;
+  pool_amount: number;
+  votes_cast: number;
+}

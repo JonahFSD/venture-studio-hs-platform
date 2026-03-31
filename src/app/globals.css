@@ -1,26 +1,149 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================
+   ACU Youth Venture Community Platform
+   Design System - Dark Mode Default
+   Brand Color: Aquamarine/Tron Cyan
+   ============================================ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Brand Colors - Tron Aquamarine */
+  --color-brand-50: #e6fffe;
+  --color-brand-100: #b3fffc;
+  --color-brand-200: #80fff9;
+  --color-brand-300: #4dfff7;
+  --color-brand-400: #26fff5;
+  --color-brand-500: #00e5dc;
+  --color-brand-600: #00b8b0;
+  --color-brand-700: #008a84;
+  --color-brand-800: #005c58;
+  --color-brand-900: #002e2c;
+
+  /* Grayscale */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f5;
+  --color-gray-200: #e4e4e7;
+  --color-gray-300: #d4d4d8;
+  --color-gray-400: #a1a1aa;
+  --color-gray-500: #71717a;
+  --color-gray-600: #52525b;
+  --color-gray-700: #3f3f46;
+  --color-gray-800: #27272a;
+  --color-gray-850: #1e1e21;
+  --color-gray-900: #18181b;
+  --color-gray-950: #09090b;
+
+  /* Semantic Surface Colors */
+  --color-surface-primary: #000000;
+  --color-surface-secondary: #0a0a0a;
+  --color-surface-tertiary: #111113;
+  --color-surface-elevated: #18181b;
+  --color-surface-overlay: #1e1e21;
+  --color-surface-card: #141416;
+  --color-surface-card-hover: #1a1a1e;
+
+  /* Semantic Text Colors */
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #71717a;
+  --color-text-muted: #52525b;
+  --color-text-brand: #00e5dc;
+
+  /* Semantic Border Colors */
+  --color-border-default: #27272a;
+  --color-border-subtle: #1e1e21;
+  --color-border-strong: #3f3f46;
+  --color-border-brand: #00b8b0;
+
+  /* Status Colors */
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
+  --color-info: #00e5dc;
+
+  /* Glow Effects */
+  --color-glow-brand: rgba(0, 229, 220, 0.15);
+  --color-glow-brand-strong: rgba(0, 229, 220, 0.3);
+
+  /* Fonts */
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), "Fira Code", monospace;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(0, 229, 220, 0.15);
+  --shadow-glow-strong: 0 0 40px rgba(0, 229, 220, 0.25);
+
+  /* Animations */
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-slide-down: slide-down 0.2s ease-out;
+  --animate-scale-in: scale-in 0.2s ease-out;
+  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 229, 220, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(0, 229, 220, 0.25); }
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #27272a transparent;
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #000000;
+  color: #fafafa;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 229, 220, 0.3);
+  color: #fafafa;
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid #00e5dc;
+  outline-offset: 2px;
+}
+
+/* Light mode overrides */
+@media (prefers-color-scheme: light) {
+  .auto-theme {
+    color-scheme: light;
+  }
 }
