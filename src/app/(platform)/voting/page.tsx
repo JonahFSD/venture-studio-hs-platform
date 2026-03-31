@@ -219,7 +219,7 @@ export default function VotingPage() {
               </Badge>
               <span className="flex items-center gap-1 text-sm text-text-secondary">
                 <DollarSign className="h-3.5 w-3.5" />
-                $1,890 prize pool
+                $1,890 pool &bull; Top 3 win
               </span>
             </div>
           </div>
@@ -338,7 +338,7 @@ export default function VotingPage() {
                 </div>
 
                 {/* Video Thumbnail */}
-                <div className="relative w-64 sm:w-96 flex-shrink-0 bg-surface-elevated group cursor-pointer">
+                <div className="relative w-80 sm:w-[500px] flex-shrink-0 bg-surface-elevated group cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="p-3 rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-colors">
@@ -346,7 +346,7 @@ export default function VotingPage() {
                     </div>
                   </div>
                   {/* Aspect ratio placeholder */}
-                  <div className="aspect-[16/15]" />
+                  <div className="aspect-[16/10]" />
                 </div>
 
                 {/* Details */}

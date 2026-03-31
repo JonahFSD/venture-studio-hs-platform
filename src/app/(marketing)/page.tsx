@@ -95,7 +95,7 @@ function HeroSection() {
         <div className="flex items-center justify-center gap-8 sm:gap-16 mt-16 pt-8 border-t border-border-default">
           {[
             { value: "$10", label: "/month membership" },
-            { value: "90%", label: "to monthly prize pool" },
+            { value: "Top 3", label: "win prizes each month" },
             { value: "14-18", label: "year old founders" },
           ].map((stat, i) => (
             <div key={i} className="text-center">
@@ -137,7 +137,7 @@ function HowItWorksSection() {
       icon: Trophy,
       title: "Compete & Win",
       description:
-        "Top-scoring pitches go to community vote. The winner each month takes home the prize pool, minus a small operational fee.",
+        "Top-scoring pitches go to community vote. The top 3 each month split the prize pool: 1st (55%), 2nd (30%), 3rd (15%).",
     },
   ];
 
@@ -191,7 +191,7 @@ function FeaturesSection() {
       icon: DollarSign,
       title: "Monthly Prize Pool",
       description:
-        "90% of all membership fees go directly into the monthly prize pool. Win real money for your best ideas.",
+        "90% of membership fees fund the monthly prize pool. Top 3 finishers split the pot: 55% / 30% / 15%.",
     },
     {
       icon: Shield,

@@ -5,6 +5,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Avatar } from "@/components/ui/avatar";
 import {
   ArrowLeft,
   Video,
@@ -18,6 +19,9 @@ import {
   Brain,
   Lightbulb,
   Target,
+  Handshake,
+  Shield,
+  Users,
   Presentation,
   Heart,
   ChevronDown,
@@ -252,6 +256,52 @@ export default function SubmissionDetailPage() {
                   </span>
                 </a>
               ))}
+            </div>
+          </Card>
+
+          {/* Team / Revenue Split */}
+          <Card className="overflow-hidden" padding="none">
+            <div className="bg-brand-500/10 px-5 py-3 flex items-center gap-2 border-b border-brand-500/20">
+              <Handshake className="h-4 w-4 text-brand-500" />
+              <h3 className="text-sm font-semibold text-brand-500">
+                Revenue Split Agreement
+              </h3>
+            </div>
+            <div className="p-5 space-y-2">
+              {[
+                { name: "Jake Oswald", role: "Lead", split: 50 },
+                { name: "Sarah Chen", role: "Collaborator", split: 30 },
+                { name: "David Park", role: "Collaborator", split: 20 },
+              ].map((member, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-surface-elevated"
+                >
+                  <div className="flex items-center gap-2">
+                    <Avatar name={member.name} size="sm" />
+                    <div>
+                      <p className="text-xs font-medium text-text-primary">
+                        {member.name}
+                      </p>
+                      <Badge
+                        variant={member.role === "Lead" ? "brand" : "default"}
+                        className="mt-0.5"
+                      >
+                        {member.role}
+                      </Badge>
+                    </div>
+                  </div>
+                  <span className="text-base font-bold text-text-primary">
+                    {member.split}%
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="bg-surface-elevated px-5 py-2.5 border-t border-border-default">
+              <p className="text-[10px] text-text-muted flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Locked on submission &mdash; cannot be changed
+              </p>
             </div>
           </Card>
 

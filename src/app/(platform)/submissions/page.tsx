@@ -15,6 +15,9 @@ import {
   Eye,
   Clock,
   Filter,
+  Users,
+  User,
+  Inbox,
 } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "brand" | "success" | "warning" | "error" }> = {
@@ -40,6 +43,8 @@ const mockSubmissions = [
     has_video: true,
     has_github: true,
     has_website: false,
+    is_team: true,
+    team_count: 3,
   },
   {
     id: "2",
@@ -54,6 +59,8 @@ const mockSubmissions = [
     has_video: true,
     has_github: true,
     has_website: true,
+    is_team: false,
+    team_count: 1,
   },
   {
     id: "3",
@@ -68,6 +75,8 @@ const mockSubmissions = [
     has_video: true,
     has_github: false,
     has_website: false,
+    is_team: false,
+    team_count: 1,
   },
   {
     id: "4",
@@ -82,6 +91,8 @@ const mockSubmissions = [
     has_video: false,
     has_github: false,
     has_website: false,
+    is_team: true,
+    team_count: 2,
   },
 ];
 
@@ -106,6 +117,18 @@ export default function SubmissionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/submissions/invitations">
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<Inbox className="h-4 w-4" />}
+            >
+              Invitations
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-brand-500 text-black text-[10px] font-bold">
+                2
+              </span>
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"
@@ -142,6 +165,12 @@ export default function SubmissionsPage() {
                           <Badge variant={statusConfig[sub.status].variant}>
                             {statusConfig[sub.status].label}
                           </Badge>
+                          {sub.is_team && (
+                            <Badge variant="outline">
+                              <Users className="h-3 w-3 mr-1" />
+                              Team ({sub.team_count})
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-text-secondary line-clamp-2">
                           {sub.description}

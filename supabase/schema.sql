@@ -130,7 +130,12 @@ CREATE TABLE prize_pools (
   total_collected INTEGER NOT NULL DEFAULT 0, -- in cents
   operational_fee_pct NUMERIC(5,2) NOT NULL DEFAULT 10.00,
   net_prize INTEGER NOT NULL DEFAULT 0, -- in cents
-  winner_user_id UUID REFERENCES users(id),
+  first_place_pct NUMERIC(5,2) NOT NULL DEFAULT 55.00,
+  second_place_pct NUMERIC(5,2) NOT NULL DEFAULT 30.00,
+  third_place_pct NUMERIC(5,2) NOT NULL DEFAULT 15.00,
+  first_place_user_id UUID REFERENCES users(id),
+  second_place_user_id UUID REFERENCES users(id),
+  third_place_user_id UUID REFERENCES users(id),
   payout_status TEXT NOT NULL DEFAULT 'pending' CHECK (payout_status IN ('pending', 'paid', 'failed')),
   stripe_transfer_id TEXT,
   finalized_at TIMESTAMPTZ

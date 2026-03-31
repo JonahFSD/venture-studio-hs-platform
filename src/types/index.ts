@@ -84,6 +84,23 @@ export interface Membership {
   created_at: string;
 }
 
+export type CollaboratorRole = "lead" | "collaborator";
+
+export type CollaboratorStatus = "pending" | "accepted" | "declined";
+
+export interface SubmissionCollaborator {
+  id: string;
+  submission_id: string;
+  user_id: string;
+  invited_by: string;
+  role: CollaboratorRole;
+  revenue_split_pct: number;
+  status: CollaboratorStatus;
+  accepted_at: string | null;
+  created_at: string;
+  user?: User;
+}
+
 export interface Submission {
   id: string;
   user_id: string;
@@ -97,12 +114,14 @@ export interface Submission {
   additional_links: Record<string, string>;
   month_year: string;
   status: SubmissionStatus;
+  is_team_submission: boolean;
   created_at: string;
   updated_at: string;
   // Joined
   user?: User;
   ai_score?: AIScore;
   vote_count?: number;
+  collaborators?: SubmissionCollaborator[];
 }
 
 export interface AIScore {
@@ -141,17 +160,30 @@ export interface Vote {
   created_at: string;
 }
 
+export interface PrizePlacement {
+  user_id: string | null;
+  place: 1 | 2 | 3;
+  pct: number;
+  amount: number;
+  user?: User;
+}
+
 export interface PrizePool {
   id: string;
   month_year: string;
   total_collected: number;
   operational_fee_pct: number;
   net_prize: number;
-  winner_user_id: string | null;
+  first_place_pct: number;
+  second_place_pct: number;
+  third_place_pct: number;
+  first_place_user_id: string | null;
+  second_place_user_id: string | null;
+  third_place_user_id: string | null;
   payout_status: PayoutStatus;
   stripe_transfer_id: string | null;
   finalized_at: string | null;
-  winner?: User;
+  placements?: PrizePlacement[];
 }
 
 export interface Message {

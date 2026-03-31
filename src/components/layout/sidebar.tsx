@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Zap,
   Sparkles,
+  Crown,
 } from "lucide-react";
 
 const mainNavItems = [
@@ -25,6 +26,7 @@ const mainNavItems = [
   { href: "/voting", label: "Voting", icon: Vote },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/members", label: "Community", icon: Users },
+  { href: "/leadership", label: "Leadership", icon: Crown },
   { href: "/messages", label: "Messages", icon: MessageCircle },
 ];
 

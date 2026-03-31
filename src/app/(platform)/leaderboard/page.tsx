@@ -82,30 +82,33 @@ const allTimeLeaders = [
   },
 ];
 
-const pastWinners = [
+const pastRounds = [
   {
     month: "February 2026",
-    name: "Sarah Chen",
-    title: "FaithConnect - Community Platform",
-    prize: 1890,
-    score: 92,
-    votes: 58,
+    pool: 1773,
+    placements: [
+      { place: 1, name: "Sarah Chen", title: "FaithConnect - Community Platform", prize: 975, score: 92 },
+      { place: 2, name: "David Park", title: "MentorMatch - Youth Mentorship", prize: 532, score: 91 },
+      { place: 3, name: "Maria Garcia", title: "GiveBack - Micro-Volunteering", prize: 266, score: 89 },
+    ],
   },
   {
     month: "January 2026",
-    name: "David Park",
-    title: "MentorMatch - Youth Mentorship",
-    prize: 1750,
-    score: 91,
-    votes: 45,
+    pool: 1620,
+    placements: [
+      { place: 1, name: "David Park", title: "MentorMatch v2", prize: 891, score: 93 },
+      { place: 2, name: "Elijah Thompson", title: "StudyCircle - Group Learning", prize: 486, score: 88 },
+      { place: 3, name: "Grace Kim", title: "WorshipFlow - Church Tech", prize: 243, score: 85 },
+    ],
   },
   {
     month: "December 2025",
-    name: "Maria Garcia",
-    title: "GiveBack - Micro-Volunteering",
-    prize: 1620,
-    score: 89,
-    votes: 39,
+    pool: 1500,
+    placements: [
+      { place: 1, name: "Maria Garcia", title: "GiveBack - Micro-Volunteering", prize: 825, score: 90 },
+      { place: 2, name: "Sarah Chen", title: "PrayerWall - Digital Board", prize: 450, score: 87 },
+      { place: 3, name: "Noah Williams", title: "DataDash - Analytics Tool", prize: 225, score: 84 },
+    ],
   },
 ];
 
@@ -254,38 +257,50 @@ export default function LeaderboardPage() {
               </Card>
             </div>
           ) : (
-            <div className="space-y-4">
-              {pastWinners.map((winner, i) => (
-                <Card key={i} hover>
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-2xl bg-yellow-500/10">
-                      <Trophy className="h-6 w-6 text-yellow-500" />
+            <div className="space-y-6">
+              {pastRounds.map((round, i) => (
+                <Card key={i}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-text-muted" />
+                      <span className="text-sm font-bold text-text-primary">
+                        {round.month}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-semibold text-text-primary">
-                          {winner.name}
-                        </p>
-                        <Badge variant="success">Winner</Badge>
+                    <span className="text-sm font-semibold text-brand-500">
+                      ${round.pool.toLocaleString()} pool
+                    </span>
+                  </div>
+                  <div className="space-y-2.5">
+                    {round.placements.map((p) => (
+                      <div
+                        key={p.place}
+                        className={`flex items-center gap-3 p-3 rounded-xl ${
+                          p.place === 1
+                            ? "bg-yellow-500/5 border border-yellow-500/20"
+                            : "bg-surface-elevated border border-border-default"
+                        }`}
+                      >
+                        {rankIcon(p.place)}
+                        <Avatar name={p.name} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-text-primary truncate">
+                            {p.name}
+                          </p>
+                          <p className="text-xs text-text-muted truncate">
+                            {p.title} &bull; Score: {p.score}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-bold ${p.place === 1 ? "text-yellow-400" : "text-text-primary"}`}>
+                            ${p.prize.toLocaleString()}
+                          </p>
+                          <p className="text-[10px] text-text-muted">
+                            {p.place === 1 ? "55%" : p.place === 2 ? "30%" : "15%"}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-sm text-text-secondary truncate">
-                        {winner.title}
-                      </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-text-muted">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {winner.month}
-                        </span>
-                        <span>Score: {winner.score}</span>
-                        <span>{winner.votes} votes</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-success">
-                        ${winner.prize.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-text-muted">Prize</p>
-                    </div>
+                    ))}
                   </div>
                 </Card>
               ))}

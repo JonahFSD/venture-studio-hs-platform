@@ -18,6 +18,7 @@ import {
   Plus,
   Sparkles,
   Target,
+  Handshake,
 } from "lucide-react";
 
 // Mock data
@@ -197,7 +198,7 @@ export default function DashboardPage() {
               </div>
               <Progress value={90} />
               <p className="text-xs text-text-muted mt-2">
-                210 active members &times; $10 &times; 90% = ~$1,890 prize pool
+                210 members &times; $10 &times; 90% = ~$1,890 pool &bull; 1st: 55% &bull; 2nd: 30% &bull; 3rd: 15%
               </p>
             </div>
           </div>
@@ -259,7 +260,29 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link href="/submissions/invitations" className="group">
+          <Card hover glow padding="md">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-brand-500/10 text-brand-500 group-hover:bg-brand-500/20 transition-colors relative">
+                <Handshake className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-brand-500 text-black text-[9px] font-bold flex items-center justify-center">
+                  2
+                </span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-text-primary">
+                  Team Invitations
+                </p>
+                <p className="text-xs text-text-secondary">
+                  2 pending requests
+                </p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-text-tertiary group-hover:text-brand-500 transition-colors" />
+            </div>
+          </Card>
+        </Link>
+
         <Link href="/voting" className="group">
           <Card hover glow padding="md">
             <div className="flex items-center gap-3">

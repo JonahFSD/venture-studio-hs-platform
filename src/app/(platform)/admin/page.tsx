@@ -161,8 +161,8 @@ export default function AdminPage() {
               icon: "success",
             },
             {
-              action: "Payout executed",
-              detail: "Sarah Chen - $1,890 for February winner",
+              action: "Payouts executed",
+              detail: "February: 1st Sarah Chen ($975), 2nd David Park ($532), 3rd Maria Garcia ($266)",
               time: "1d ago",
               icon: "brand",
             },
