@@ -60,7 +60,7 @@ export function CardTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={cn("text-lg font-semibold text-text-primary", className)}
+      className={cn("text-lg font-sans font-medium text-text-primary", className)}
       {...props}
     >
       {children}

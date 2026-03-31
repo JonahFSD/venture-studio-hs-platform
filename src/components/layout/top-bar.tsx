@@ -11,7 +11,7 @@ export function TopBar() {
   const [showProfile, setShowProfile] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-6 bg-surface-primary/80 backdrop-blur-xl border-b border-border-default">
+    <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-6 bg-surface-primary/80 backdrop-blur-xl border-b border-border-default font-sans">
       {/* Search */}
       <div className="relative flex-1 max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />

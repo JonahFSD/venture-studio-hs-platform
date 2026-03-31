@@ -2,57 +2,58 @@
 
 /* ============================================
    ACU Youth Venture Community Platform
-   Design System - Dark Mode Default
-   Brand Color: Aquamarine/Tron Cyan
+   Design System - Factory.ai Typography + Aquamarine Brand
+   Brand Color: Aquamarine (#00e5dc)
+   Font: Geist Sans / Geist Mono
    ============================================ */
 
 @theme inline {
-  /* Brand Colors - Tron Aquamarine */
+  /* Brand Colors - Aquamarine / Tron Cyan */
   --color-brand-50: #e6fffe;
   --color-brand-100: #b3fffc;
   --color-brand-200: #80fff9;
   --color-brand-300: #4dfff7;
-  --color-brand-400: #26fff5;
+  --color-brand-400: #1afff4;
   --color-brand-500: #00e5dc;
   --color-brand-600: #00b8b0;
   --color-brand-700: #008a84;
   --color-brand-800: #005c58;
   --color-brand-900: #002e2c;
 
-  /* Grayscale */
+  /* Neutral Scale - Factory-style pure neutrals */
   --color-gray-50: #fafafa;
-  --color-gray-100: #f4f4f5;
-  --color-gray-200: #e4e4e7;
-  --color-gray-300: #d4d4d8;
-  --color-gray-400: #a1a1aa;
-  --color-gray-500: #71717a;
-  --color-gray-600: #52525b;
-  --color-gray-700: #3f3f46;
-  --color-gray-800: #27272a;
-  --color-gray-850: #1e1e21;
-  --color-gray-900: #18181b;
-  --color-gray-950: #09090b;
+  --color-gray-100: #f5f5f5;
+  --color-gray-200: #e5e5e5;
+  --color-gray-300: #d4d4d4;
+  --color-gray-400: #a3a3a3;
+  --color-gray-500: #737373;
+  --color-gray-600: #525252;
+  --color-gray-700: #404040;
+  --color-gray-800: #262626;
+  --color-gray-850: #1c1c1c;
+  --color-gray-900: #171717;
+  --color-gray-950: #0a0a0a;
 
   /* Semantic Surface Colors */
   --color-surface-primary: #000000;
   --color-surface-secondary: #0a0a0a;
-  --color-surface-tertiary: #111113;
-  --color-surface-elevated: #18181b;
-  --color-surface-overlay: #1e1e21;
-  --color-surface-card: #141416;
-  --color-surface-card-hover: #1a1a1e;
+  --color-surface-tertiary: #111111;
+  --color-surface-elevated: #171717;
+  --color-surface-overlay: #1c1c1c;
+  --color-surface-card: #0f0f0f;
+  --color-surface-card-hover: #171717;
 
   /* Semantic Text Colors */
   --color-text-primary: #fafafa;
-  --color-text-secondary: #a1a1aa;
-  --color-text-tertiary: #71717a;
-  --color-text-muted: #52525b;
+  --color-text-secondary: #a3a3a3;
+  --color-text-tertiary: #737373;
+  --color-text-muted: #525252;
   --color-text-brand: #00e5dc;
 
   /* Semantic Border Colors */
-  --color-border-default: #27272a;
-  --color-border-subtle: #1e1e21;
-  --color-border-strong: #3f3f46;
+  --color-border-default: #262626;
+  --color-border-subtle: #1c1c1c;
+  --color-border-strong: #404040;
   --color-border-brand: #00b8b0;
 
   /* Status Colors */
@@ -62,18 +63,18 @@
   --color-info: #00e5dc;
 
   /* Glow Effects */
-  --color-glow-brand: rgba(0, 229, 220, 0.15);
-  --color-glow-brand-strong: rgba(0, 229, 220, 0.3);
+  --color-glow-brand: rgba(0, 229, 220, 0.1);
+  --color-glow-brand-strong: rgba(0, 229, 220, 0.2);
 
-  /* Fonts */
+  /* Fonts - Geist (matching Factory.ai) */
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono), "Fira Code", monospace;
 
   /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 20px rgba(0, 229, 220, 0.15);
-  --shadow-glow-strong: 0 0 40px rgba(0, 229, 220, 0.25);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px rgba(0, 229, 220, 0.08);
+  --shadow-glow-strong: 0 0 40px rgba(0, 229, 220, 0.15);
 
   /* Animations */
   --animate-fade-in: fade-in 0.3s ease-out;
@@ -104,8 +105,8 @@
 }
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 229, 220, 0.1); }
-  50% { box-shadow: 0 0 30px rgba(0, 229, 220, 0.25); }
+  0%, 100% { box-shadow: 0 0 15px rgba(0, 229, 220, 0.06); }
+  50% { box-shadow: 0 0 25px rgba(0, 229, 220, 0.12); }
 }
 
 /* ============================================
@@ -114,7 +115,7 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #27272a transparent;
+  scrollbar-color: #262626 transparent;
 }
 
 html {
@@ -123,15 +124,29 @@ html {
 
 body {
   background: #000000;
-  color: #fafafa;
-  font-family: var(--font-sans);
+  color: #a3a3a3;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Factory-style headings: sans-serif, lighter weight, tight tracking */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #fafafa;
+  text-wrap: pretty;
+}
+
+h1 { font-weight: 400; letter-spacing: -0.03em; }
+h2 { font-weight: 400; letter-spacing: -0.025em; }
+
 /* Selection */
 ::selection {
-  background: rgba(0, 229, 220, 0.3);
+  background: rgba(0, 229, 220, 0.25);
   color: #fafafa;
 }
 

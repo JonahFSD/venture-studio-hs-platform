@@ -49,7 +49,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-full z-40 flex flex-col",
+        "fixed left-0 top-0 h-full z-40 flex flex-col font-sans",
         "bg-surface-secondary border-r border-border-default",
         "transition-all duration-300 ease-in-out",
         collapsed ? "w-[68px]" : "w-[240px]"
