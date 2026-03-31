@@ -1,19 +1,51 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Zap, Mail, Lock, ArrowRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Zap, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 2000);
+
+    try {
+      const supabase = createClient();
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        if (authError.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password. Please try again.");
+        } else if (authError.message.includes("Email not confirmed")) {
+          setError("Please verify your email address before signing in.");
+        } else {
+          setError(authError.message);
+        }
+        return;
+      }
+
+      router.push("/dashboard");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -36,21 +68,44 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-error/10 border border-error/20 text-sm text-error">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             label="Email"
             type="email"
             placeholder="you@example.com"
             leftIcon={<Mail className="h-4 w-4" />}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
-          <Input
-            label="Password"
-            type="password"
-            placeholder="Enter your password"
-            leftIcon={<Lock className="h-4 w-4" />}
-            required
-          />
+          <div className="relative">
+            <Input
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              leftIcon={<Lock className="h-4 w-4" />}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-[38px] text-text-tertiary hover:text-text-secondary transition-colors"
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
 
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm text-text-secondary">
