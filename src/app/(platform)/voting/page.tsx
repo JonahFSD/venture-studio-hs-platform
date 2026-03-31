@@ -338,7 +338,7 @@ export default function VotingPage() {
                 </div>
 
                 {/* Video Thumbnail */}
-                <div className="relative w-56 sm:w-80 flex-shrink-0 bg-surface-elevated group cursor-pointer">
+                <div className="relative w-64 sm:w-96 flex-shrink-0 bg-surface-elevated group cursor-pointer">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="p-3 rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-colors">
