@@ -36,6 +36,14 @@ export type NotificationType =
 // Core Entities
 // ============================================
 
+export type BQType =
+  | "Anchor"
+  | "Visionary"
+  | "Operator"
+  | "Catalyst"
+  | "Strategist"
+  | "Builder";
+
 export interface User {
   id: string;
   email: string;
@@ -45,9 +53,16 @@ export interface User {
   school_name: string | null;
   graduation_year: number | null;
   age: number | null;
+  state: string | null;
   role: UserRole;
   skills: string[];
   looking_for_cofounders: boolean;
+  bq_type: BQType | null;
+  bq_results_url: string | null;
+  network_count: number;
+  total_earnings: number;
+  avg_ai_score: number | null;
+  points: number;
   created_at: string;
   updated_at: string;
 }
@@ -224,6 +239,40 @@ export interface Notification {
   read: boolean;
   action_url: string | null;
   created_at: string;
+}
+
+// ============================================
+// Bounties
+// ============================================
+
+export type BountyStatus = "active" | "reviewing" | "completed" | "cancelled";
+
+export interface Bounty {
+  id: string;
+  title: string;
+  description: string;
+  founder_name: string;
+  founder_company: string;
+  bounty_amount: number;
+  due_date: string;
+  status: BountyStatus;
+  requirements: string[];
+  submissions_count: number;
+  winner_submission_id: string | null;
+  created_at: string;
+}
+
+export interface BountySubmission {
+  id: string;
+  bounty_id: string;
+  user_id: string;
+  is_team: boolean;
+  submission_url: string;
+  notes: string | null;
+  is_winner: boolean;
+  submitted_at: string;
+  user?: User;
+  collaborators?: SubmissionCollaborator[];
 }
 
 // ============================================

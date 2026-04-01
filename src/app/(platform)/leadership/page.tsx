@@ -14,47 +14,71 @@ import {
   MapPin,
   GraduationCap,
   Calendar,
-  Trophy,
   Plus,
   Send,
   Info,
   CheckCircle,
   MessageCircle,
+  Globe,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
 
-// US States
-const US_STATES = [
-  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
-  "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
-  "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
-  "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
-  "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
-  "New Hampshire", "New Jersey", "New Mexico", "New York",
-  "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon",
-  "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
-  "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
-  "West Virginia", "Wisconsin", "Wyoming",
+// Regions with directors and states
+interface Region {
+  name: string;
+  states: string[];
+  director: { name: string; school: string; graduation: number } | null;
+}
+
+const regions: Region[] = [
+  {
+    name: "New England",
+    states: ["Connecticut", "Maine", "Massachusetts", "New Hampshire", "New York", "Rhode Island", "Vermont"],
+    director: { name: "Hannah Lee", school: "Cornerstone Academy", graduation: 2028 },
+  },
+  {
+    name: "Mid-Atlantic",
+    states: ["Delaware", "Maryland", "New Jersey", "North Carolina", "Pennsylvania", "Virginia", "West Virginia"],
+    director: { name: "Aiden Brooks", school: "Covenant Christian", graduation: 2028 },
+  },
+  {
+    name: "Southeast",
+    states: ["Alabama", "Florida", "Georgia", "Kentucky", "Louisiana", "Mississippi", "South Carolina", "Tennessee"],
+    director: { name: "Sophia Johnson", school: "Trinity Prep", graduation: 2029 },
+  },
+  {
+    name: "Midwest",
+    states: ["Illinois", "Indiana", "Iowa", "Michigan", "Minnesota", "Missouri", "Ohio", "Wisconsin"],
+    director: { name: "Liam Carter", school: "Cornerstone Academy", graduation: 2028 },
+  },
+  {
+    name: "South Central",
+    states: ["Arkansas", "Kansas", "Nebraska", "North Dakota", "Oklahoma", "South Dakota", "Texas"],
+    director: { name: "Caleb Martinez", school: "Redeemer Prep", graduation: 2028 },
+  },
+  {
+    name: "Mountain West",
+    states: ["Arizona", "Colorado", "Idaho", "Montana", "New Mexico", "Utah", "Wyoming"],
+    director: null,
+  },
+  {
+    name: "Pacific",
+    states: ["Alaska", "California", "Hawaii", "Nevada", "Oregon", "Washington"],
+    director: null,
+  },
 ];
 
 // Mock leadership data
-const president = {
-  name: "Sarah Chen",
-  school: "Grace Academy",
-  graduation: 2027,
-  bio: "Leading our community with a passion for connecting faith and entrepreneurship. 3x monthly winner and top-ranked member.",
-  avgScore: 94,
-  wins: 3,
-};
-
-const vicePresident = {
-  name: "David Park",
-  school: "Covenant Prep",
-  graduation: 2027,
-  bio: "Driving innovation through AI and mentorship initiatives. Focused on building bridges between young entrepreneurs.",
-  avgScore: 91,
-  wins: 2,
-};
+const leaders = [
+  { name: "Sarah Chen", role: "President", school: "Grace Academy", graduation: 2027 },
+  { name: "David Park", role: "VP Marketing", school: "Covenant Prep", graduation: 2027 },
+  { name: "Maria Garcia", role: "VP Technology", school: "Hope Academy", graduation: 2028 },
+  { name: "Elijah Thompson", role: "VP Recruitment", school: "Liberty Christian", graduation: 2028 },
+  { name: "Grace Kim", role: "VP Operations", school: "Faith Lutheran", graduation: 2029 },
+  { name: "Jake Oswald", role: "Advisor", school: "Austin Christian High", graduation: 2027 },
+];
 
 // Mock ambassadors - only a few states filled
 const filledAmbassadors: Record<string, { name: string; school: string; graduation: number }> = {
@@ -73,17 +97,11 @@ function LeaderCard({
   role,
   school,
   graduation,
-  bio,
-  avgScore,
-  wins,
 }: {
   name: string;
   role: string;
   school: string;
   graduation: number;
-  bio: string;
-  avgScore?: number;
-  wins?: number;
 }) {
   return (
     <Card className="relative overflow-hidden">
@@ -111,33 +129,6 @@ function LeaderCard({
               </span>
             </div>
           </div>
-          <p className="mt-3 text-sm text-text-secondary max-w-sm">
-            {bio}
-          </p>
-          {(avgScore || wins) && (
-            <div className="flex items-center gap-6 mt-4 pt-4 border-t border-border-default">
-              {avgScore && (
-                <div className="text-center">
-                  <p className="text-xl font-bold text-brand-500">{avgScore}</p>
-                  <p className="text-[10px] text-text-muted">Avg Score</p>
-                </div>
-              )}
-              {wins !== undefined && (
-                <div className="text-center">
-                  <p className="text-xl font-bold text-yellow-500">{wins}</p>
-                  <p className="text-[10px] text-text-muted">Wins</p>
-                </div>
-              )}
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-3"
-            leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
-          >
-            Message
-          </Button>
         </div>
       </div>
     </Card>
@@ -210,6 +201,88 @@ function VacantAmbassadorCard({
   );
 }
 
+function RegionSection({
+  region,
+  filledAmbassadors,
+  onApply,
+}: {
+  region: Region;
+  filledAmbassadors: Record<string, { name: string; school: string; graduation: number }>;
+  onApply: (state: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const filledCount = region.states.filter((s) => filledAmbassadors[s]).length;
+
+  return (
+    <Card padding="none">
+      {/* Region Header */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-4 p-4 hover:bg-surface-card-hover transition-colors"
+      >
+        <div className="p-2 rounded-xl bg-brand-500/10">
+          <MapPin className="h-5 w-5 text-brand-500" />
+        </div>
+        <div className="flex-1 text-left">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-text-primary">{region.name}</h3>
+            <span className="text-[10px] text-text-muted">
+              {filledCount} / {region.states.length} ambassadors
+            </span>
+          </div>
+          {region.director ? (
+            <div className="flex items-center gap-2 mt-1">
+              <Avatar name={region.director.name} size="xs" />
+              <span className="text-xs text-text-secondary">
+                <span className="font-medium text-brand-500">Director:</span>{" "}
+                {region.director.name} &bull; {region.director.school}
+              </span>
+            </div>
+          ) : (
+            <p className="text-xs text-text-muted mt-1 italic">
+              Regional Director — position open
+            </p>
+          )}
+        </div>
+        {expanded ? (
+          <ChevronUp className="h-4 w-4 text-text-muted" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-text-muted" />
+        )}
+      </button>
+
+      {/* Expanded State List */}
+      {expanded && (
+        <div className="border-t border-border-default p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {region.states.map((state) => {
+              const ambassador = filledAmbassadors[state];
+              if (ambassador) {
+                return (
+                  <AmbassadorCard
+                    key={state}
+                    name={ambassador.name}
+                    state={state}
+                    school={ambassador.school}
+                    graduation={ambassador.graduation}
+                  />
+                );
+              }
+              return (
+                <VacantAmbassadorCard
+                  key={state}
+                  state={state}
+                  onApply={() => onApply(state)}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function LeadershipPage() {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [applyState, setApplyState] = useState("");
@@ -266,6 +339,15 @@ export default function LeadershipPage() {
                 </span>
               </li>
               <li className="flex items-start gap-2">
+                <Globe className="h-4 w-4 text-brand-500 mt-0.5 flex-shrink-0" />
+                <span>
+                  <span className="font-medium text-text-primary">
+                    Juniors &amp; Seniors
+                  </span>{" "}
+                  &mdash; Eligible for Regional Director roles
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
                 <Star className="h-4 w-4 text-brand-500 mt-0.5 flex-shrink-0" />
                 <span>
                   <span className="font-medium text-text-primary">
@@ -294,70 +376,48 @@ export default function LeadershipPage() {
         </div>
       </Card>
 
-      {/* President & Vice President */}
+      {/* Leadership Team */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Crown className="h-5 w-5 text-yellow-500" />
-          <h2 className="text-lg font-bold text-text-primary">Leadership</h2>
+          <h2 className="text-lg font-bold text-text-primary">Leadership Team</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <LeaderCard
-            name={president.name}
-            role="President"
-            school={president.school}
-            graduation={president.graduation}
-            bio={president.bio}
-            avgScore={president.avgScore}
-            wins={president.wins}
-          />
-          <LeaderCard
-            name={vicePresident.name}
-            role="Vice President"
-            school={vicePresident.school}
-            graduation={vicePresident.graduation}
-            bio={vicePresident.bio}
-            avgScore={vicePresident.avgScore}
-            wins={vicePresident.wins}
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {leaders.map((leader) => (
+            <LeaderCard
+              key={leader.role}
+              name={leader.name}
+              role={leader.role}
+              school={leader.school}
+              graduation={leader.graduation}
+            />
+          ))}
         </div>
       </div>
 
-      {/* State Ambassadors */}
+      {/* Regional Directors & State Ambassadors */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-brand-500" />
+            <Globe className="h-5 w-5 text-brand-500" />
             <h2 className="text-lg font-bold text-text-primary">
-              State Ambassadors
+              Regional Directors &amp; State Ambassadors
             </h2>
           </div>
           <span className="text-xs text-text-muted">
-            {Object.keys(filledAmbassadors).length} / {US_STATES.length} filled
+            {Object.keys(filledAmbassadors).length} / {regions.reduce((sum, r) => sum + r.states.length, 0)} ambassadors filled
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {US_STATES.map((state) => {
-            const ambassador = filledAmbassadors[state];
-            if (ambassador) {
-              return (
-                <AmbassadorCard
-                  key={state}
-                  name={ambassador.name}
-                  state={state}
-                  school={ambassador.school}
-                  graduation={ambassador.graduation}
-                />
-              );
-            }
-            return (
-              <VacantAmbassadorCard
-                key={state}
-                state={state}
-                onApply={() => handleApply(state)}
-              />
-            );
-          })}
+        <div className="space-y-4">
+          {regions.map((region) => (
+            <RegionSection
+              key={region.name}
+              region={region}
+              filledAmbassadors={filledAmbassadors}
+              onApply={handleApply}
+            />
+          ))}
         </div>
       </div>
 

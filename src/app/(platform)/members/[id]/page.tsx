@@ -12,16 +12,25 @@ import {
   Handshake,
   Trophy,
   Video,
-  Star,
   Calendar,
   MapPin,
   GraduationCap,
+  Brain,
+  Network,
+  ExternalLink,
+  CircleDollarSign,
+  CheckCircle,
 } from "lucide-react";
 
 const memberSubmissions = [
-  { title: "FaithConnect", score: 92, month: "Feb 2026", status: "Winner" },
-  { title: "PrayerWall", score: 88, month: "Jan 2026", status: "Top 10%" },
-  { title: "ChurchFinder", score: 85, month: "Dec 2025", status: "Finalist" },
+  { id: "10", title: "FaithConnect", score: 92, month: "Feb 2026", status: "Winner" },
+  { id: "5", title: "PrayerWall", score: 88, month: "Jan 2026", status: "Top 10%" },
+  { id: "3", title: "ChurchFinder", score: 85, month: "Dec 2025", status: "Finalist" },
+];
+
+const memberBounties = [
+  { id: "4", title: "Event Landing Page Generator", amount: 3500, status: "won" as const, teamSize: 2 },
+  { id: "2", title: "AI-Powered Sermon Notes Summarizer", amount: 2500, status: "submitted" as const, teamSize: 1 },
 ];
 
 export default function MemberProfilePage() {
@@ -42,7 +51,7 @@ export default function MemberProfilePage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
             <Avatar name="Sarah Chen" size="xl" className="ring-4 ring-surface-card" />
             <div className="flex-1">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl font-bold text-text-primary">
                   Sarah Chen
                 </h1>
@@ -50,8 +59,19 @@ export default function MemberProfilePage() {
                   <Handshake className="h-3 w-3 mr-1" />
                   Looking for co-founders
                 </Badge>
+                <a
+                  href="https://bq.austinchristianu.org/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Badge variant="outline" className="hover:border-brand-500 transition-colors">
+                    <Brain className="h-3 w-3 mr-1" />
+                    BQ: Visionary
+                    <ExternalLink className="h-2.5 w-2.5 ml-1 text-text-muted" />
+                  </Badge>
+                </a>
               </div>
-              <div className="flex items-center gap-4 mt-2 text-sm text-text-secondary">
+              <div className="flex items-center gap-4 mt-2 text-sm text-text-secondary flex-wrap">
                 <span className="flex items-center gap-1">
                   <GraduationCap className="h-4 w-4" />
                   Grace Academy
@@ -90,7 +110,7 @@ export default function MemberProfilePage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-border-default">
+          <div className="grid grid-cols-5 gap-4 mt-6 pt-6 border-t border-border-default">
             <div className="text-center">
               <p className="text-2xl font-bold text-text-primary">5</p>
               <p className="text-xs text-text-muted">Pitches</p>
@@ -107,6 +127,17 @@ export default function MemberProfilePage() {
               <p className="text-2xl font-bold text-success">$5.6k</p>
               <p className="text-xs text-text-muted">Earned</p>
             </div>
+            <div className="text-center">
+              <Link href="/network" className="group">
+                <p className="text-2xl font-bold text-brand-500 group-hover:text-brand-400 transition-colors">
+                  12
+                </p>
+                <p className="text-xs text-text-muted flex items-center justify-center gap-1">
+                  <Network className="h-3 w-3" />
+                  Network
+                </p>
+              </Link>
+            </div>
           </div>
         </div>
       </Card>
@@ -115,10 +146,11 @@ export default function MemberProfilePage() {
       <Card>
         <CardTitle>Pitch History</CardTitle>
         <div className="mt-4 space-y-3">
-          {memberSubmissions.map((sub, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-4 p-3 rounded-xl border border-border-default hover:bg-surface-card-hover transition-colors"
+          {memberSubmissions.map((sub) => (
+            <Link
+              key={sub.id}
+              href={`/submissions/${sub.id}`}
+              className="flex items-center gap-4 p-3 rounded-xl border border-border-default hover:bg-surface-card-hover hover:border-brand-500/30 transition-all"
             >
               <div className="p-2 rounded-lg bg-brand-500/10">
                 <Video className="h-4 w-4 text-brand-500" />
@@ -135,9 +167,7 @@ export default function MemberProfilePage() {
                   {sub.score}
                 </span>
                 <Badge
-                  variant={
-                    sub.status === "Winner" ? "success" : "brand"
-                  }
+                  variant={sub.status === "Winner" ? "success" : "brand"}
                 >
                   {sub.status === "Winner" && (
                     <Trophy className="h-3 w-3 mr-1" />
@@ -145,7 +175,40 @@ export default function MemberProfilePage() {
                   {sub.status}
                 </Badge>
               </div>
-            </div>
+            </Link>
+          ))}
+        </div>
+      </Card>
+
+      {/* Bounty History */}
+      <Card>
+        <CardTitle>Bounty History</CardTitle>
+        <div className="mt-4 space-y-3">
+          {memberBounties.map((bounty) => (
+            <Link
+              key={bounty.id}
+              href="/bounties"
+              className="flex items-center gap-4 p-3 rounded-xl border border-border-default hover:bg-surface-card-hover hover:border-brand-500/30 transition-all"
+            >
+              <div className="p-2 rounded-lg bg-brand-500/10">
+                <CircleDollarSign className="h-4 w-4 text-brand-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-text-primary">
+                  {bounty.title}
+                </p>
+                <p className="text-xs text-text-muted">
+                  ${bounty.amount.toLocaleString()} bounty &bull;{" "}
+                  {bounty.teamSize === 1 ? "Solo" : `Team of ${bounty.teamSize}`}
+                </p>
+              </div>
+              <Badge variant={bounty.status === "won" ? "success" : "default"}>
+                {bounty.status === "won" && (
+                  <Trophy className="h-3 w-3 mr-1" />
+                )}
+                {bounty.status === "won" ? "Won" : "Submitted"}
+              </Badge>
+            </Link>
           ))}
         </div>
       </Card>

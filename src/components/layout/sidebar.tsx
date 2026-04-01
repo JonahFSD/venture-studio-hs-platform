@@ -18,20 +18,32 @@ import {
   Zap,
   Sparkles,
   Crown,
+  Star,
+  Network,
+  ExternalLink,
+  Brain,
+  CircleDollarSign,
 } from "lucide-react";
 
 const mainNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/submissions", label: "Submissions", icon: Video },
   { href: "/voting", label: "Voting", icon: Vote },
+  { href: "/bounties", label: "Bounties", icon: CircleDollarSign },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/hall-of-fame", label: "Hall of Fame", icon: Star },
   { href: "/members", label: "Community", icon: Users },
+  { href: "/network", label: "Network", icon: Network },
   { href: "/leadership", label: "Leadership", icon: Crown },
   { href: "/messages", label: "Messages", icon: MessageCircle },
 ];
 
 const bottomNavItems = [
   { href: "/settings", label: "Settings", icon: Settings },
+];
+
+const externalLinks = [
+  { href: "https://bq.austinchristianu.org/", label: "Builder's Quotient", icon: Brain },
 ];
 
 const adminNavItems = [
@@ -148,6 +160,25 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
             </Link>
           );
         })}
+
+        {/* External Links */}
+        {externalLinks.map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-elevated transition-all duration-200"
+          >
+            <item.icon className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && (
+              <>
+                <span className="flex-1">{item.label}</span>
+                <ExternalLink className="h-3 w-3 text-text-muted" />
+              </>
+            )}
+          </a>
+        ))}
 
         {/* Collapse toggle */}
         <button

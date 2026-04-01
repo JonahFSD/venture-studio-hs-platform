@@ -19,8 +19,6 @@ import {
   Brain,
   Lightbulb,
   Target,
-  Handshake,
-  Shield,
   Users,
   Presentation,
   Heart,
@@ -259,73 +257,39 @@ export default function SubmissionDetailPage() {
             </div>
           </Card>
 
-          {/* Team / Revenue Split */}
-          <Card className="overflow-hidden" padding="none">
-            <div className="bg-brand-500/10 px-5 py-3 flex items-center gap-2 border-b border-brand-500/20">
-              <Handshake className="h-4 w-4 text-brand-500" />
-              <h3 className="text-sm font-semibold text-brand-500">
-                Revenue Split Agreement
+          {/* Team */}
+          <Card>
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="h-4 w-4 text-brand-500" />
+              <h3 className="text-sm font-semibold text-text-primary">
+                Team ({3} members)
               </h3>
             </div>
-            <div className="p-5 space-y-2">
+            <div className="space-y-2">
               {[
-                { name: "Jake Oswald", role: "Lead", split: 50 },
-                { name: "Sarah Chen", role: "Collaborator", split: 30 },
-                { name: "David Park", role: "Collaborator", split: 20 },
+                { id: "4", name: "Jake Oswald", role: "Lead" },
+                { id: "1", name: "Sarah Chen", role: "Collaborator" },
+                { id: "2", name: "David Park", role: "Collaborator" },
               ].map((member, i) => (
-                <div
+                <Link
                   key={i}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-surface-elevated"
+                  href={`/members/${member.id}`}
+                  className="flex items-center gap-3 p-2.5 rounded-lg bg-surface-elevated hover:bg-surface-overlay transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    <Avatar name={member.name} size="sm" />
-                    <div>
-                      <p className="text-xs font-medium text-text-primary">
-                        {member.name}
-                      </p>
-                      <Badge
-                        variant={member.role === "Lead" ? "brand" : "default"}
-                        className="mt-0.5"
-                      >
-                        {member.role}
-                      </Badge>
-                    </div>
+                  <Avatar name={member.name} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-text-primary hover:text-brand-500 transition-colors">
+                      {member.name}
+                    </p>
+                    <Badge
+                      variant={member.role === "Lead" ? "brand" : "default"}
+                      className="mt-0.5"
+                    >
+                      {member.role}
+                    </Badge>
                   </div>
-                  <span className="text-base font-bold text-text-primary">
-                    {member.split}%
-                  </span>
-                </div>
+                </Link>
               ))}
-            </div>
-            <div className="bg-surface-elevated px-5 py-2.5 border-t border-border-default">
-              <p className="text-[10px] text-text-muted flex items-center gap-1">
-                <Shield className="h-3 w-3" />
-                Locked on submission &mdash; cannot be changed
-              </p>
-            </div>
-          </Card>
-
-          {/* Score Summary */}
-          <Card className="bg-gradient-to-b from-brand-500/5 to-transparent border-brand-500/20">
-            <div className="text-center">
-              <p className="text-xs text-text-muted uppercase tracking-wider">
-                Overall Score
-              </p>
-              <p className="text-5xl font-bold text-brand-500 mt-2">
-                {overallScore}
-              </p>
-              <p className="text-sm text-text-secondary mt-1">
-                out of {maxScore} points
-              </p>
-              <Progress
-                value={overallScore}
-                max={maxScore}
-                size="lg"
-                className="mt-4"
-              />
-              <Badge variant="brand" className="mt-4">
-                Top 10% this month
-              </Badge>
             </div>
           </Card>
         </div>
