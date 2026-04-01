@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   Calendar,
   Flag,
   ExternalLink,
+  Shield,
 } from "lucide-react";
 
 const flaggedStudents = [
@@ -96,28 +98,27 @@ export default function PipelinePage() {
         Back to Admin
       </Link>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-text-primary">
-              Venture Studio Pipeline
-            </h1>
+      <PlatformPageHeader
+        icon={Shield}
+        title={
+          <span className="inline-flex items-center gap-3 flex-wrap">
+            <span>Venture Studio Pipeline</span>
             <Badge variant="brand">
               <Rocket className="h-3 w-3 mr-1" />
               {flaggedStudents.length} candidates
             </Badge>
-          </div>
-          <p className="text-sm text-text-secondary mt-1">
-            High-potential students flagged for ACU venture studio recruitment
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          leftIcon={<Download className="h-4 w-4" />}
-        >
-          Export CSV
-        </Button>
-      </div>
+          </span>
+        }
+        description="High-potential students flagged for ACU venture studio recruitment"
+        actions={
+          <Button
+            variant="outline"
+            leftIcon={<Download className="h-4 w-4" />}
+          >
+            Export CSV
+          </Button>
+        }
+      />
 
       {/* Pipeline Cards */}
       <div className="space-y-4">

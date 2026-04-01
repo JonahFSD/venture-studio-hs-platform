@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
+import { InfoCallout } from "@/components/ui/info-callout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
@@ -11,13 +13,13 @@ import {
   Send,
   Pencil,
   Lock,
-  Trophy,
-  DollarSign,
   Info,
+  Vote,
 } from "lucide-react";
 
 type VotingState = "idle" | "submitted" | "editing";
 
+/** Top 10 pitches for the round, ordered by AI score (highest first). */
 const initialSubmissions = [
   {
     id: "1",
@@ -26,14 +28,6 @@ const initialSubmissions = [
       "A social platform connecting young Christians through shared interests, bible study groups, and local events.",
     user: { name: "Sarah Chen", school: "Grace Academy" },
     score: 92,
-  },
-  {
-    id: "2",
-    title: "EcoTrack - Carbon Footprint Tracker",
-    description:
-      "A mobile app that helps teens track and reduce their carbon footprint through gamification and community challenges.",
-    user: { name: "Jake Oswald", school: "Austin Christian High" },
-    score: 87,
   },
   {
     id: "3",
@@ -52,6 +46,14 @@ const initialSubmissions = [
     score: 89,
   },
   {
+    id: "2",
+    title: "EcoTrack - Carbon Footprint Tracker",
+    description:
+      "A mobile app that helps teens track and reduce their carbon footprint through gamification and community challenges.",
+    user: { name: "Jake Oswald", school: "Austin Christian High" },
+    score: 87,
+  },
+  {
     id: "5",
     title: "StudyCircle - Group Learning",
     description:
@@ -59,7 +61,47 @@ const initialSubmissions = [
     user: { name: "Elijah Thompson", school: "Liberty Christian" },
     score: 86,
   },
-];
+  {
+    id: "6",
+    title: "ServeLocal - Volunteer Discovery",
+    description:
+      "A map-based app surfacing weekend service opportunities matched to your skills and availability.",
+    user: { name: "Anna Kim", school: "Covenant Prep" },
+    score: 85,
+  },
+  {
+    id: "7",
+    title: "BrightPath - Career Explorer",
+    description:
+      "Short video interviews with professionals in faith-aligned careers, with AI-curated paths for each student.",
+    user: { name: "Marcus Webb", school: "Hope Academy" },
+    score: 84,
+  },
+  {
+    id: "8",
+    title: "Rooted - Scripture Journaling",
+    description:
+      "A guided journaling app that connects daily readings to personal goals and small-group discussion prompts.",
+    user: { name: "Lily Nguyen", school: "Liberty Christian" },
+    score: 83,
+  },
+  {
+    id: "9",
+    title: "SkillShare Teens - Peer Tutoring",
+    description:
+      "Peer-to-peer tutoring marketplace with verified student tutors and school-safe video sessions.",
+    user: { name: "Noah Brooks", school: "Grace Academy" },
+    score: 82,
+  },
+  {
+    id: "10",
+    title: "Hearth - Family Devotions",
+    description:
+      "Weekly family devotion packs with discussion guides and age-appropriate activities for siblings.",
+    user: { name: "Rachel Ortiz", school: "Austin Christian High" },
+    score: 80,
+  },
+].sort((a, b) => b.score - a.score);
 
 export default function VotingPage() {
   const [submissions, setSubmissions] = useState(initialSubmissions);
@@ -196,32 +238,23 @@ export default function VotingPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">Monthly Voting</h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Rank-choice voting for this month&apos;s best pitches
-        </p>
-      </div>
+      <PlatformPageHeader
+        icon={Vote}
+        title="Monthly Voting"
+        description={"Rank-choice voting for this month's best pitches"}
+      />
 
       {/* Voting Round Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-brand-500/5 to-transparent border border-brand-500/20">
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-brand-500/10">
-            <Trophy className="h-6 w-6 text-brand-500" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-text-primary">
-              March 2026 Voting Round
-            </h2>
-            <div className="flex items-center gap-3 mt-1">
-              <Badge variant="brand">
-                <Clock className="h-3 w-3 mr-1" />4 days remaining
-              </Badge>
-              <span className="flex items-center gap-1 text-sm text-text-secondary">
-                <DollarSign className="h-3.5 w-3.5" />
-                $1,890 pool &bull; Top 3 win
-              </span>
-            </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-brand-500/5 to-transparent border border-solid border-border-default">
+        <div>
+          <h2 className="text-lg font-bold text-text-primary">
+            March 2026 Voting Round
+          </h2>
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
+            <Badge variant="brand">
+              <Clock className="h-3 w-3 mr-1" />4 days remaining
+            </Badge>
+            <span className="text-sm text-text-secondary">$1,890 pool</span>
           </div>
         </div>
 
@@ -248,7 +281,7 @@ export default function VotingPage() {
       </div>
 
       {/* Instruction */}
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-elevated border border-border-default">
+      <InfoCallout padding="none" className="flex items-center gap-2 px-4 py-2.5">
         <Info className="h-4 w-4 text-brand-500 flex-shrink-0" />
         <p className="text-sm text-text-secondary">
           {isLocked ? (
@@ -267,7 +300,7 @@ export default function VotingPage() {
             </>
           )}
         </p>
-      </div>
+      </InfoCallout>
 
       {/* Ranked Cards */}
       <div className="space-y-3" onTouchMove={handleTouchMove}>

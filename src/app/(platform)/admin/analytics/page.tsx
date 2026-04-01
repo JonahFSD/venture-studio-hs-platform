@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +13,7 @@ import {
   Vote,
   TrendingUp,
   Activity,
+  Shield,
 } from "lucide-react";
 
 const monthlyData = [
@@ -36,12 +38,11 @@ export default function AnalyticsPage() {
         Back to Admin
       </Link>
 
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">Analytics</h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Platform metrics and growth insights
-        </p>
-      </div>
+      <PlatformPageHeader
+        icon={Shield}
+        title="Analytics"
+        description="Platform metrics and growth insights"
+      />
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

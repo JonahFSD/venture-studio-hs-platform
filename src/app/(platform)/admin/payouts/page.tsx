@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import {
   Calendar,
   Medal,
   Crown,
+  Shield,
 } from "lucide-react";
 
 const prizePoolHistory = [
@@ -87,17 +89,14 @@ export default function PayoutsPage() {
         Back to Admin
       </Link>
 
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">
-          Payouts & Prize Pool
-        </h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Manage monthly prize pools and 1st / 2nd / 3rd place payouts
-        </p>
-      </div>
+      <PlatformPageHeader
+        icon={Shield}
+        title="Payouts & Prize Pool"
+        description="Manage monthly prize pools and 1st / 2nd / 3rd place payouts"
+      />
 
       {/* Current Month */}
-      <Card className="bg-gradient-to-r from-brand-500/5 to-transparent border-brand-500/20">
+      <Card className="bg-gradient-to-r from-brand-500/5 to-transparent border border-dashed border-brand-500/30">
         <CardHeader>
           <div>
             <CardTitle>March 2026 Prize Pool</CardTitle>

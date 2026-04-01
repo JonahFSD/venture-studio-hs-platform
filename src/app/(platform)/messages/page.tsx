@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
@@ -78,13 +79,12 @@ export default function MessagesPage() {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Messages</h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Direct messages with community members
-          </p>
-        </div>
+      <div className="mb-6">
+        <PlatformPageHeader
+          icon={MessageCircle}
+          title="Messages"
+          description="Direct messages with community members"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 lg:gap-0 h-[calc(100dvh-220px)] rounded-2xl border border-border-default overflow-hidden">

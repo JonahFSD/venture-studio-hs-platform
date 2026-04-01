@@ -16,7 +16,9 @@ import {
   DollarSign,
   Shield,
   Inbox,
+  Video,
 } from "lucide-react";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import Link from "next/link";
 
 const mockInvitations = [
@@ -77,21 +79,18 @@ export default function InvitationsPage() {
         Back to Submissions
       </Link>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">
-            Team Invitations
-          </h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Review and respond to collaboration requests
-          </p>
-        </div>
-        {invitations.length > 0 && (
-          <Badge variant="brand" className="text-sm py-1 px-3">
-            {invitations.length} pending
-          </Badge>
-        )}
-      </div>
+      <PlatformPageHeader
+        icon={Video}
+        title="Team Invitations"
+        description="Review and respond to collaboration requests"
+        actions={
+          invitations.length > 0 ? (
+            <Badge variant="brand" className="text-sm py-1 px-3">
+              {invitations.length} pending
+            </Badge>
+          ) : undefined
+        }
+      />
 
       {invitations.length === 0 ? (
         <EmptyState

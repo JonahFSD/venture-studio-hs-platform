@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardTitle } from "@/components/ui/card";
+import { InfoCallout } from "@/components/ui/info-callout";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -130,12 +132,11 @@ export default function NewSubmissionPage() {
           <ArrowLeft className="h-4 w-4" />
           Back
         </button>
-        <h1 className="text-2xl font-bold text-text-primary">
-          Submit New Pitch
-        </h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Share your venture idea with the community
-        </p>
+        <PlatformPageHeader
+          icon={Video}
+          title="Submit New Pitch"
+          description="Share your venture idea with the community"
+        />
       </div>
 
       {/* Progress */}
@@ -731,13 +732,13 @@ export default function NewSubmissionPage() {
                 </div>
               )}
 
-              <div className="p-4 rounded-xl bg-brand-500/5 border border-brand-500/20">
+              <InfoCallout padding="sm">
                 <p className="text-sm text-text-secondary">
                   By submitting, your pitch will be processed by our AI judging
                   engine. You&apos;ll receive detailed feedback within 24-48
                   hours. Top scoring pitches qualify for community voting.
                 </p>
-              </div>
+              </InfoCallout>
             </div>
           </div>
         )}

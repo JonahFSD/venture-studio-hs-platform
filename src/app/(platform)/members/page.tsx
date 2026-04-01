@@ -2,25 +2,20 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
+import { cn } from "@/lib/utils";
 import {
-  Search,
-  MessageCircle,
-  Handshake,
-  Filter,
-  X,
-  ChevronDown,
-  Brain,
-} from "lucide-react";
-
-const BQ_TYPES = ["Anchor", "Visionary", "Operator", "Catalyst", "Strategist", "Builder"];
-const SKILLS = ["React", "Python", "UI/UX", "Machine Learning", "Node.js", "Marketing", "Design", "Swift", "Leadership", "TypeScript", "Go", "DevOps", "Figma", "Branding", "Content", "Data Science", "SQL", "Analytics"];
-const STATES = ["TX", "CA", "FL", "VA", "WA", "OH", "GA"];
-const GRAD_YEARS = [2025, 2026, 2027, 2028, 2029, 2030];
+  BQ_TYPES,
+  GRAD_YEARS,
+  SKILLS,
+  STATES,
+} from "@/lib/community-filter.constants";
+import { Search, Handshake, Filter, X, Users } from "lucide-react";
 
 const mockMembers = [
   {
@@ -38,6 +33,8 @@ const mockMembers = [
     avgScore: 94,
     bqType: "Visionary",
     networkCount: 12,
+    points: 18750,
+    monthsAsMember: 18,
   },
   {
     id: "2",
@@ -54,6 +51,8 @@ const mockMembers = [
     avgScore: 91,
     bqType: "Operator",
     networkCount: 8,
+    points: 14200,
+    monthsAsMember: 14,
   },
   {
     id: "3",
@@ -70,6 +69,8 @@ const mockMembers = [
     avgScore: 89,
     bqType: "Catalyst",
     networkCount: 6,
+    points: 12500,
+    monthsAsMember: 22,
   },
   {
     id: "4",
@@ -86,6 +87,8 @@ const mockMembers = [
     avgScore: 86,
     bqType: "Strategist",
     networkCount: 4,
+    points: 8800,
+    monthsAsMember: 9,
   },
   {
     id: "5",
@@ -102,6 +105,8 @@ const mockMembers = [
     avgScore: 84,
     bqType: "Anchor",
     networkCount: 3,
+    points: 3200,
+    monthsAsMember: 7,
   },
   {
     id: "6",
@@ -118,6 +123,8 @@ const mockMembers = [
     avgScore: 82,
     bqType: "Builder",
     networkCount: 2,
+    points: 2800,
+    monthsAsMember: 5,
   },
 ];
 
@@ -125,33 +132,41 @@ export default function MembersPage() {
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [showCoFoundersOnly, setShowCoFoundersOnly] = useState(false);
-  const [filterSkill, setFilterSkill] = useState("");
-  const [filterBQ, setFilterBQ] = useState("");
-  const [filterState, setFilterState] = useState("");
-  const [filterGradYear, setFilterGradYear] = useState("");
-  const [filterMinSubmissions, setFilterMinSubmissions] = useState("");
-  const [filterMinWins, setFilterMinWins] = useState("");
+  const [filterSkills, setFilterSkills] = useState<string[]>([]);
+  const [filterBQTypes, setFilterBQTypes] = useState<string[]>([]);
+  const [filterStates, setFilterStates] = useState<string[]>([]);
+  const [filterGradYears, setFilterGradYears] = useState<string[]>([]);
   const [filterMinScore, setFilterMinScore] = useState("");
-  const [filterMinEarnings, setFilterMinEarnings] = useState("");
-  const [filterMaxEarnings, setFilterMaxEarnings] = useState("");
+  const [filterMaxScore, setFilterMaxScore] = useState("");
+  const [filterMinPoints, setFilterMinPoints] = useState("");
+  const [filterMaxPoints, setFilterMaxPoints] = useState("");
+  const [filterMinMemberMonths, setFilterMinMemberMonths] = useState("");
+  const [filterMaxMemberMonths, setFilterMaxMemberMonths] = useState("");
 
-  const activeFilterCount = [
-    filterSkill, filterBQ, filterState, filterGradYear,
-    filterMinSubmissions, filterMinWins, filterMinScore,
-    filterMinEarnings, filterMaxEarnings,
-    showCoFoundersOnly ? "1" : "",
-  ].filter(Boolean).length;
+  const activeFilterCount =
+    filterSkills.length +
+    filterBQTypes.length +
+    filterStates.length +
+    filterGradYears.length +
+    (filterMinScore ? 1 : 0) +
+    (filterMaxScore ? 1 : 0) +
+    (filterMinPoints ? 1 : 0) +
+    (filterMaxPoints ? 1 : 0) +
+    (filterMinMemberMonths ? 1 : 0) +
+    (filterMaxMemberMonths ? 1 : 0) +
+    (showCoFoundersOnly ? 1 : 0);
 
   const clearFilters = () => {
-    setFilterSkill("");
-    setFilterBQ("");
-    setFilterState("");
-    setFilterGradYear("");
-    setFilterMinSubmissions("");
-    setFilterMinWins("");
+    setFilterSkills([]);
+    setFilterBQTypes([]);
+    setFilterStates([]);
+    setFilterGradYears([]);
     setFilterMinScore("");
-    setFilterMinEarnings("");
-    setFilterMaxEarnings("");
+    setFilterMaxScore("");
+    setFilterMinPoints("");
+    setFilterMaxPoints("");
+    setFilterMinMemberMonths("");
+    setFilterMaxMemberMonths("");
     setShowCoFoundersOnly(false);
   };
 
@@ -159,30 +174,55 @@ export default function MembersPage() {
     return mockMembers.filter((m) => {
       if (showCoFoundersOnly && !m.looking_for_cofounders) return false;
       if (search && !m.name.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filterSkill && !m.skills.includes(filterSkill)) return false;
-      if (filterBQ && m.bqType !== filterBQ) return false;
-      if (filterState && m.state !== filterState) return false;
-      if (filterGradYear && m.gradYear !== Number(filterGradYear)) return false;
-      if (filterMinSubmissions && m.submissions_count < Number(filterMinSubmissions)) return false;
-      if (filterMinWins && m.wins < Number(filterMinWins)) return false;
+      if (
+        filterSkills.length > 0 &&
+        !filterSkills.some((s) => m.skills.includes(s))
+      ) {
+        return false;
+      }
+      if (filterBQTypes.length > 0 && !filterBQTypes.includes(m.bqType)) {
+        return false;
+      }
+      if (filterStates.length > 0 && !filterStates.includes(m.state)) {
+        return false;
+      }
+      if (
+        filterGradYears.length > 0 &&
+        !filterGradYears.includes(String(m.gradYear))
+      ) {
+        return false;
+      }
       if (filterMinScore && (m.avgScore || 0) < Number(filterMinScore)) return false;
-      if (filterMinEarnings && m.totalEarnings < Number(filterMinEarnings)) return false;
-      if (filterMaxEarnings && m.totalEarnings > Number(filterMaxEarnings)) return false;
+      if (filterMaxScore && (m.avgScore || 0) > Number(filterMaxScore)) return false;
+      if (filterMinPoints && m.points < Number(filterMinPoints)) return false;
+      if (filterMaxPoints && m.points > Number(filterMaxPoints)) return false;
+      if (filterMinMemberMonths && m.monthsAsMember < Number(filterMinMemberMonths)) return false;
+      if (filterMaxMemberMonths && m.monthsAsMember > Number(filterMaxMemberMonths)) return false;
       return true;
     });
-  }, [search, showCoFoundersOnly, filterSkill, filterBQ, filterState, filterGradYear, filterMinSubmissions, filterMinWins, filterMinScore, filterMinEarnings, filterMaxEarnings]);
+  }, [
+    search,
+    showCoFoundersOnly,
+    filterSkills,
+    filterBQTypes,
+    filterStates,
+    filterGradYears,
+    filterMinScore,
+    filterMaxScore,
+    filterMinPoints,
+    filterMaxPoints,
+    filterMinMemberMonths,
+    filterMaxMemberMonths,
+  ]);
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Community</h1>
-          <p className="text-sm text-text-secondary mt-1">
-            {mockMembers.length} members &bull; Connect with fellow founders
-          </p>
-        </div>
-      </div>
+      <PlatformPageHeader
+        icon={Users}
+        title="Community"
+        description={`${mockMembers.length} members • Connect with fellow founders`}
+      />
 
       {/* Search & Filter Toggle */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -206,212 +246,209 @@ export default function MembersPage() {
             </span>
           )}
         </Button>
-        <Button
-          variant={showCoFoundersOnly ? "brand" : "outline"}
-          onClick={() => setShowCoFoundersOnly(!showCoFoundersOnly)}
-          leftIcon={<Handshake className="h-4 w-4" />}
-        >
-          Co-Founders
-        </Button>
       </div>
 
       {/* Expanded Filters */}
       {showFilters && (
         <Card className="animate-slide-down">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-text-primary">Filters</h3>
-            {activeFilterCount > 0 && (
+          {activeFilterCount > 0 && (
+            <div className="mb-4 flex justify-end">
               <button
+                type="button"
                 onClick={clearFilters}
-                className="text-xs text-brand-500 hover:text-brand-400 flex items-center gap-1"
+                className="flex items-center gap-1 text-xs text-brand-500 hover:text-brand-400"
               >
                 <X className="h-3 w-3" />
                 Clear all
               </button>
-            )}
-          </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {/* Skill */}
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Skill</label>
-              <select
-                value={filterSkill}
-                onChange={(e) => setFilterSkill(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary"
-              >
-                <option value="">All skills</option>
-                {SKILLS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+            <MultiSelectDropdown
+              label="Skill"
+              options={SKILLS}
+              value={filterSkills}
+              onChange={setFilterSkills}
+              emptyLabel="All skills"
+            />
 
-            {/* BQ Type */}
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">BQ Type</label>
-              <select
-                value={filterBQ}
-                onChange={(e) => setFilterBQ(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary"
-              >
-                <option value="">All types</option>
-                {BQ_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
+            <MultiSelectDropdown
+              label="BQ Type"
+              options={BQ_TYPES}
+              value={filterBQTypes}
+              onChange={setFilterBQTypes}
+              emptyLabel="All types"
+            />
 
-            {/* State */}
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">State</label>
-              <select
-                value={filterState}
-                onChange={(e) => setFilterState(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary"
-              >
-                <option value="">All states</option>
-                {STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+            <MultiSelectDropdown
+              label="State"
+              options={STATES}
+              value={filterStates}
+              onChange={setFilterStates}
+              emptyLabel="All states"
+            />
 
-            {/* Graduation Year */}
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Grad Year</label>
-              <select
-                value={filterGradYear}
-                onChange={(e) => setFilterGradYear(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary"
-              >
-                <option value="">All years</option>
-                {GRAD_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
+            <MultiSelectDropdown
+              label="Grad Year"
+              options={GRAD_YEARS.map(String)}
+              value={filterGradYears}
+              onChange={setFilterGradYears}
+              emptyLabel="All years"
+            />
 
-            {/* Min Submissions */}
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Min Submissions</label>
-              <input
-                type="number"
-                min="0"
-                placeholder="Any"
-                value={filterMinSubmissions}
-                onChange={(e) => setFilterMinSubmissions(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted"
-              />
-            </div>
-
-            {/* Min Wins */}
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Min Wins</label>
-              <input
-                type="number"
-                min="0"
-                placeholder="Any"
-                value={filterMinWins}
-                onChange={(e) => setFilterMinWins(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted"
-              />
-            </div>
-
-            {/* Min Avg AI Score */}
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">Min Avg AI Score</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                placeholder="Any"
-                value={filterMinScore}
-                onChange={(e) => setFilterMinScore(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted"
-              />
-            </div>
-
-            {/* $ Won Range */}
-            <div>
-              <label className="block text-xs font-medium text-text-muted mb-1">$ Won (range)</label>
+            {/* Row 2: Points & Avg AI Score under Skill & BQ; Months & toggle under State & Grad */}
+            <div className="flex flex-col">
+              <label className="mb-1 block text-xs font-medium text-text-muted">
+                Points
+              </label>
               <div className="flex gap-1.5">
                 <input
                   type="number"
                   min="0"
                   placeholder="Min"
-                  value={filterMinEarnings}
-                  onChange={(e) => setFilterMinEarnings(e.target.value)}
-                  className="w-full h-9 px-2 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted"
+                  value={filterMinPoints}
+                  onChange={(e) => setFilterMinPoints(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
                 />
                 <input
                   type="number"
                   min="0"
                   placeholder="Max"
-                  value={filterMaxEarnings}
-                  onChange={(e) => setFilterMaxEarnings(e.target.value)}
-                  className="w-full h-9 px-2 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted"
+                  value={filterMaxPoints}
+                  onChange={(e) => setFilterMaxPoints(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="mb-1 block text-xs font-medium text-text-muted">
+                Avg AI Score
+              </label>
+              <div className="flex gap-1.5">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="Min"
+                  value={filterMinScore}
+                  onChange={(e) => setFilterMinScore(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="Max"
+                  value={filterMaxScore}
+                  onChange={(e) => setFilterMaxScore(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="mb-1 block text-xs font-medium text-text-muted">
+                Months on Platform
+              </label>
+              <div className="flex gap-1.5">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Min"
+                  value={filterMinMemberMonths}
+                  onChange={(e) => setFilterMinMemberMonths(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Max"
+                  value={filterMaxMemberMonths}
+                  onChange={(e) => setFilterMaxMemberMonths(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <span className="mb-1 block text-xs font-medium text-text-muted">
+                Open to Cofounders
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showCoFoundersOnly}
+                aria-label="Open to Cofounders"
+                onClick={() => setShowCoFoundersOnly((v) => !v)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowCoFoundersOnly((v) => !v);
+                  }
+                }}
+                className={cn(
+                  "relative h-9 w-[3.75rem] shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-card",
+                  showCoFoundersOnly
+                    ? "border-brand-500 bg-brand-500/15"
+                    : "border-border-default bg-surface-elevated"
+                )}
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none absolute left-0.5 top-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-surface-card shadow-sm transition-transform duration-200",
+                    showCoFoundersOnly
+                      ? "translate-x-7 text-brand-500"
+                      : "translate-x-0 text-white"
+                  )}
+                >
+                  <Handshake className="h-4 w-4" aria-hidden />
+                </span>
+              </button>
             </div>
           </div>
         </Card>
       )}
 
       {/* Members Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {filtered.map((member) => (
           <Link key={member.id} href={`/members/${member.id}`}>
-            <Card hover glow className="h-full">
-              <div className="flex items-start gap-3 mb-4">
-                <Avatar name={member.name} size="lg" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-text-primary truncate">
-                    {member.name}
-                  </p>
-                  <p className="text-xs text-text-muted">
-                    {member.school} &bull; {member.state}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    {member.looking_for_cofounders && (
-                      <Badge variant="brand">
-                        <Handshake className="h-3 w-3 mr-1" />
-                        Co-founder
-                      </Badge>
-                    )}
-                    {member.bqType && (
-                      <span
-                        role="link"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          window.open("https://bq.austinchristianu.org/", "_blank");
-                        }}
-                      >
-                        <Badge variant="outline" className="text-[10px] cursor-pointer">
-                          <Brain className="h-3 w-3 mr-0.5" />
+            <Card hover glow padding="sm" className="h-full">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-start gap-2">
+                  <Avatar name={member.name} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-text-primary truncate">
+                      {member.name}
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      {member.school} &bull; {member.state}
+                    </p>
+                    <div
+                      className="mt-2 border-t border-border-default pt-2 space-y-1"
+                      role="presentation"
+                    >
+                      <p className="text-xs text-text-muted tabular-nums">
+                        Points: {member.points.toLocaleString()}
+                      </p>
+                      {member.bqType && (
+                        <p className="text-xs text-text-muted tabular-nums">
                           BQ: {member.bqType}
-                        </Badge>
-                      </span>
-                    )}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <p className="text-sm text-text-secondary line-clamp-2 mb-4">
-                {member.bio}
-              </p>
-
-              {/* Skills */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                {member.skills.map((skill) => (
-                  <Badge key={skill} variant="outline">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center justify-between pt-4 border-t border-border-default">
-                <div className="flex items-center gap-4 text-xs text-text-muted">
-                  <span>{member.submissions_count} pitches</span>
-                  <span>{member.wins} wins</span>
-                  <span>Score: {member.avgScore}</span>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <MessageCircle className="h-4 w-4" />
-                </Button>
+                {member.looking_for_cofounders && (
+                  <span
+                    className="shrink-0 text-brand-500"
+                    aria-label="Open to co-founders"
+                    title="Open to co-founders"
+                  >
+                    <Handshake className="h-4 w-4" />
+                  </span>
+                )}
               </div>
             </Card>
           </Link>

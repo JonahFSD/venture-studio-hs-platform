@@ -1,5 +1,6 @@
 "use client";
 
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,17 +17,17 @@ import {
   Save,
   ExternalLink,
   CheckCircle,
+  Settings,
 } from "lucide-react";
 
 export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">Settings</h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Manage your profile, subscription, and preferences
-        </p>
-      </div>
+      <PlatformPageHeader
+        icon={Settings}
+        title="Settings"
+        description="Manage your profile, subscription, and preferences"
+      />
 
       <Tabs
         tabs={[
@@ -125,7 +126,7 @@ export default function SettingsPage() {
             {activeTab === "subscription" && (
               <div className="space-y-6">
                 {/* Current Plan */}
-                <Card className="bg-gradient-to-r from-brand-500/5 to-transparent border-brand-500/20">
+                <Card className="bg-gradient-to-r from-brand-500/5 to-transparent border border-dashed border-brand-500/30">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2">

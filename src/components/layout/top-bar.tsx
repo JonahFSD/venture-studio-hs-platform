@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/ui/avatar";
-import { Bell, Search, Plus, LogOut, User } from "lucide-react";
+import { Bell, Plus, LogOut, User } from "lucide-react";
 import Link from "next/link";
 
 export function TopBar() {
@@ -11,22 +10,8 @@ export function TopBar() {
   const [showProfile, setShowProfile] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-6 bg-surface-primary/80 backdrop-blur-xl border-b border-border-default font-sans">
-      {/* Search */}
-      <div className="relative flex-1 max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
-        <input
-          type="text"
-          placeholder="Search submissions, members..."
-          className="w-full h-9 pl-10 pr-4 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition-colors"
-        />
-        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono text-text-muted bg-surface-primary border border-border-default">
-          /
-        </kbd>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-2 ml-4">
+    <header className="sticky top-0 z-30 h-16 flex items-center justify-end px-6 bg-surface-primary/80 backdrop-blur-xl border-b border-border-default font-sans">
+      <div className="flex items-center gap-2">
         {/* New Submission */}
         <Link
           href="/submissions/new"

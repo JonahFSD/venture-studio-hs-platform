@@ -78,7 +78,7 @@ CREATE TABLE submissions (
   slide_deck_url TEXT,
   additional_links JSONB DEFAULT '{}',
   month_year TEXT NOT NULL, -- e.g., '2026-03'
-  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'scoring', 'scored', 'voting', 'archived')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'scored')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

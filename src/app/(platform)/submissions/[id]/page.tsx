@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardTitle } from "@/components/ui/card";
+import { InfoCallout } from "@/components/ui/info-callout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -87,15 +89,16 @@ export default function SubmissionDetailPage() {
       </Link>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-2xl font-bold text-text-primary">
-              EcoTrack - Carbon Footprint Tracker
-            </h1>
+      <PlatformPageHeader
+        icon={Video}
+        title={
+          <span className="flex items-center gap-3 flex-wrap">
+            <span>EcoTrack - Carbon Footprint Tracker</span>
             <Badge variant="success">Scored</Badge>
-          </div>
-          <div className="flex items-center gap-4 text-sm text-text-secondary">
+          </span>
+        }
+        description={
+          <div className="flex items-center gap-4 text-sm text-text-secondary flex-wrap">
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
               March 2026
@@ -109,8 +112,8 @@ export default function SubmissionDetailPage() {
               Top 10%
             </span>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
@@ -215,7 +218,7 @@ export default function SubmissionDetailPage() {
             </div>
 
             {/* Qualitative Summary */}
-            <div className="mt-6 p-4 rounded-xl bg-brand-500/5 border border-brand-500/10">
+            <InfoCallout padding="sm" className="mt-6">
               <h4 className="text-sm font-semibold text-brand-500 mb-2">
                 Overall Assessment
               </h4>
@@ -228,7 +231,7 @@ export default function SubmissionDetailPage() {
                 analysis. The faith alignment through stewardship is authentic
                 and compelling.
               </p>
-            </div>
+            </InfoCallout>
           </Card>
         </div>
 

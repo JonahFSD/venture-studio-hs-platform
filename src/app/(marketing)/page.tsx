@@ -54,7 +54,7 @@ function HeroSection() {
 
       <div className="relative max-w-4xl mx-auto text-center">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 mb-8">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-dashed border-brand-500/30 mb-8">
           <Sparkles className="h-3.5 w-3.5 text-brand-500" />
           <span className="text-sm font-medium text-brand-500">
             Faith-Driven Entrepreneurship
@@ -258,7 +258,7 @@ function CTASection() {
   return (
     <section className="py-20 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto text-center">
-        <div className="relative p-12 rounded-3xl border border-brand-500/20 bg-gradient-to-b from-brand-500/5 to-transparent overflow-hidden">
+        <div className="relative p-12 rounded-3xl border border-dashed border-brand-500/30 bg-gradient-to-b from-brand-500/5 to-transparent overflow-hidden">
           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,229,220,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,229,220,0.02)_1px,transparent_1px)] bg-[size:32px_32px]" />
           <div className="relative">
             <h2 className="text-3xl sm:text-4xl font-bold text-text-primary">

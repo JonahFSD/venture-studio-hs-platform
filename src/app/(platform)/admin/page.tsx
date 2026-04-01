@@ -1,7 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
+import { Card } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,10 +13,23 @@ import {
   DollarSign,
   Rocket,
   ArrowRight,
-  AlertCircle,
-  TrendingUp,
   Activity,
+  Shield,
+  Trophy,
 } from "lucide-react";
+
+const AdminPlatformTrendsChart = dynamic(
+  () =>
+    import("@/components/admin/admin-platform-trends-chart").then(
+      (m) => m.AdminPlatformTrendsChart
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full min-h-[12rem] rounded-xl border border-border-default bg-surface-card/50 animate-pulse" />
+    ),
+  }
+);
 
 const quickLinks = [
   {
@@ -52,72 +68,23 @@ const quickLinks = [
 
 export default function AdminPage() {
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl font-bold text-text-primary">Admin Panel</h1>
-          <Badge variant="brand">Staff</Badge>
-        </div>
-        <p className="text-sm text-text-secondary">
-          Manage applications, payouts, and the venture studio pipeline
-        </p>
-      </div>
+    <div
+      className={cn(
+        "flex flex-col gap-4 md:gap-6 animate-fade-in w-full min-h-0",
+        "min-h-[calc(100dvh-11rem)]",
+        "lg:h-[calc(100dvh-8rem)] lg:max-h-[calc(100dvh-8rem)] lg:min-h-[calc(100dvh-8rem)]",
+        "lg:overflow-hidden"
+      )}
+    >
+      <PlatformPageHeader
+        className="shrink-0"
+        icon={Shield}
+        title="Admin"
+        description="Manage applications, payouts, and the venture studio pipeline"
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Members"
-          value="210"
-          change={15}
-          changeLabel="this month"
-          icon={<Users className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Pending Applications"
-          value="8"
-          icon={<FileText className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Monthly Revenue"
-          value="$2,100"
-          change={12}
-          changeLabel="vs last month"
-          icon={<DollarSign className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Pipeline Candidates"
-          value="5"
-          change={25}
-          changeLabel="this quarter"
-          icon={<Rocket className="h-5 w-5" />}
-        />
-      </div>
-
-      {/* Alert */}
-      <Card className="bg-warning/5 border-warning/20">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-text-primary">
-              8 applications awaiting review
-            </p>
-            <p className="text-xs text-text-secondary mt-1">
-              Applications older than 5 days should be prioritized. The oldest
-              pending application is from 4 days ago.
-            </p>
-            <Link
-              href="/admin/applications"
-              className="inline-flex items-center gap-1 text-xs font-medium text-warning hover:text-yellow-400 mt-2 transition-colors"
-            >
-              Review now <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-        </div>
-      </Card>
-
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* To-do / quick links first */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0">
         {quickLinks.map((link) => (
           <Link key={link.href} href={link.href} className="group">
             <Card hover glow>
@@ -147,62 +114,34 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <div className="space-y-3">
-          {[
-            {
-              action: "Application approved",
-              detail: "Noah Williams - Heritage Christian",
-              time: "2h ago",
-              icon: "success",
-            },
-            {
-              action: "Payouts executed",
-              detail: "February: 1st Sarah Chen ($975), 2nd David Park ($532), 3rd Maria Garcia ($266)",
-              time: "1d ago",
-              icon: "brand",
-            },
-            {
-              action: "Student flagged for pipeline",
-              detail: "David Park - High potential for venture studio",
-              time: "2d ago",
-              icon: "brand",
-            },
-            {
-              action: "Application rejected",
-              detail: "John Doe - Did not meet age requirements",
-              time: "3d ago",
-              icon: "error",
-            },
-          ].map((activity, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-4 p-3 rounded-xl border border-border-subtle hover:bg-surface-card-hover transition-colors"
-            >
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  activity.icon === "success"
-                    ? "bg-success"
-                    : activity.icon === "error"
-                      ? "bg-error"
-                      : "bg-brand-500"
-                }`}
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-text-primary">
-                  {activity.action}
-                </p>
-                <p className="text-xs text-text-muted">{activity.detail}</p>
-              </div>
-              <span className="text-xs text-text-muted">{activity.time}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
+      {/* Time series — grows on desktop to fill viewport with header + grids */}
+      <div className="flex flex-col flex-1 min-h-[min(50vh,22rem)] lg:min-h-0 w-full">
+        <AdminPlatformTrendsChart className="h-full min-h-0" />
+      </div>
+
+      {/* Metric cards last */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+        <StatCard
+          label="Total Members"
+          value="210"
+          icon={<Users className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Total Submissions"
+          value="342"
+          icon={<FileText className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Total Revenue"
+          value="$182,400"
+          icon={<DollarSign className="h-5 w-5" />}
+        />
+        <StatCard
+          label="Total Points"
+          value="9,100"
+          icon={<Trophy className="h-5 w-5" />}
+        />
+      </div>
     </div>
   );
 }

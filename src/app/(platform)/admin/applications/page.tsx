@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Tabs } from "@/components/ui/tabs";
 import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +19,7 @@ import {
   Heart,
   Lightbulb,
   Clock,
+  Shield,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -88,18 +90,17 @@ export default function ApplicationsPage() {
         Back to Admin
       </Link>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Applications</h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Review and manage membership applications
-          </p>
-        </div>
-        <Badge variant="warning" className="text-sm py-1 px-3">
-          <Clock className="h-3.5 w-3.5 mr-1.5" />
-          {mockApplications.length} pending
-        </Badge>
-      </div>
+      <PlatformPageHeader
+        icon={Shield}
+        title="Applications"
+        description="Review and manage membership applications"
+        actions={
+          <Badge variant="warning" className="text-sm py-1 px-3">
+            <Clock className="h-3.5 w-3.5 mr-1.5" />
+            {mockApplications.length} pending
+          </Badge>
+        }
+      />
 
       <Tabs
         tabs={[

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card, CardTitle } from "@/components/ui/card";
+import { InfoCallout } from "@/components/ui/info-callout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
@@ -22,7 +23,10 @@ import {
   Globe,
   ChevronDown,
   ChevronUp,
+  Building2,
+  Briefcase,
 } from "lucide-react";
+import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import Link from "next/link";
 
 // Regions with directors and states
@@ -71,13 +75,18 @@ const regions: Region[] = [
 ];
 
 // Mock leadership data
-const leaders = [
+const leaders: Array<
+  | { name: string; role: string; school: string; graduation: number }
+  | { name: string; role: string; company: string; jobTitle: string }
+> = [
   { name: "Sarah Chen", role: "President", school: "Grace Academy", graduation: 2027 },
   { name: "David Park", role: "VP Marketing", school: "Covenant Prep", graduation: 2027 },
   { name: "Maria Garcia", role: "VP Technology", school: "Hope Academy", graduation: 2028 },
   { name: "Elijah Thompson", role: "VP Recruitment", school: "Liberty Christian", graduation: 2028 },
   { name: "Grace Kim", role: "VP Operations", school: "Faith Lutheran", graduation: 2029 },
-  { name: "Jake Oswald", role: "Advisor", school: "Austin Christian High", graduation: 2027 },
+  { name: "Maya Patel", role: "VP Finance", school: "Heritage Christian", graduation: 2028 },
+  { name: "Jake Oswald", role: "Advisor", company: "Gen1 Ventures", jobTitle: "Managing Partner" },
+  { name: "Lars Ostervold", role: "Advisor", company: "Austin Christian U", jobTitle: "CTO" },
 ];
 
 // Mock ambassadors - only a few states filled
@@ -92,43 +101,65 @@ const filledAmbassadors: Record<string, { name: string; school: string; graduati
   "Virginia": { name: "Aiden Brooks", school: "Covenant Christian", graduation: 2028 },
 };
 
-function LeaderCard({
-  name,
-  role,
-  school,
-  graduation,
-}: {
-  name: string;
-  role: string;
-  school: string;
-  graduation: number;
-}) {
+function LeaderCard(
+  props:
+    | {
+        name: string;
+        role: string;
+        school: string;
+        graduation: number;
+      }
+    | {
+        name: string;
+        role: string;
+        company: string;
+        jobTitle: string;
+      }
+) {
+  const { name, role } = props;
+  const meta =
+    "company" in props ? (
+      <div className="flex flex-col items-start gap-1 mt-1 text-sm text-text-secondary">
+        <span className="flex items-center gap-1.5">
+          <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-brand-500" />
+          {props.company}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Briefcase className="h-3.5 w-3.5 flex-shrink-0 text-brand-500" />
+          {props.jobTitle}
+        </span>
+      </div>
+    ) : (
+      <div className="flex flex-col items-start gap-1 mt-1 text-sm text-text-secondary">
+        <span className="flex items-center gap-1.5">
+          <GraduationCap className="h-3.5 w-3.5 flex-shrink-0 text-brand-500" />
+          {props.school}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Calendar className="h-3.5 w-3.5 flex-shrink-0 text-brand-500" />
+          Class of {props.graduation}
+        </span>
+      </div>
+    );
+
   return (
-    <Card className="relative overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-brand-500/10 to-brand-600/5" />
-      <div className="relative pt-8">
-        <div className="flex flex-col items-center text-center">
-          <Avatar name={name} size="xl" className="ring-4 ring-surface-card" />
-          <div className="mt-3">
-            <Badge
-              variant="brand"
-              className="mb-2 bg-brand-500/80 text-black font-bold"
-            >
-              <Crown className="h-3 w-3 mr-1" />
-              {role}
-            </Badge>
-            <h3 className="text-lg font-bold text-text-primary">{name}</h3>
-            <div className="flex items-center justify-center gap-3 mt-1 text-sm text-text-secondary">
-              <span className="flex items-center gap-1">
-                <GraduationCap className="h-3.5 w-3.5" />
-                {school}
-              </span>
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                Class of {graduation}
-              </span>
-            </div>
-          </div>
+    <Card>
+      <div className="flex flex-row gap-4 items-start">
+        <Avatar
+          name={name}
+          size="xl"
+          className="ring-4 ring-surface-card flex-shrink-0"
+        />
+        <div className="flex-1 min-w-0 text-left">
+          <h3 className="text-lg font-bold text-text-primary mb-2">{name}</h3>
+          <Badge
+            variant="brand"
+            className="mb-2 bg-brand-500/80 text-black font-bold"
+          >
+            <Crown className="h-3 w-3 mr-1" />
+            {role}
+          </Badge>
+          {meta}
         </div>
       </div>
     </Card>
@@ -211,7 +242,6 @@ function RegionSection({
   onApply: (state: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const filledCount = region.states.filter((s) => filledAmbassadors[s]).length;
 
   return (
     <Card padding="none">
@@ -224,17 +254,11 @@ function RegionSection({
           <MapPin className="h-5 w-5 text-brand-500" />
         </div>
         <div className="flex-1 text-left">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-text-primary">{region.name}</h3>
-            <span className="text-[10px] text-text-muted">
-              {filledCount} / {region.states.length} ambassadors
-            </span>
-          </div>
+          <h3 className="text-sm font-bold text-text-primary">{region.name}</h3>
           {region.director ? (
             <div className="flex items-center gap-2 mt-1">
               <Avatar name={region.director.name} size="xs" />
               <span className="text-xs text-text-secondary">
-                <span className="font-medium text-brand-500">Director:</span>{" "}
                 {region.director.name} &bull; {region.director.school}
               </span>
             </div>
@@ -306,15 +330,42 @@ export default function LeadershipPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
+      <PlatformPageHeader
+        icon={Crown}
+        title="Leadership"
+        description="Student leaders appointed by the venture studio"
+      />
+
+      {/* Executive Team */}
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">Leadership</h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Student leaders appointed by the venture studio
-        </p>
+        <h2 className="text-lg font-bold text-text-primary mb-4">Executive Team</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {leaders.map((leader) => (
+            <LeaderCard key={leader.name} {...leader} />
+          ))}
+        </div>
       </div>
 
-      {/* Eligibility Notice */}
-      <Card className="bg-brand-500/5 border-brand-500/20">
+      {/* Regional Directors & State Ambassadors */}
+      <div>
+        <h2 className="text-lg font-bold text-text-primary mb-4">
+          Regional Directors &amp; State Ambassadors
+        </h2>
+
+        <div className="space-y-4">
+          {regions.map((region) => (
+            <RegionSection
+              key={region.name}
+              region={region}
+              filledAmbassadors={filledAmbassadors}
+              onApply={handleApply}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* How Leadership Works — below regional ambassadors */}
+      <InfoCallout>
         <div className="flex items-start gap-3">
           <div className="p-2 rounded-xl bg-brand-500/10 flex-shrink-0">
             <Info className="h-5 w-5 text-brand-500" />
@@ -374,52 +425,7 @@ export default function LeadershipPage() {
             </div>
           </div>
         </div>
-      </Card>
-
-      {/* Leadership Team */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Crown className="h-5 w-5 text-yellow-500" />
-          <h2 className="text-lg font-bold text-text-primary">Leadership Team</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {leaders.map((leader) => (
-            <LeaderCard
-              key={leader.role}
-              name={leader.name}
-              role={leader.role}
-              school={leader.school}
-              graduation={leader.graduation}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Regional Directors & State Ambassadors */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-brand-500" />
-            <h2 className="text-lg font-bold text-text-primary">
-              Regional Directors &amp; State Ambassadors
-            </h2>
-          </div>
-          <span className="text-xs text-text-muted">
-            {Object.keys(filledAmbassadors).length} / {regions.reduce((sum, r) => sum + r.states.length, 0)} ambassadors filled
-          </span>
-        </div>
-
-        <div className="space-y-4">
-          {regions.map((region) => (
-            <RegionSection
-              key={region.name}
-              region={region}
-              filledAmbassadors={filledAmbassadors}
-              onApply={handleApply}
-            />
-          ))}
-        </div>
-      </div>
+      </InfoCallout>
 
       {/* Apply Modal */}
       <Modal

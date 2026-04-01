@@ -8,13 +8,7 @@ export type ApplicationStatus = "pending" | "approved" | "rejected" | "more_info
 
 export type MembershipStatus = "active" | "past_due" | "cancelled" | "trialing";
 
-export type SubmissionStatus =
-  | "draft"
-  | "submitted"
-  | "scoring"
-  | "scored"
-  | "voting"
-  | "archived";
+export type SubmissionStatus = "draft" | "submitted" | "scored";
 
 export type VotingRoundStatus = "upcoming" | "open" | "closed" | "finalized";
 
