@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +22,24 @@ const graduationYears = Array.from({ length: 6 }, (_, i) => ({
   value: String(2026 + i),
   label: String(2026 + i),
 }));
+
+function ApplyReferralBanner() {
+  const params = useSearchParams();
+  const ref = params.get("ref");
+  if (!ref) return null;
+  return (
+    <div
+      className="mb-6 rounded-lg border border-brand-500/20 bg-brand-500/5 px-4 py-3 text-center"
+      role="status"
+    >
+      <p className="text-xs text-text-secondary">
+        You&apos;re applying with a member invite. When you&apos;re approved, your referrer
+        earns <span className="font-medium text-brand-500">500 points</span> on the
+        leaderboard.
+      </p>
+    </div>
+  );
+}
 
 export default function ApplyPage() {
   const [step, setStep] = useState(0);
@@ -76,6 +95,10 @@ export default function ApplyPage() {
           Apply to Join
         </span>
       </div>
+
+      <Suspense fallback={null}>
+        <ApplyReferralBanner />
+      </Suspense>
 
       {/* Progress */}
       <div className="mb-6">

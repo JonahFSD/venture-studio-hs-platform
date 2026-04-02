@@ -166,10 +166,16 @@ h2 { font-weight: 400; letter-spacing: -0.025em; }
   color: #fafafa;
 }
 
-/* Focus */
+/* Focus — single white ring; native fields use border in Input/Textarea/Select */
 :focus-visible {
-  outline: 2px solid #00e5dc;
-  outline-offset: 2px;
+  outline: 1px solid #fafafa;
+  outline-offset: 0;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
 }
 
 /* Light mode overrides */

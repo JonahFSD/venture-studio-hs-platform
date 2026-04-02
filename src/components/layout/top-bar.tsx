@@ -1,13 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Avatar } from "@/components/ui/avatar";
-import { Bell, Plus, LogOut, User } from "lucide-react";
+import { Bell, Plus, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 
 export function TopBar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const notificationsWrapRef = useRef<HTMLDivElement>(null);
+  const profileWrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showNotifications && !showProfile) return;
+
+    function handlePointerDown(e: MouseEvent) {
+      const target = e.target as Node;
+      if (notificationsWrapRef.current?.contains(target)) return;
+      if (profileWrapRef.current?.contains(target)) return;
+      setShowNotifications(false);
+      setShowProfile(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [showNotifications, showProfile]);
 
   return (
     <header className="sticky top-0 z-30 h-16 flex items-center justify-end px-6 bg-surface-primary/80 backdrop-blur-xl border-b border-border-default font-sans">
@@ -22,7 +39,7 @@ export function TopBar() {
         </Link>
 
         {/* Notifications */}
-        <div className="relative">
+        <div className="relative" ref={notificationsWrapRef}>
           <button
             onClick={() => {
               setShowNotifications(!showNotifications);
@@ -86,7 +103,7 @@ export function TopBar() {
         </div>
 
         {/* Profile */}
-        <div className="relative">
+        <div className="relative" ref={profileWrapRef}>
           <button
             onClick={() => {
               setShowProfile(!showProfile);
@@ -108,10 +125,11 @@ export function TopBar() {
               <div className="p-1.5">
                 <Link
                   href="/settings"
+                  onClick={() => setShowProfile(false)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors"
                 >
-                  <User className="h-4 w-4" />
-                  Profile Settings
+                  <Settings className="h-4 w-4" />
+                  Settings
                 </Link>
                 <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-error hover:bg-error/10 transition-colors w-full">
                   <LogOut className="h-4 w-4" />

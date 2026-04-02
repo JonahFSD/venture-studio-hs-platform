@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Home,
   LayoutDashboard,
   Video,
   Vote,
@@ -25,6 +26,7 @@ export interface PlatformNavItem {
 
 /** Primary sidebar routes — keep in sync with page headers using the same icon */
 export const mainNavItems: PlatformNavItem[] = [
+  { href: "/", label: "Home", icon: Home },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/submissions", label: "Submissions", icon: Video },
   { href: "/voting", label: "Voting", icon: Vote },

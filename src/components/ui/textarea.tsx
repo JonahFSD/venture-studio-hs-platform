@@ -32,8 +32,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             "text-text-primary placeholder:text-text-muted",
             "transition-colors duration-200",
             "hover:border-border-strong",
-            "focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30",
-            error && "border-error focus:border-error focus:ring-error/30",
+            "focus:outline-none focus:border-white",
+            error && "border-error focus:border-error",
             className
           )}
           {...props}

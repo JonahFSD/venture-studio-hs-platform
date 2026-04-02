@@ -185,7 +185,7 @@ export default function MessagesPage() {
                   <input
                     type="text"
                     placeholder="Type a message..."
-                    className="flex-1 h-10 px-4 rounded-xl text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 transition-colors"
+                    className="flex-1 h-10 px-4 rounded-xl text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-white transition-colors"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                   />

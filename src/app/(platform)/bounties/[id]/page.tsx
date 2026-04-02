@@ -223,7 +223,7 @@ export default function BountyDetailPage() {
                     placeholder="https://github.com/your-repo or deployed URL"
                     value={submitUrl}
                     onChange={(e) => setSubmitUrl(e.target.value)}
-                    className="w-full h-10 pl-10 pr-3 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30"
+                    className="w-full h-10 pl-10 pr-3 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-white"
                   />
                 </div>
               </div>
@@ -237,7 +237,7 @@ export default function BountyDetailPage() {
                   value={submitNotes}
                   onChange={(e) => setSubmitNotes(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30 resize-none"
+                  className="w-full px-3 py-2 rounded-lg text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-white resize-none"
                 />
               </div>
 

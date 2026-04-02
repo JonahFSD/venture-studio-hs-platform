@@ -1,33 +1,122 @@
 "use client";
 
+import { useState, useRef } from "react";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Tabs } from "@/components/ui/tabs";
+import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
+import { CategorizedMultiSelectDropdown } from "@/components/ui/categorized-multi-select-dropdown";
+import { PROFILE_SKILL_OPTIONS, PROFILE_TOOL_CATEGORIES } from "@/lib/profile-options";
+import { US_STATE_ABBREVIATIONS } from "@/lib/us-states";
+import {
+  schoolToKey,
+  type NewSchoolPayload,
+  type SchoolListing,
+} from "@/lib/school-directory";
+import { SchoolPicker } from "@/components/school-picker";
+import { ProfilePhotoCropModal } from "@/components/profile-photo-crop-modal";
+import { InviteLinkCard } from "@/components/invite-link-card";
+import { MOCK_REFERRAL_CODE } from "@/lib/referral";
+import { cn } from "@/lib/utils";
 import {
   User,
   CreditCard,
   Bell,
-  Shield,
   Camera,
   Save,
   ExternalLink,
   CheckCircle,
   Settings,
+  Handshake,
 } from "lucide-react";
 
 export default function SettingsPage() {
+  const [skills, setSkills] = useState<string[]>([
+    "Vibe Coding",
+    "UX/UI",
+    "Marketing",
+  ]);
+  const [tools, setTools] = useState<string[]>([
+    "Cursor",
+    "Supabase",
+    "Stripe",
+    "Vercel",
+  ]);
+  const [lookingForCofounders, setLookingForCofounders] = useState(true);
+  const [extraSchoolsByState, setExtraSchoolsByState] = useState<
+    Record<string, SchoolListing[]>
+  >({});
+  const [selectedSchoolKey, setSelectedSchoolKey] = useState<string | null>(() =>
+    schoolToKey({
+      state: "TX",
+      name: "Austin Christian High School",
+      city: "Austin",
+    })
+  );
+  const [, setSchoolSubmissions] = useState<NewSchoolPayload[]>([]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
+
+  function openPhotoPicker() {
+    fileInputRef.current?.click();
+  }
+
+  function onAvatarFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      window.alert("Please choose a JPG or PNG image.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      window.alert("File must be 2MB or smaller.");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setCropSrc(url);
+    setCropOpen(true);
+  }
+
+  function closePhotoCrop() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropOpen(false);
+  }
+
+  function onAvatarCropped(dataUrl: string) {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+    setCropOpen(false);
+    setAvatarSrc(dataUrl);
+  }
+
+  function handleAddSchool(payload: NewSchoolPayload) {
+    const { schoolCity, schoolState, schoolName } = payload;
+    setExtraSchoolsByState((prev) => {
+      const next = { ...prev };
+      const list = next[schoolState] ?? [];
+      next[schoolState] = [...list, { name: schoolName, city: schoolCity }];
+      return next;
+    });
+    setSelectedSchoolKey(
+      schoolToKey({ state: schoolState, name: schoolName, city: schoolCity })
+    );
+    setSchoolSubmissions((prev) => [...prev, payload]);
+  }
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
-      <PlatformPageHeader
-        icon={Settings}
-        title="Settings"
-        description="Manage your profile, subscription, and preferences"
-      />
+    <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <PlatformPageHeader icon={Settings} title="Settings" />
 
       <Tabs
         tabs={[
@@ -40,26 +129,56 @@ export default function SettingsPage() {
           <>
             {activeTab === "profile" && (
               <div className="space-y-6">
-                {/* Avatar */}
-                <Card>
-                  <CardTitle>Profile Photo</CardTitle>
-                  <div className="flex items-center gap-6 mt-4">
-                    <div className="relative">
-                      <Avatar name="Jake Oswald" size="xl" />
-                      <button className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-brand-500 text-black hover:bg-brand-400 transition-colors">
-                        <Camera className="h-3.5 w-3.5" />
-                      </button>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch">
+                  {/* Avatar */}
+                  <Card className="flex h-full min-h-0 flex-col">
+                    <CardTitle>Profile Photo</CardTitle>
+                    <div className="mt-4 flex min-h-0 flex-1 flex-col justify-center">
+                      <div className="flex items-center gap-6">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png"
+                          className="sr-only"
+                          aria-label="Upload profile photo, JPG or PNG, max 2MB"
+                          onChange={onAvatarFileChange}
+                        />
+                        <div className="relative shrink-0">
+                          <Avatar name="Jake Oswald" size="2xl" src={avatarSrc} />
+                          <button
+                            type="button"
+                            onClick={openPhotoPicker}
+                            className="absolute -bottom-0.5 -right-0.5 rounded-full bg-brand-500 p-2 text-black hover:bg-brand-400 transition-colors"
+                            aria-label="Upload profile photo"
+                          >
+                            <Camera className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="min-w-0">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={openPhotoPicker}
+                          >
+                            Upload Photo
+                          </Button>
+                          <p className="text-xs text-text-muted mt-1">
+                            JPG, PNG. Max 2MB.
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <Button variant="outline" size="sm">
-                        Upload Photo
-                      </Button>
-                      <p className="text-xs text-text-muted mt-1">
-                        JPG, PNG. Max 2MB.
-                      </p>
-                    </div>
-                  </div>
-                </Card>
+                    <ProfilePhotoCropModal
+                      isOpen={cropOpen && !!cropSrc}
+                      imageSrc={cropSrc}
+                      onClose={closePhotoCrop}
+                      onSave={onAvatarCropped}
+                    />
+                  </Card>
+
+                  <InviteLinkCard referralCode={MOCK_REFERRAL_CODE} />
+                </div>
 
                 {/* Personal Info */}
                 <Card>
@@ -69,47 +188,101 @@ export default function SettingsPage() {
                       <Input label="First Name" defaultValue="Jake" />
                       <Input label="Last Name" defaultValue="Oswald" />
                     </div>
-                    <Input
-                      label="Email"
-                      type="email"
-                      defaultValue="jake@example.com"
-                      disabled
-                      hint="Contact support to change your email"
-                    />
-                    <Input
-                      label="School"
-                      defaultValue="Austin Christian High"
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        label="Email"
+                        type="email"
+                        defaultValue="jake@example.com"
+                        disabled
+                      />
+                      <Input
+                        label="Phone"
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        placeholder="(555) 555-5555"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        label="City"
+                        defaultValue="Austin"
+                        autoComplete="address-level2"
+                      />
+                      <Select
+                        label="State"
+                        options={US_STATE_ABBREVIATIONS.map((abbr) => ({
+                          value: abbr,
+                          label: abbr,
+                        }))}
+                        defaultValue="TX"
+                      />
+                    </div>
+                    <SchoolPicker
+                      value={selectedSchoolKey}
+                      onChange={setSelectedSchoolKey}
+                      extraSchoolsByState={extraSchoolsByState}
+                      onAddSchool={handleAddSchool}
                     />
                     <Textarea
                       label="Bio"
                       defaultValue="Aspiring tech entrepreneur passionate about sustainability and faith-driven innovation."
-                      hint="Tell the community about yourself"
                     />
-                    <div>
-                      <label className="block text-sm font-medium text-text-secondary mb-1.5">
-                        Skills & Interests
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {["React", "TypeScript", "AI/ML", "Sustainability"].map(
-                          (skill) => (
-                            <Badge key={skill} variant="outline">
-                              {skill} &times;
-                            </Badge>
-                          )
-                        )}
-                        <Button variant="ghost" size="sm">
-                          + Add
-                        </Button>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="min-w-0">
+                        <MultiSelectDropdown
+                          label="Skills"
+                          options={[...PROFILE_SKILL_OPTIONS]}
+                          value={skills}
+                          onChange={setSkills}
+                          emptyLabel="Select skills"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <CategorizedMultiSelectDropdown
+                          label="Tools"
+                          categories={PROFILE_TOOL_CATEGORIES}
+                          value={tools}
+                          onChange={setTools}
+                          emptyLabel="Select tools"
+                        />
                       </div>
                     </div>
-                    <label className="flex items-center gap-3 text-sm text-text-secondary">
-                      <input
-                        type="checkbox"
-                        defaultChecked
-                        className="rounded border-border-default bg-surface-elevated text-brand-500 focus:ring-brand-500"
-                      />
-                      I&apos;m looking for co-founders
-                    </label>
+                    <div className="flex flex-col">
+                      <span className="mb-1 block text-xs font-medium text-text-muted">
+                        Open to Cofounders
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={lookingForCofounders}
+                        aria-label="Open to Cofounders"
+                        onClick={() => setLookingForCofounders((v) => !v)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setLookingForCofounders((v) => !v);
+                          }
+                        }}
+                        className={cn(
+                          "relative h-9 w-[3.75rem] shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-card",
+                          lookingForCofounders
+                            ? "border-brand-500 bg-brand-500/15"
+                            : "border-border-default bg-surface-elevated"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "pointer-events-none absolute left-0.5 top-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-surface-card shadow-sm transition-transform duration-200",
+                            lookingForCofounders
+                              ? "translate-x-7 text-brand-500"
+                              : "translate-x-0 text-white"
+                          )}
+                        >
+                          <Handshake className="h-4 w-4" aria-hidden />
+                        </span>
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-6 pt-4 border-t border-border-default">
                     <Button
@@ -215,44 +388,44 @@ export default function SettingsPage() {
                       label: "AI scoring complete",
                       description: "When your pitch has been scored by AI",
                       email: true,
-                      push: true,
+                      sms: true,
                     },
                     {
                       label: "Voting round opens",
                       description: "When a new monthly voting round begins",
                       email: true,
-                      push: true,
+                      sms: true,
                     },
                     {
-                      label: "New votes received",
-                      description: "When someone votes for your pitch",
-                      email: false,
-                      push: true,
-                    },
-                    {
-                      label: "Winner announced",
+                      label: "Winners announced",
                       description: "Monthly winner announcements",
                       email: true,
-                      push: true,
+                      sms: true,
+                    },
+                    {
+                      label: "Monthly recap",
+                      description: "Overview of how well you performed",
+                      email: true,
+                      sms: false,
                     },
                     {
                       label: "New messages",
                       description: "Direct messages from community members",
                       email: true,
-                      push: true,
+                      sms: true,
                     },
                     {
                       label: "Community updates",
                       description: "New members, features, and announcements",
                       email: true,
-                      push: false,
+                      sms: false,
                     },
-                  ].map((notif, i) => (
+                  ].map((notif) => (
                     <div
-                      key={i}
-                      className="flex items-center justify-between py-3 border-b border-border-subtle last:border-0"
+                      key={notif.label}
+                      className="flex items-center justify-between gap-4 py-3 border-b border-border-subtle last:border-0"
                     >
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-text-primary">
                           {notif.label}
                         </p>
@@ -260,22 +433,22 @@ export default function SettingsPage() {
                           {notif.description}
                         </p>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 text-xs text-text-secondary">
+                      <div className="flex shrink-0 items-center gap-4">
+                        <label className="flex cursor-pointer items-center gap-2 text-xs text-text-secondary">
                           <input
                             type="checkbox"
                             defaultChecked={notif.email}
-                            className="rounded border-border-default bg-surface-elevated text-brand-500 focus:ring-brand-500"
+                            className="h-4 w-4 cursor-pointer rounded border-border-strong accent-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:ring-offset-2 focus:ring-offset-surface-card"
                           />
                           Email
                         </label>
-                        <label className="flex items-center gap-2 text-xs text-text-secondary">
+                        <label className="flex cursor-pointer items-center gap-2 text-xs text-text-secondary">
                           <input
                             type="checkbox"
-                            defaultChecked={notif.push}
-                            className="rounded border-border-default bg-surface-elevated text-brand-500 focus:ring-brand-500"
+                            defaultChecked={notif.sms}
+                            className="h-4 w-4 cursor-pointer rounded border-border-strong accent-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:ring-offset-2 focus:ring-offset-surface-card"
                           />
-                          Push
+                          SMS
                         </label>
                       </div>
                     </div>

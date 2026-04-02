@@ -385,7 +385,7 @@ export default function NewSubmissionPage() {
                                 Number(e.target.value) || 0
                               )
                             }
-                            className="w-16 h-9 px-2 rounded-lg text-sm text-center bg-surface-primary border border-border-default text-text-primary focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/30"
+                            className="w-16 h-9 px-2 rounded-lg text-sm text-center bg-surface-primary border border-border-default text-text-primary focus:outline-none focus:border-white"
                           />
                           <span className="text-sm text-text-muted">%</span>
                           <button

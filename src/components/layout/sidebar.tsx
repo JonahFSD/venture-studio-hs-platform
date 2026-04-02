@@ -62,27 +62,19 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
         </Link>
       </div>
 
-      {/* Collapse — fixed under logo, above Dashboard */}
-      <div
-        className={cn(
-          "shrink-0 pt-3 pb-2 border-b border-border-default",
-          shellPadX
-        )}
-      >
+      {/* Collapse — under logo, flows into main nav (no divider) */}
+      <div className={cn("shrink-0 pt-2 pb-1", shellPadX)}>
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
           aria-expanded={!collapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-elevated transition-all duration-200 w-full"
+          className="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium text-text-tertiary hover:text-text-secondary hover:bg-surface-elevated transition-all duration-200 w-full"
         >
           {collapsed ? (
             <ChevronRight className="h-5 w-5 flex-shrink-0" />
           ) : (
-            <>
-              <ChevronLeft className="h-5 w-5 flex-shrink-0" />
-              <span>Collapse</span>
-            </>
+            <ChevronLeft className="h-5 w-5 flex-shrink-0" />
           )}
         </button>
       </div>
