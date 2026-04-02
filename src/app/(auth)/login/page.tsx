@@ -3,14 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
 import { Zap, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn } = useAuthActions();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -23,26 +24,23 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (authError) {
-        if (authError.message.includes("Invalid login credentials")) {
+      await signIn("password", { email, password, flow: "signIn" });
+      router.push("/dashboard");
+    } catch (err) {
+      if (err instanceof Error) {
+        if (
+          err.message.includes("Invalid") ||
+          err.message.includes("credentials")
+        ) {
           setError("Invalid email or password. Please try again.");
-        } else if (authError.message.includes("Email not confirmed")) {
+        } else if (err.message.includes("not confirmed")) {
           setError("Please verify your email address before signing in.");
         } else {
-          setError(authError.message);
+          setError(err.message);
         }
-        return;
+      } else {
+        setError("Something went wrong. Please try again.");
       }
-
-      router.push("/dashboard");
-    } catch {
-      setError("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +144,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Button variant="outline" className="w-full" size="lg">
+        <Button variant="outline" className="w-full" size="lg" disabled>
           <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
@@ -165,7 +163,7 @@ export default function LoginPage() {
               fill="#EA4335"
             />
           </svg>
-          Sign in with Google
+          Sign in with Google (coming soon)
         </Button>
       </Card>
 
