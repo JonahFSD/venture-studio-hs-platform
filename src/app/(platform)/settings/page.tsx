@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import { useCurrentUser } from "@/contexts/user-context";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +25,6 @@ import {
 import { SchoolPicker } from "@/components/school-picker";
 import { ProfilePhotoCropModal } from "@/components/profile-photo-crop-modal";
 import { InviteLinkCard } from "@/components/invite-link-card";
-import { MOCK_REFERRAL_CODE } from "@/lib/referral";
 import { cn } from "@/lib/utils";
 import {
   User,
@@ -37,34 +39,100 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const [skills, setSkills] = useState<string[]>([
-    "Vibe Coding",
-    "UX/UI",
-    "Marketing",
-  ]);
-  const [tools, setTools] = useState<string[]>([
-    "Cursor",
-    "Supabase",
-    "Stripe",
-    "Vercel",
-  ]);
-  const [lookingForCofounders, setLookingForCofounders] = useState(true);
+  const user = useCurrentUser();
+  const updateProfile = useMutation(api.users.updateProfile);
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const updateAvatar = useMutation(api.users.updateAvatar);
+  const referralCode = useQuery(api.users.getMyReferralCode);
+  const generateReferralCode = useMutation(api.users.generateReferralCode);
+
+  // Load avatar URL from Convex storage
+  const storedAvatarUrl = useQuery(
+    api.storage.getUrl,
+    user?.avatarStorageId ? { storageId: user.avatarStorageId } : "skip"
+  );
+
+  const [skills, setSkills] = useState<string[]>([]);
+  const [tools, setTools] = useState<string[]>([]);
+  const [lookingForCofounders, setLookingForCofounders] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Controlled fields for save
+  const firstNameRef = useRef<HTMLInputElement>(null);
+  const lastNameRef = useRef<HTMLInputElement>(null);
+  const bioRef = useRef<HTMLTextAreaElement>(null);
+
   const [extraSchoolsByState, setExtraSchoolsByState] = useState<
     Record<string, SchoolListing[]>
   >({});
-  const [selectedSchoolKey, setSelectedSchoolKey] = useState<string | null>(() =>
-    schoolToKey({
-      state: "TX",
-      name: "Austin Christian High School",
-      city: "Austin",
-    })
-  );
+  const [selectedSchoolKey, setSelectedSchoolKey] = useState<string | null>(null);
   const [, setSchoolSubmissions] = useState<NewSchoolPayload[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [cropOpen, setCropOpen] = useState(false);
+
+  // Initialize state from user context when it loads
+  useEffect(() => {
+    if (!user) return;
+    setSkills(user.skills ?? []);
+    setLookingForCofounders(user.lookingForCofounders ?? false);
+    if (user.schoolName) {
+      // Try to reconstruct school key; fallback to just setting it from state+name
+      const state = user.state ?? "TX";
+      setSelectedSchoolKey(
+        schoolToKey({ state, name: user.schoolName, city: "" })
+      );
+    }
+  }, [user]);
+
+  // Derived values from user
+  const nameParts = user?.fullName?.split(" ") ?? [];
+  const firstName = nameParts[0] ?? "";
+  const lastName = nameParts.slice(1).join(" ") ?? "";
+  const email = user?.email ?? "";
+  const avatarName = user?.fullName ?? "User";
+  const bio = user?.bio ?? "";
+
+  async function handleSave() {
+    if (!user) return;
+    setSaving(true);
+    setSaveSuccess(false);
+    try {
+      const newFirstName = firstNameRef.current?.value ?? firstName;
+      const newLastName = lastNameRef.current?.value ?? lastName;
+      const fullName = `${newFirstName} ${newLastName}`.trim();
+      const bioValue = bioRef.current?.value ?? bio;
+
+      // Extract school name from selected key if possible
+      // schoolToKey creates "STATE|city|name" format
+      let schoolName: string | undefined;
+      if (selectedSchoolKey) {
+        const parts = selectedSchoolKey.split("|");
+        if (parts.length >= 3) {
+          schoolName = parts[2];
+        }
+      }
+
+      await updateProfile({
+        fullName: fullName !== user.fullName ? fullName : undefined,
+        bio: bioValue,
+        schoolName,
+        skills,
+        lookingForCofounders,
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Failed to save changes"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function openPhotoPicker() {
     fileInputRef.current?.click();
@@ -93,11 +161,33 @@ export default function SettingsPage() {
     setCropOpen(false);
   }
 
-  function onAvatarCropped(dataUrl: string) {
+  async function onAvatarCropped(dataUrl: string) {
     if (cropSrc) URL.revokeObjectURL(cropSrc);
     setCropSrc(null);
     setCropOpen(false);
-    setAvatarSrc(dataUrl);
+    setAvatarSrc(dataUrl); // optimistic local preview
+
+    try {
+      // Convert data URL to blob
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+
+      // Get upload URL from Convex
+      const uploadUrl = await generateUploadUrl();
+
+      // Upload the file
+      const uploadRes = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": blob.type },
+        body: blob,
+      });
+      const { storageId } = await uploadRes.json();
+
+      // Save to user profile
+      await updateAvatar({ storageId });
+    } catch (err) {
+      console.error("Failed to upload avatar:", err);
+    }
   }
 
   function handleAddSchool(payload: NewSchoolPayload) {
@@ -144,7 +234,7 @@ export default function SettingsPage() {
                           onChange={onAvatarFileChange}
                         />
                         <div className="relative shrink-0">
-                          <Avatar name="Jake Oswald" size="2xl" src={avatarSrc} />
+                          <Avatar name={avatarName} size="2xl" src={avatarSrc ?? storedAvatarUrl} />
                           <button
                             type="button"
                             onClick={openPhotoPicker}
@@ -177,7 +267,24 @@ export default function SettingsPage() {
                     />
                   </Card>
 
-                  <InviteLinkCard referralCode={MOCK_REFERRAL_CODE} />
+                  {referralCode ? (
+                    <InviteLinkCard referralCode={referralCode} />
+                  ) : (
+                    <Card className="flex h-full min-h-0 flex-col">
+                      <CardTitle>Unique Invite Link</CardTitle>
+                      <CardDescription className="mt-1">
+                        Generate your invite link to share with friends. Approved members you invited will earn you 500 points each.
+                      </CardDescription>
+                      <div className="mt-4 flex flex-1 items-end">
+                        <Button
+                          variant="brand"
+                          onClick={() => generateReferralCode()}
+                        >
+                          Generate Invite Link
+                        </Button>
+                      </div>
+                    </Card>
+                  )}
                 </div>
 
                 {/* Personal Info */}
@@ -185,14 +292,25 @@ export default function SettingsPage() {
                   <CardTitle>Personal Information</CardTitle>
                   <div className="mt-4 space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <Input label="First Name" defaultValue="Jake" />
-                      <Input label="Last Name" defaultValue="Oswald" />
+                      <Input
+                        ref={firstNameRef}
+                        label="First Name"
+                        defaultValue={firstName}
+                        key={`first-${firstName}`}
+                      />
+                      <Input
+                        ref={lastNameRef}
+                        label="Last Name"
+                        defaultValue={lastName}
+                        key={`last-${lastName}`}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <Input
                         label="Email"
                         type="email"
-                        defaultValue="jake@example.com"
+                        defaultValue={email}
+                        key={`email-${email}`}
                         disabled
                       />
                       <Input
@@ -206,7 +324,7 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <Input
                         label="City"
-                        defaultValue="Austin"
+                        defaultValue=""
                         autoComplete="address-level2"
                       />
                       <Select
@@ -215,7 +333,8 @@ export default function SettingsPage() {
                           value: abbr,
                           label: abbr,
                         }))}
-                        defaultValue="TX"
+                        defaultValue={user?.state ?? "TX"}
+                        key={`state-${user?.state ?? "TX"}`}
                       />
                     </div>
                     <SchoolPicker
@@ -225,8 +344,10 @@ export default function SettingsPage() {
                       onAddSchool={handleAddSchool}
                     />
                     <Textarea
+                      ref={bioRef}
                       label="Bio"
-                      defaultValue="Aspiring tech entrepreneur passionate about sustainability and faith-driven innovation."
+                      defaultValue={bio}
+                      key={`bio-${bio}`}
                     />
                     <div className="grid grid-cols-2 gap-4">
                       <div className="min-w-0">
@@ -284,13 +405,20 @@ export default function SettingsPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="mt-6 pt-4 border-t border-border-default">
+                  <div className="mt-6 pt-4 border-t border-border-default flex items-center gap-3">
                     <Button
                       variant="brand"
                       leftIcon={<Save className="h-4 w-4" />}
+                      onClick={handleSave}
+                      disabled={saving}
                     >
-                      Save Changes
+                      {saving ? "Saving..." : "Save Changes"}
                     </Button>
+                    {saveSuccess && (
+                      <span className="text-sm text-success font-medium animate-fade-in">
+                        Changes saved
+                      </span>
+                    )}
                   </div>
                 </Card>
               </div>

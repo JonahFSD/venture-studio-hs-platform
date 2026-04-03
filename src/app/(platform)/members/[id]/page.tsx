@@ -1,39 +1,82 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
   MessageCircle,
   Handshake,
-  Trophy,
-  Video,
   Calendar,
-  MapPin,
   GraduationCap,
   Brain,
   Network,
   ExternalLink,
+  Video,
   CircleDollarSign,
-  CheckCircle,
 } from "lucide-react";
 
-const memberSubmissions = [
-  { id: "10", title: "FaithConnect", score: 92, month: "Feb 2026", status: "Winner" },
-  { id: "5", title: "PrayerWall", score: 88, month: "Jan 2026", status: "Top 10%" },
-  { id: "3", title: "ChurchFinder", score: 85, month: "Dec 2025", status: "Finalist" },
-];
-
-const memberBounties = [
-  { id: "4", title: "Event Landing Page Generator", amount: 3500, status: "won" as const, teamSize: 2 },
-  { id: "2", title: "AI-Powered Sermon Notes Summarizer", amount: 2500, status: "submitted" as const, teamSize: 1 },
-];
-
 export default function MemberProfilePage() {
+  const params = useParams();
+  const id = params.id as string;
+  const member = useQuery(api.users.getById, { userId: id as Id<"users"> });
+
+  // Loading state
+  if (member === undefined) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+        <Link
+          href="/members"
+          className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Community
+        </Link>
+        <Card className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-text-secondary">Loading profile...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Not found state
+  if (member === null) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+        <Link
+          href="/members"
+          className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Community
+        </Link>
+        <Card className="text-center py-16">
+          <p className="text-lg font-semibold text-text-primary mb-2">
+            Member not found
+          </p>
+          <p className="text-sm text-text-secondary">
+            This profile doesn&apos;t exist or has been removed.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  const formatCurrency = (cents: number) => {
+    if (cents >= 100000) return `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    if (cents >= 1000) return `$${(cents / 100).toFixed(0)}`;
+    return `$${(cents / 100).toFixed(2)}`;
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <Link
@@ -49,88 +92,95 @@ export default function MemberProfilePage() {
         <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-brand-500/10 to-brand-600/5" />
         <div className="relative pt-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-            <Avatar name="Sarah Chen" size="xl" className="ring-4 ring-surface-card" />
+            <Avatar name={member.fullName} size="xl" className="ring-4 ring-surface-card" />
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl font-bold text-text-primary">
-                  Sarah Chen
+                  {member.fullName}
                 </h1>
-                <Badge variant="brand">
-                  <Handshake className="h-3 w-3 mr-1" />
-                  Looking for co-founders
-                </Badge>
-                <a
-                  href="https://bq.austinchristianu.org/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Badge variant="outline" className="hover:border-brand-500 transition-colors">
-                    <Brain className="h-3 w-3 mr-1" />
-                    BQ: Visionary
-                    <ExternalLink className="h-2.5 w-2.5 ml-1 text-text-muted" />
+                {member.lookingForCofounders && (
+                  <Badge variant="brand">
+                    <Handshake className="h-3 w-3 mr-1" />
+                    Looking for co-founders
                   </Badge>
-                </a>
+                )}
+                {member.bqType && (
+                  <a
+                    href={member.bqResultsUrl ?? "https://bq.austinchristianu.org/"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Badge variant="outline" className="hover:border-brand-500 transition-colors">
+                      <Brain className="h-3 w-3 mr-1" />
+                      BQ: {member.bqType}
+                      <ExternalLink className="h-2.5 w-2.5 ml-1 text-text-muted" />
+                    </Badge>
+                  </a>
+                )}
               </div>
               <div className="flex items-center gap-4 mt-2 text-sm text-text-secondary flex-wrap">
-                <span className="flex items-center gap-1">
-                  <GraduationCap className="h-4 w-4" />
-                  Grace Academy
-                </span>
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  Class of 2027
-                </span>
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  Austin, TX
-                </span>
+                {member.schoolName && (
+                  <span className="flex items-center gap-1">
+                    <GraduationCap className="h-4 w-4" />
+                    {member.schoolName}
+                  </span>
+                )}
+                {member.graduationYear && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    Class of {member.graduationYear}
+                  </span>
+                )}
               </div>
             </div>
-            <Button variant="brand" leftIcon={<MessageCircle className="h-4 w-4" />}>
-              Message
-            </Button>
+            <Link href="/messages">
+              <Button variant="brand" leftIcon={<MessageCircle className="h-4 w-4" />}>
+                Message
+              </Button>
+            </Link>
           </div>
 
-          <p className="mt-4 text-sm text-text-secondary leading-relaxed">
-            Passionate about connecting faith communities through technology.
-            I love building apps that make a difference in people&apos;s
-            spiritual lives. Currently working on a social platform for young
-            Christians and always looking for collaborators!
-          </p>
+          {member.bio && (
+            <p className="mt-4 text-sm text-text-secondary leading-relaxed">
+              {member.bio}
+            </p>
+          )}
 
           {/* Skills */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            {["React", "Python", "UI/UX", "Product Management", "Faith & Leadership"].map(
-              (skill) => (
+          {member.skills && member.skills.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {member.skills.map((skill) => (
                 <Badge key={skill} variant="outline">
                   {skill}
                 </Badge>
-              )
-            )}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-5 gap-4 mt-6 pt-6 border-t border-border-default">
             <div className="text-center">
-              <p className="text-2xl font-bold text-text-primary">5</p>
+              <p className="text-2xl font-bold text-text-primary">&mdash;</p>
               <p className="text-xs text-text-muted">Pitches</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-brand-500">94</p>
+              <p className="text-2xl font-bold text-brand-500">&mdash;</p>
               <p className="text-xs text-text-muted">Avg Score</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-500">3</p>
+              <p className="text-2xl font-bold text-yellow-500">&mdash;</p>
               <p className="text-xs text-text-muted">Wins</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-success">$5.6k</p>
+              <p className="text-2xl font-bold text-success">
+                {formatCurrency(member.totalEarnings ?? 0)}
+              </p>
               <p className="text-xs text-text-muted">Earned</p>
             </div>
             <div className="text-center">
               <Link href="/network" className="group">
                 <p className="text-2xl font-bold text-brand-500 group-hover:text-brand-400 transition-colors">
-                  12
+                  {member.networkCount ?? 0}
                 </p>
                 <p className="text-xs text-text-muted flex items-center justify-center gap-1">
                   <Network className="h-3 w-3" />
@@ -142,74 +192,27 @@ export default function MemberProfilePage() {
         </div>
       </Card>
 
-      {/* Submissions */}
+      {/* Pitch History — Coming Soon */}
       <Card>
         <CardTitle>Pitch History</CardTitle>
-        <div className="mt-4 space-y-3">
-          {memberSubmissions.map((sub) => (
-            <Link
-              key={sub.id}
-              href={`/submissions/${sub.id}`}
-              className="flex items-center gap-4 p-3 rounded-xl border border-border-default hover:bg-surface-card-hover hover:border-brand-500/30 transition-all"
-            >
-              <div className="p-2 rounded-lg bg-brand-500/10">
-                <Video className="h-4 w-4 text-brand-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-text-primary">
-                  {sub.title}
-                </p>
-                <p className="text-xs text-text-muted">{sub.month}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Progress value={sub.score} size="sm" className="w-16" />
-                <span className="text-sm font-mono text-brand-500">
-                  {sub.score}
-                </span>
-                <Badge
-                  variant={sub.status === "Winner" ? "success" : "brand"}
-                >
-                  {sub.status === "Winner" && (
-                    <Trophy className="h-3 w-3 mr-1" />
-                  )}
-                  {sub.status}
-                </Badge>
-              </div>
-            </Link>
-          ))}
+        <div className="mt-4 flex flex-col items-center py-8 text-center">
+          <Video className="h-8 w-8 text-text-muted mb-2" />
+          <p className="text-sm text-text-secondary">Coming soon</p>
+          <p className="text-xs text-text-muted mt-1">
+            Pitch history will appear here once submissions are wired up.
+          </p>
         </div>
       </Card>
 
-      {/* Bounty History */}
+      {/* Bounty History — Coming Soon */}
       <Card>
         <CardTitle>Bounty History</CardTitle>
-        <div className="mt-4 space-y-3">
-          {memberBounties.map((bounty) => (
-            <Link
-              key={bounty.id}
-              href="/bounties"
-              className="flex items-center gap-4 p-3 rounded-xl border border-border-default hover:bg-surface-card-hover hover:border-brand-500/30 transition-all"
-            >
-              <div className="p-2 rounded-lg bg-brand-500/10">
-                <CircleDollarSign className="h-4 w-4 text-brand-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-text-primary">
-                  {bounty.title}
-                </p>
-                <p className="text-xs text-text-muted">
-                  ${bounty.amount.toLocaleString()} bounty &bull;{" "}
-                  {bounty.teamSize === 1 ? "Solo" : `Team of ${bounty.teamSize}`}
-                </p>
-              </div>
-              <Badge variant={bounty.status === "won" ? "success" : "default"}>
-                {bounty.status === "won" && (
-                  <Trophy className="h-3 w-3 mr-1" />
-                )}
-                {bounty.status === "won" ? "Won" : "Submitted"}
-              </Badge>
-            </Link>
-          ))}
+        <div className="mt-4 flex flex-col items-center py-8 text-center">
+          <CircleDollarSign className="h-8 w-8 text-text-muted mb-2" />
+          <p className="text-sm text-text-secondary">Coming soon</p>
+          <p className="text-xs text-text-muted mt-1">
+            Bounty history will appear here once bounty submissions are wired up.
+          </p>
         </div>
       </Card>
     </div>

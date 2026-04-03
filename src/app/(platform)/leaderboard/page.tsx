@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import Link from "next/link";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
@@ -21,19 +23,6 @@ import {
   CircleDollarSign,
   Sparkles,
 } from "lucide-react";
-
-const allTimeLeaders = [
-  { id: "1", name: "Sarah Chen", school: "Grace Academy", graduationYear: 2027, wins: 3, avgScore: 93.8, totalEarnings: 5670, bountiesWon: 1, points: 18750, active: true },
-  { id: "2", name: "David Park", school: "Covenant Prep", graduationYear: 2026, wins: 2, avgScore: 91.2, totalEarnings: 3780, bountiesWon: 1, points: 14200, active: true },
-  { id: "3", name: "Maria Garcia", school: "Hope Academy", graduationYear: 2026, wins: 2, avgScore: 89.0, totalEarnings: 3200, bountiesWon: 0, points: 12500, active: true },
-  { id: "4", name: "Jake Oswald", school: "Austin Christian High", graduationYear: 2026, wins: 1, avgScore: 87.4, totalEarnings: 1890, bountiesWon: 1, points: 8900, active: true },
-  { id: "5", name: "Elijah Thompson", school: "Liberty Christian", graduationYear: 2027, wins: 1, avgScore: 86.1, totalEarnings: 1500, bountiesWon: 0, points: 7600, active: true },
-  { id: "6", name: "Grace Kim", school: "Faith Lutheran", graduationYear: 2027, wins: 0, avgScore: 84.3, totalEarnings: 0, bountiesWon: 0, points: 3200, active: true },
-  { id: "7", name: "Noah Williams", school: "Heritage Christian", graduationYear: 2025, wins: 0, avgScore: 82.0, totalEarnings: 0, bountiesWon: 0, points: 2800, active: false },
-  { id: "8", name: "Sophia Johnson", school: "Trinity Prep", graduationYear: 2025, wins: 0, avgScore: 80.6, totalEarnings: 0, bountiesWon: 0, points: 1500, active: false },
-  { id: "9", name: "Caleb Martinez", school: "Redeemer Prep", graduationYear: 2028, wins: 0, avgScore: 79.2, totalEarnings: 0, bountiesWon: 0, points: 1200, active: true },
-  { id: "10", name: "Hannah Lee", school: "Cornerstone Academy", graduationYear: 2028, wins: 0, avgScore: 77.5, totalEarnings: 0, bountiesWon: 0, points: 950, active: true },
-];
 
 /** Fixed point values; least → most. Bounty and AI score use formulas (see rows). */
 const pointsBreakdown: Array<{
@@ -101,15 +90,35 @@ const rankIcon = (rank: number) => {
 export default function LeaderboardPage() {
   const [showActiveOnly, setShowActiveOnly] = useState(true);
 
-  const sorted = useMemo(() => {
-    const filtered = showActiveOnly
-      ? allTimeLeaders.filter((l) => l.active)
-      : allTimeLeaders;
+  const rawLeaders = useQuery(api.users.getLeaderboard, { activeOnly: showActiveOnly });
+  const sorted = (rawLeaders ?? []).map((l, i) => ({
+    id: l._id,
+    name: l.fullName,
+    school: l.schoolName ?? "",
+    graduationYear: l.graduationYear ?? 0,
+    wins: 0, // not tracked on user yet
+    avgScore: 0, // not tracked on user yet
+    totalEarnings: l.totalEarnings ?? 0,
+    bountiesWon: 0, // not tracked yet
+    points: l.points ?? 0,
+    active: true,
+    rank: i + 1,
+  }));
 
-    return [...filtered]
-      .sort((a, b) => b.points - a.points)
-      .map((l, i) => ({ ...l, rank: i + 1 }));
-  }, [showActiveOnly]);
+  if (rawLeaders === undefined) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PlatformPageHeader
+          icon={Star}
+          title="Leaderboard"
+          description="Top competitors ranked by points"
+        />
+        <div className="flex items-center justify-center py-16 text-text-muted">
+          Loading leaderboard...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">

@@ -2,6 +2,8 @@
 
 import { useState, useId, Fragment } from "react";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,108 +43,12 @@ type MonthRound = {
   mostPoints: MostPointsWinner;
 };
 
-const pastRounds: MonthRound[] = [
-  {
-    month: "February 2026",
-    grossPool: 1773,
-    placements: [
-      {
-        place: 1,
-        projectId: "10",
-        title: "FaithConnect - Community Platform",
-        score: 92,
-        team: [
-          { id: "1", name: "Sarah Chen" },
-          { id: "5", name: "Grace Kim" },
-        ],
-      },
-      {
-        place: 2,
-        projectId: "11",
-        title: "MentorMatch - Youth Mentorship",
-        score: 91,
-        team: [{ id: "2", name: "David Park" }],
-      },
-      {
-        place: 3,
-        projectId: "12",
-        title: "GiveBack - Micro-Volunteering",
-        score: 89,
-        team: [
-          { id: "3", name: "Maria Garcia" },
-          { id: "6", name: "Noah Williams" },
-          { id: "5", name: "Grace Kim" },
-        ],
-      },
-    ],
-    mostPoints: { userId: "4", name: "Jake Oswald", monthlyPoints: 2840 },
-  },
-  {
-    month: "January 2026",
-    grossPool: 1620,
-    placements: [
-      {
-        place: 1,
-        projectId: "7",
-        title: "MentorMatch v2",
-        score: 93,
-        team: [
-          { id: "2", name: "David Park" },
-          { id: "4", name: "Jake Oswald" },
-        ],
-      },
-      {
-        place: 2,
-        projectId: "8",
-        title: "StudyCircle - Group Learning",
-        score: 88,
-        team: [{ id: "5", name: "Elijah Thompson" }],
-      },
-      {
-        place: 3,
-        projectId: "9",
-        title: "WorshipFlow - Church Tech",
-        score: 85,
-        team: [{ id: "6", name: "Grace Kim" }],
-      },
-    ],
-    mostPoints: { userId: "1", name: "Sarah Chen", monthlyPoints: 3120 },
-  },
-  {
-    month: "December 2025",
-    grossPool: 1500,
-    placements: [
-      {
-        place: 1,
-        projectId: "4",
-        title: "GiveBack - Micro-Volunteering",
-        score: 90,
-        team: [
-          { id: "3", name: "Maria Garcia" },
-          { id: "1", name: "Sarah Chen" },
-        ],
-      },
-      {
-        place: 2,
-        projectId: "5",
-        title: "PrayerWall - Digital Board",
-        score: 87,
-        team: [{ id: "1", name: "Sarah Chen" }],
-      },
-      {
-        place: 3,
-        projectId: "6",
-        title: "DataDash - Analytics Tool",
-        score: 84,
-        team: [
-          { id: "7", name: "Noah Williams" },
-          { id: "8", name: "Sophia Johnson" },
-        ],
-      },
-    ],
-    mostPoints: { userId: "2", name: "David Park", monthlyPoints: 2650 },
-  },
-];
+/** Format "2026-02" into "February 2026". */
+function formatMonthYear(monthYear: string): string {
+  const [yearStr, monthStr] = monthYear.split("-");
+  const date = new Date(Number(yearStr), Number(monthStr) - 1, 1);
+  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
 
 const placeColors = {
   1: {
@@ -318,14 +224,105 @@ function WinnerRows({ split, placements, mostPoints }: WinnerRowsProps) {
 }
 
 export default function HallOfFamePage() {
-  const [expandedMonth, setExpandedMonth] = useState<string | null>(
-    pastRounds[0]?.month ?? null,
-  );
+  const rawRounds = useQuery(api.prizes.getPastRounds);
+
+  // Map Convex data to the shape the UI expects
+  const pastRounds: MonthRound[] = (rawRounds ?? []).map((pool) => {
+    const placements: PitchPlacement[] = [];
+
+    if (pool.firstPlaceUser) {
+      placements.push({
+        place: 1,
+        projectId: pool._id,
+        title: pool.firstPlaceUser.fullName,
+        score: 0,
+        team: [{ id: pool.firstPlaceUser._id, name: pool.firstPlaceUser.fullName }],
+      });
+    }
+    if (pool.secondPlaceUser) {
+      placements.push({
+        place: 2,
+        projectId: pool._id,
+        title: pool.secondPlaceUser.fullName,
+        score: 0,
+        team: [{ id: pool.secondPlaceUser._id, name: pool.secondPlaceUser.fullName }],
+      });
+    }
+    if (pool.thirdPlaceUser) {
+      placements.push({
+        place: 3,
+        projectId: pool._id,
+        title: pool.thirdPlaceUser.fullName,
+        score: 0,
+        team: [{ id: pool.thirdPlaceUser._id, name: pool.thirdPlaceUser.fullName }],
+      });
+    }
+
+    // Use first place winner as "most points" placeholder (we don't have monthly points data)
+    const mostPointsUser = pool.firstPlaceUser;
+
+    return {
+      month: formatMonthYear(pool.monthYear),
+      grossPool: pool.totalCollected,
+      placements,
+      mostPoints: {
+        userId: mostPointsUser?._id ?? "",
+        name: mostPointsUser?.fullName ?? "N/A",
+        monthlyPoints: 0,
+      },
+    };
+  });
+
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const baseId = useId();
+
+  // Auto-expand first round once data loads
+  const firstMonth = pastRounds[0]?.month ?? null;
+  const effectiveExpanded = expandedMonth ?? firstMonth;
 
   const toggleMonth = (month: string) => {
     setExpandedMonth((m) => (m === month ? null : month));
   };
+
+  // Loading state
+  if (rawRounds === undefined) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PlatformPageHeader
+          icon={Trophy}
+          title="Hall of Fame"
+          description="A running history of winning projects, month by month"
+        />
+        <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-text-secondary">Loading hall of fame...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (pastRounds.length === 0) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PlatformPageHeader
+          icon={Trophy}
+          title="Hall of Fame"
+          description="A running history of winning projects, month by month"
+        />
+        <Card>
+          <div className="py-12 text-center">
+            <Trophy className="h-10 w-10 text-text-muted mx-auto mb-3" />
+            <p className="text-sm text-text-secondary">
+              No completed rounds yet. Check back after the first voting round finalizes.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -351,7 +348,7 @@ export default function HallOfFamePage() {
             </thead>
             <tbody>
               {pastRounds.map((round) => {
-                const open = expandedMonth === round.month;
+                const open = effectiveExpanded === round.month;
                 const panelId = `${baseId}-panel-${round.month.replace(/\s+/g, "-")}`;
                 const prizeSplit = splitCompetitorPrizePool(round.grossPool);
                 return (

@@ -1,81 +1,121 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Search, MessageCircle, Send, Plus } from "lucide-react";
+import { Search, MessageCircle, Send } from "lucide-react";
 
-const mockThreads = [
-  {
-    id: "t1",
-    user: { name: "Sarah Chen", school: "Grace Academy" },
-    lastMessage: "That sounds great! Let's connect on the project this weekend.",
-    time: "2h ago",
-    unread: 2,
-  },
-  {
-    id: "t2",
-    user: { name: "David Park", school: "Covenant Prep" },
-    lastMessage: "I saw your EcoTrack pitch - really impressive work! Have you considered...",
-    time: "1d ago",
-    unread: 0,
-  },
-  {
-    id: "t3",
-    user: { name: "Elijah Thompson", school: "Liberty Christian" },
-    lastMessage: "Thanks for the feedback on my pitch. I'll incorporate those changes.",
-    time: "3d ago",
-    unread: 0,
-  },
-  {
-    id: "t4",
-    user: { name: "Grace Kim", school: "Faith Lutheran" },
-    lastMessage: "Would love to collaborate on a design project together!",
-    time: "5d ago",
-    unread: 0,
-  },
-];
+function formatRelativeTime(epochMs: number): string {
+  const now = Date.now();
+  const diffMs = now - epochMs;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  return `${diffWeeks}w ago`;
+}
 
-const mockMessages = [
-  {
-    id: "m1",
-    sender: "Sarah Chen",
-    body: "Hey! I loved your EcoTrack pitch. The gamification angle is really smart.",
-    time: "Yesterday, 3:42 PM",
-    isMe: false,
-  },
-  {
-    id: "m2",
-    sender: "Me",
-    body: "Thanks Sarah! I was inspired by how FaithConnect brings community together. Maybe we could combine our ideas somehow?",
-    time: "Yesterday, 4:15 PM",
-    isMe: true,
-  },
-  {
-    id: "m3",
-    sender: "Sarah Chen",
-    body: "That's exactly what I was thinking! A faith-driven sustainability community could be really powerful.",
-    time: "Today, 9:30 AM",
-    isMe: false,
-  },
-  {
-    id: "m4",
-    sender: "Sarah Chen",
-    body: "That sounds great! Let's connect on the project this weekend.",
-    time: "Today, 10:15 AM",
-    isMe: false,
-  },
-];
+function formatMessageTime(epochMs: number): string {
+  const date = new Date(epochMs);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  const time = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  if (isToday) return `Today, ${time}`;
+  if (isYesterday) return `Yesterday, ${time}`;
+  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${time}`;
+}
 
 export default function MessagesPage() {
-  const [selectedThread, setSelectedThread] = useState<string | null>("t1");
+  const [selectedThread, setSelectedThread] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const threads = useQuery(api.messages.listThreads) ?? [];
+  const selectedMessages = useQuery(
+    api.messages.getThread,
+    selectedThread ? { threadId: selectedThread } : "skip"
+  );
+  const sendMessage = useMutation(api.messages.send);
+  const markRead = useMutation(api.messages.markThreadRead);
+
+  // Auto-select first thread when threads load
+  useEffect(() => {
+    if (threads.length > 0 && selectedThread === null) {
+      setSelectedThread(threads[0].threadId);
+    }
+  }, [threads, selectedThread]);
+
+  // Mark thread as read when selected
+  useEffect(() => {
+    if (selectedThread) {
+      const thread = threads.find((t) => t.threadId === selectedThread);
+      if (thread && thread.unreadCount > 0) {
+        markRead({ threadId: selectedThread });
+      }
+    }
+  }, [selectedThread, threads, markRead]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [selectedMessages]);
+
+  const selectedThreadData = threads.find(
+    (t) => t.threadId === selectedThread
+  );
+
+  const handleSend = async () => {
+    if (!messageInput.trim() || !selectedThreadData?.otherUser?._id) return;
+    await sendMessage({
+      recipientUserId: selectedThreadData.otherUser._id as Id<"users">,
+      body: messageInput.trim(),
+    });
+    setMessageInput("");
+  };
+
+  const handleSelectThread = (threadId: string) => {
+    setSelectedThread(threadId);
+  };
+
+  // Loading state
+  if (threads === undefined) {
+    return (
+      <div className="animate-fade-in">
+        <div className="mb-6">
+          <PlatformPageHeader
+            icon={MessageCircle}
+            title="Messages"
+            description="Direct messages with community members"
+          />
+        </div>
+        <div className="flex items-center justify-center h-[calc(100dvh-220px)]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-text-secondary">Loading messages...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">
@@ -97,86 +137,119 @@ export default function MessagesPage() {
             />
           </div>
           <div className="divide-y divide-border-subtle">
-            {mockThreads.map((thread) => (
-              <button
-                key={thread.id}
-                onClick={() => setSelectedThread(thread.id)}
-                className={`w-full text-left p-4 hover:bg-surface-card-hover transition-colors ${
-                  selectedThread === thread.id ? "bg-surface-elevated" : ""
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <Avatar name={thread.user.name} size="md" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p
-                        className={`text-sm font-medium truncate ${
-                          thread.unread > 0
-                            ? "text-text-primary"
-                            : "text-text-secondary"
-                        }`}
-                      >
-                        {thread.user.name}
+            {threads.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-sm text-text-muted">No conversations yet</p>
+              </div>
+            ) : (
+              threads.map((thread) => (
+                <button
+                  key={thread.threadId}
+                  onClick={() => handleSelectThread(thread.threadId)}
+                  className={`w-full text-left p-4 hover:bg-surface-card-hover transition-colors ${
+                    selectedThread === thread.threadId
+                      ? "bg-surface-elevated"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <Avatar
+                      name={thread.otherUser?.fullName ?? "Unknown"}
+                      size="md"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p
+                          className={`text-sm font-medium truncate ${
+                            thread.unreadCount > 0
+                              ? "text-text-primary"
+                              : "text-text-secondary"
+                          }`}
+                        >
+                          {thread.otherUser?.fullName ?? "Unknown"}
+                        </p>
+                        <span className="text-xs text-text-muted flex-shrink-0">
+                          {thread.lastMessage
+                            ? formatRelativeTime(
+                                thread.lastMessage._creationTime
+                              )
+                            : ""}
+                        </span>
+                      </div>
+                      <p className="text-xs text-text-muted truncate mt-0.5">
+                        {thread.lastMessage?.body ?? ""}
                       </p>
-                      <span className="text-xs text-text-muted flex-shrink-0">
-                        {thread.time}
-                      </span>
                     </div>
-                    <p className="text-xs text-text-muted truncate mt-0.5">
-                      {thread.lastMessage}
-                    </p>
+                    {thread.unreadCount > 0 && (
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-500 text-black text-[10px] font-bold flex items-center justify-center">
+                        {thread.unreadCount}
+                      </span>
+                    )}
                   </div>
-                  {thread.unread > 0 && (
-                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-500 text-black text-[10px] font-bold flex items-center justify-center">
-                      {thread.unread}
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
         {/* Message View */}
         <div className="lg:col-span-2 flex flex-col bg-surface-primary">
-          {selectedThread ? (
+          {selectedThread && selectedThreadData ? (
             <>
               {/* Thread Header */}
               <div className="p-4 border-b border-border-default flex items-center gap-3">
-                <Avatar name="Sarah Chen" size="sm" />
+                <Avatar
+                  name={selectedThreadData.otherUser?.fullName ?? "Unknown"}
+                  size="sm"
+                />
                 <div>
                   <p className="text-sm font-semibold text-text-primary">
-                    Sarah Chen
+                    {selectedThreadData.otherUser?.fullName ?? "Unknown"}
                   </p>
-                  <p className="text-xs text-text-muted">Grace Academy</p>
+                  <p className="text-xs text-text-muted">
+                    {selectedThreadData.otherUser?.schoolName ?? ""}
+                  </p>
                 </div>
               </div>
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {mockMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.isMe ? "justify-end" : "justify-start"}`}
-                  >
+                {selectedMessages === undefined ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+                  </div>
+                ) : selectedMessages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-sm text-text-muted">
+                      No messages yet. Say hello!
+                    </p>
+                  </div>
+                ) : (
+                  (selectedMessages ?? []).map((msg) => (
                     <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                        msg.isMe
-                          ? "bg-brand-500 text-black rounded-br-md"
-                          : "bg-surface-elevated text-text-primary border border-border-default rounded-bl-md"
-                      }`}
+                      key={msg._id}
+                      className={`flex ${msg.isMe ? "justify-end" : "justify-start"}`}
                     >
-                      <p className="text-sm">{msg.body}</p>
-                      <p
-                        className={`text-[10px] mt-1 ${
-                          msg.isMe ? "text-black/60" : "text-text-muted"
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                          msg.isMe
+                            ? "bg-brand-500 text-black rounded-br-md"
+                            : "bg-surface-elevated text-text-primary border border-border-default rounded-bl-md"
                         }`}
                       >
-                        {msg.time}
-                      </p>
+                        <p className="text-sm">{msg.body}</p>
+                        <p
+                          className={`text-[10px] mt-1 ${
+                            msg.isMe ? "text-black/60" : "text-text-muted"
+                          }`}
+                        >
+                          {formatMessageTime(msg._creationTime)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Message Input */}
@@ -188,11 +261,18 @@ export default function MessagesPage() {
                     className="flex-1 h-10 px-4 rounded-xl text-sm bg-surface-elevated border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-white transition-colors"
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
                   />
                   <Button
                     variant="brand"
                     size="icon"
                     disabled={!messageInput.trim()}
+                    onClick={handleSend}
                   >
                     <Send className="h-4 w-4" />
                   </Button>

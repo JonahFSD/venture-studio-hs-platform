@@ -16,7 +16,10 @@ export default defineSchema({
     schoolName: v.optional(v.string()),
     graduationYear: v.optional(v.number()),
     age: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    city: v.optional(v.string()),
     state: v.optional(v.string()),
+    tools: v.optional(v.array(v.string())),
     role: v.union(
       v.literal("member"),
       v.literal("admin"),
@@ -73,8 +76,21 @@ export default defineSchema({
       v.literal("more_info")
     ),
     reviewerId: v.optional(v.id("users")),
+    referralCode: v.optional(v.string()),
     reviewerNotes: v.optional(v.string()),
     reviewedAt: v.optional(v.number()),
+    // Profile fields (captured at application time)
+    phone: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    skills: v.optional(v.array(v.string())),
+    tools: v.optional(v.array(v.string())),
+    lookingForCofounders: v.optional(v.boolean()),
+    portfolioLinks: v.optional(v.array(v.object({
+      label: v.string(),
+      url: v.string(),
+    }))),
   })
     .index("by_status", ["status"])
     .index("by_email", ["userEmail"]),

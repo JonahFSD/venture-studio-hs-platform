@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import { Id } from "../../../../convex/_generated/dataModel";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { InfoCallout } from "@/components/ui/info-callout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
 import {
   Clock,
   Play,
@@ -19,92 +23,20 @@ import {
 
 type VotingState = "idle" | "submitted" | "editing";
 
-/** Top 10 pitches for the round, ordered by AI score (highest first). */
-const initialSubmissions = [
-  {
-    id: "1",
-    title: "FaithConnect - Community Platform",
-    description:
-      "A social platform connecting young Christians through shared interests, bible study groups, and local events.",
-    user: { name: "Sarah Chen", school: "Grace Academy" },
-    score: 92,
-  },
-  {
-    id: "3",
-    title: "MentorMatch - Youth Mentorship",
-    description:
-      "An AI-powered platform matching high school students with mentors in their areas of interest.",
-    user: { name: "David Park", school: "Covenant Prep" },
-    score: 91,
-  },
-  {
-    id: "4",
-    title: "GiveBack - Micro-Volunteering",
-    description:
-      "Find and complete short volunteering tasks in your local community in under an hour.",
-    user: { name: "Maria Garcia", school: "Hope Academy" },
-    score: 89,
-  },
-  {
-    id: "2",
-    title: "EcoTrack - Carbon Footprint Tracker",
-    description:
-      "A mobile app that helps teens track and reduce their carbon footprint through gamification and community challenges.",
-    user: { name: "Jake Oswald", school: "Austin Christian High" },
-    score: 87,
-  },
-  {
-    id: "5",
-    title: "StudyCircle - Group Learning",
-    description:
-      "AI-facilitated study groups that match students by subject, level, and schedule.",
-    user: { name: "Elijah Thompson", school: "Liberty Christian" },
-    score: 86,
-  },
-  {
-    id: "6",
-    title: "ServeLocal - Volunteer Discovery",
-    description:
-      "A map-based app surfacing weekend service opportunities matched to your skills and availability.",
-    user: { name: "Anna Kim", school: "Covenant Prep" },
-    score: 85,
-  },
-  {
-    id: "7",
-    title: "BrightPath - Career Explorer",
-    description:
-      "Short video interviews with professionals in faith-aligned careers, with AI-curated paths for each student.",
-    user: { name: "Marcus Webb", school: "Hope Academy" },
-    score: 84,
-  },
-  {
-    id: "8",
-    title: "Rooted - Scripture Journaling",
-    description:
-      "A guided journaling app that connects daily readings to personal goals and small-group discussion prompts.",
-    user: { name: "Lily Nguyen", school: "Liberty Christian" },
-    score: 83,
-  },
-  {
-    id: "9",
-    title: "SkillShare Teens - Peer Tutoring",
-    description:
-      "Peer-to-peer tutoring marketplace with verified student tutors and school-safe video sessions.",
-    user: { name: "Noah Brooks", school: "Grace Academy" },
-    score: 82,
-  },
-  {
-    id: "10",
-    title: "Hearth - Family Devotions",
-    description:
-      "Weekly family devotion packs with discussion guides and age-appropriate activities for siblings.",
-    user: { name: "Rachel Ortiz", school: "Austin Christian High" },
-    score: 80,
-  },
-].sort((a, b) => b.score - a.score);
+type SubmissionItem = {
+  id: string;
+  title: string;
+  description: string;
+  user: { name: string; school: string };
+  score: number;
+};
 
 export default function VotingPage() {
-  const [submissions, setSubmissions] = useState(initialSubmissions);
+  const roundData = useQuery(api.voting.getCurrentRound);
+  const castVotes = useMutation(api.voting.castVotes);
+
+  const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
+  const [initialized, setInitialized] = useState(false);
   const [votingState, setVotingState] = useState<VotingState>("idle");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
@@ -113,6 +45,22 @@ export default function VotingPage() {
   const touchStartY = useRef(0);
   const touchDragIndex = useRef<number | null>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Initialize submissions from query data once loaded
+  if (roundData && roundData.submissions && !initialized) {
+    const mapped = roundData.submissions.map((sub) => ({
+      id: sub._id,
+      title: sub.title,
+      description: sub.description ?? "",
+      user: {
+        name: sub.user?.fullName ?? "Unknown",
+        school: sub.user?.schoolName ?? "",
+      },
+      score: sub.aiScore?.overallScore ?? 0,
+    }));
+    setSubmissions(mapped);
+    setInitialized(true);
+  }
 
   const isLocked = votingState === "submitted";
   const canDrag = votingState !== "submitted";
@@ -125,7 +73,6 @@ export default function VotingPage() {
       setDraggedIndex(index);
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", String(index));
-      // Make the drag ghost slightly transparent
       if (e.currentTarget instanceof HTMLElement) {
         requestAnimationFrame(() => {
           (e.currentTarget as HTMLElement).style.opacity = "0.4";
@@ -135,16 +82,13 @@ export default function VotingPage() {
     [canDrag]
   );
 
-  const handleDragEnd = useCallback(
-    (e: React.DragEvent) => {
-      if (e.currentTarget instanceof HTMLElement) {
-        e.currentTarget.style.opacity = "1";
-      }
-      setDraggedIndex(null);
-      setDropTargetIndex(null);
-    },
-    []
-  );
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = "1";
+    }
+    setDraggedIndex(null);
+    setDropTargetIndex(null);
+  }, []);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent, index: number) => {
@@ -156,25 +100,22 @@ export default function VotingPage() {
     [canDrag]
   );
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent, toIndex: number) => {
-      e.preventDefault();
-      const fromIndex = Number(e.dataTransfer.getData("text/plain"));
-      if (fromIndex === toIndex) {
-        setDropTargetIndex(null);
-        return;
-      }
-      setSubmissions((prev) => {
-        const updated = [...prev];
-        const [moved] = updated.splice(fromIndex, 1);
-        updated.splice(toIndex, 0, moved);
-        return updated;
-      });
+  const handleDrop = useCallback((e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = Number(e.dataTransfer.getData("text/plain"));
+    if (fromIndex === toIndex) {
       setDropTargetIndex(null);
-      setDraggedIndex(null);
-    },
-    []
-  );
+      return;
+    }
+    setSubmissions((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      return updated;
+    });
+    setDropTargetIndex(null);
+    setDraggedIndex(null);
+  }, []);
 
   // ── Touch Drag (Mobile) ──
 
@@ -193,7 +134,6 @@ export default function VotingPage() {
       if (touchDragIndex.current === null || !canDrag) return;
       const touchY = e.touches[0].clientY;
 
-      // Find which card the touch is over
       for (let i = 0; i < cardRefs.current.length; i++) {
         const card = cardRefs.current[i];
         if (!card) continue;
@@ -227,13 +167,84 @@ export default function VotingPage() {
 
   // ── Actions ──
 
-  const handleSubmitVote = () => {
-    setVotingState("submitted");
+  const handleSubmitVote = async () => {
+    if (!roundData) return;
+    try {
+      await castVotes({
+        roundId: roundData._id,
+        submissionIds: submissions.map(
+          (s) => s.id as Id<"submissions">
+        ),
+      });
+      setVotingState("submitted");
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Failed to submit vote"
+      );
+    }
   };
 
   const handleEditVote = () => {
     setVotingState("editing");
   };
+
+  // ── Loading state ──
+  if (roundData === undefined) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PlatformPageHeader
+          icon={Vote}
+          title="Monthly Voting"
+          description={"Rank-choice voting for this month's best pitches"}
+        />
+        <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-text-secondary">Loading voting round...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── No active round ──
+  if (roundData === null) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PlatformPageHeader
+          icon={Vote}
+          title="Monthly Voting"
+          description={"Rank-choice voting for this month's best pitches"}
+        />
+        <Card>
+          <div className="py-12 text-center">
+            <Vote className="h-10 w-10 text-text-muted mx-auto mb-3" />
+            <p className="text-sm font-medium text-text-primary mb-1">
+              No active voting round
+            </p>
+            <p className="text-xs text-text-secondary">
+              The next voting round will open at the start of the month. Check back soon.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Calculate remaining days
+  const now = Date.now();
+  const msRemaining = roundData.closesAt - now;
+  const daysRemaining = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
+
+  // Format month for display
+  const [yearStr, monthStr] = roundData.monthYear.split("-");
+  const roundDate = new Date(Number(yearStr), Number(monthStr) - 1, 1);
+  const roundLabel = roundDate.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const prizePoolAmount = roundData.prizePool?.totalCollected;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -248,13 +259,18 @@ export default function VotingPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-brand-500/5 to-transparent border border-solid border-border-default">
         <div>
           <h2 className="text-lg font-bold text-text-primary">
-            March 2026 Voting Round
+            {roundLabel} Voting Round
           </h2>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             <Badge variant="brand">
-              <Clock className="h-3 w-3 mr-1" />4 days remaining
+              <Clock className="h-3 w-3 mr-1" />
+              {daysRemaining} {daysRemaining === 1 ? "day" : "days"} remaining
             </Badge>
-            <span className="text-sm text-text-secondary">$1,890 pool</span>
+            {prizePoolAmount != null && (
+              <span className="text-sm text-text-secondary">
+                ${prizePoolAmount.toLocaleString()} pool
+              </span>
+            )}
           </div>
         </div>
 
@@ -302,117 +318,130 @@ export default function VotingPage() {
         </p>
       </InfoCallout>
 
+      {/* Empty submissions */}
+      {submissions.length === 0 && (
+        <Card>
+          <div className="py-12 text-center">
+            <p className="text-sm text-text-secondary">
+              No eligible submissions for this voting round yet.
+            </p>
+          </div>
+        </Card>
+      )}
+
       {/* Ranked Cards */}
-      <div className="space-y-3" onTouchMove={handleTouchMove}>
-        {submissions.map((sub, index) => {
-          const isDragging = draggedIndex === index;
-          const isDropTarget =
-            dropTargetIndex === index && draggedIndex !== index;
+      {submissions.length > 0 && (
+        <div className="space-y-3" onTouchMove={handleTouchMove}>
+          {submissions.map((sub, index) => {
+            const isDragging = draggedIndex === index;
+            const isDropTarget =
+              dropTargetIndex === index && draggedIndex !== index;
 
-          return (
-            <div
-              key={sub.id}
-              ref={(el) => {
-                cardRefs.current[index] = el;
-              }}
-              draggable={canDrag}
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragEnd={handleDragEnd}
-              onDragOver={(e) => handleDragOver(e, index)}
-              onDrop={(e) => handleDrop(e, index)}
-              onTouchStart={(e) =>
-                handleTouchStart(index, e.touches[0].clientY)
-              }
-              onTouchEnd={handleTouchEnd}
-              className={`flex items-center gap-4 transition-all duration-200 ${
-                isDragging ? "opacity-40" : ""
-              } ${isDropTarget ? "translate-y-1" : ""}`}
-            >
-              {/* Rank Number */}
-              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-surface-elevated border border-border-default flex items-center justify-center">
-                <span
-                  className={`text-lg font-bold ${
-                    index === 0
-                      ? "text-yellow-400"
-                      : index === 1
-                        ? "text-gray-300"
-                        : index === 2
-                          ? "text-amber-600"
-                          : "text-text-muted"
-                  }`}
-                >
-                  {index + 1}
-                </span>
-              </div>
-
-              {/* Card */}
+            return (
               <div
-                className={`flex-1 flex items-stretch rounded-xl border overflow-hidden transition-all duration-200 ${
-                  isLocked
-                    ? "border-border-default bg-surface-card"
-                    : isDropTarget
-                      ? "border-brand-500 bg-surface-card shadow-glow"
-                      : "border-border-default bg-surface-card hover:border-border-strong hover:bg-surface-card-hover"
-                } ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
+                key={sub.id}
+                ref={(el) => {
+                  cardRefs.current[index] = el;
+                }}
+                draggable={canDrag}
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDrop={(e) => handleDrop(e, index)}
+                onTouchStart={(e) =>
+                  handleTouchStart(index, e.touches[0].clientY)
+                }
+                onTouchEnd={handleTouchEnd}
+                className={`flex items-center gap-4 transition-all duration-200 ${
+                  isDragging ? "opacity-40" : ""
+                } ${isDropTarget ? "translate-y-1" : ""}`}
               >
-                {/* Drag Handle */}
-                <div
-                  className={`flex items-center px-3 border-r border-border-default ${
-                    isLocked
-                      ? "text-text-muted"
-                      : "text-text-tertiary hover:text-text-secondary"
-                  }`}
-                >
-                  {isLocked ? (
-                    <Lock className="h-4 w-4" />
-                  ) : (
-                    <GripVertical className="h-5 w-5" />
-                  )}
-                </div>
-
-                {/* Video Thumbnail */}
-                <div className="relative w-80 sm:w-[500px] flex-shrink-0 bg-surface-elevated group cursor-pointer">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="p-3 rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-colors">
-                      <Play className="h-6 w-6 text-white fill-white" />
-                    </div>
-                  </div>
-                  {/* Aspect ratio placeholder */}
-                  <div className="aspect-[16/10]" />
-                </div>
-
-                {/* Details */}
-                <div className="flex-1 p-5 min-w-0 overflow-hidden">
-                  <Badge
-                    variant="brand"
-                    className="text-xs bg-brand-500/80 text-black font-bold mb-2"
+                {/* Rank Number */}
+                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-surface-elevated border border-border-default flex items-center justify-center">
+                  <span
+                    className={`text-lg font-bold ${
+                      index === 0
+                        ? "text-yellow-400"
+                        : index === 1
+                          ? "text-gray-300"
+                          : index === 2
+                            ? "text-amber-600"
+                            : "text-text-muted"
+                    }`}
                   >
-                    AI Score: {sub.score}
-                  </Badge>
-                  <h3 className="text-base font-semibold text-text-primary truncate">
-                    {sub.title}
-                  </h3>
-                  <p className="text-sm text-text-secondary line-clamp-2 mt-1">
-                    {sub.description}
-                  </p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Avatar name={sub.user.name} size="sm" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-text-primary truncate">
-                        {sub.user.name}
-                      </p>
-                      <p className="text-[10px] text-text-muted truncate">
-                        {sub.user.school}
-                      </p>
+                    {index + 1}
+                  </span>
+                </div>
+
+                {/* Card */}
+                <div
+                  className={`flex-1 flex items-stretch rounded-xl border overflow-hidden transition-all duration-200 ${
+                    isLocked
+                      ? "border-border-default bg-surface-card"
+                      : isDropTarget
+                        ? "border-brand-500 bg-surface-card shadow-glow"
+                        : "border-border-default bg-surface-card hover:border-border-strong hover:bg-surface-card-hover"
+                  } ${canDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
+                >
+                  {/* Drag Handle */}
+                  <div
+                    className={`flex items-center px-3 border-r border-border-default ${
+                      isLocked
+                        ? "text-text-muted"
+                        : "text-text-tertiary hover:text-text-secondary"
+                    }`}
+                  >
+                    {isLocked ? (
+                      <Lock className="h-4 w-4" />
+                    ) : (
+                      <GripVertical className="h-5 w-5" />
+                    )}
+                  </div>
+
+                  {/* Video Thumbnail */}
+                  <div className="relative w-80 sm:w-[500px] flex-shrink-0 bg-surface-elevated group cursor-pointer">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/20" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="p-3 rounded-full bg-white/20 backdrop-blur-sm group-hover:bg-white/30 transition-colors">
+                        <Play className="h-6 w-6 text-white fill-white" />
+                      </div>
+                    </div>
+                    {/* Aspect ratio placeholder */}
+                    <div className="aspect-[16/10]" />
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex-1 p-5 min-w-0 overflow-hidden">
+                    <Badge
+                      variant="brand"
+                      className="text-xs bg-brand-500/80 text-black font-bold mb-2"
+                    >
+                      AI Score: {sub.score}
+                    </Badge>
+                    <h3 className="text-base font-semibold text-text-primary truncate">
+                      {sub.title}
+                    </h3>
+                    <p className="text-sm text-text-secondary line-clamp-2 mt-1">
+                      {sub.description}
+                    </p>
+                    <div className="flex items-center gap-2 mt-3">
+                      <Avatar name={sub.user.name} size="sm" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-text-primary truncate">
+                          {sub.user.name}
+                        </p>
+                        <p className="text-[10px] text-text-muted truncate">
+                          {sub.user.school}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Submitted confirmation */}
       {isLocked && (

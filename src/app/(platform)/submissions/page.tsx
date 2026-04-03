@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,69 +48,6 @@ type SubmissionListItem = {
   team_count: number;
 };
 
-const mockSubmissions: SubmissionListItem[] = [
-  {
-    id: "1",
-    title: "EcoTrack - Carbon Footprint Tracker",
-    description:
-      "A mobile app that helps teens track and reduce their carbon footprint through gamification and community challenges.",
-    status: "scored",
-    month_year: "2026-03",
-    score: 87,
-    created_at: "2026-03-15",
-    has_video: true,
-    has_github: true,
-    has_website: false,
-    is_team: true,
-    team_count: 3,
-  },
-  {
-    id: "2",
-    title: "FaithConnect - Community Platform",
-    description:
-      "A social platform connecting young Christians through shared interests, bible study groups, and local events.",
-    status: "submitted",
-    month_year: "2026-02",
-    score: null,
-    created_at: "2026-02-20",
-    has_video: true,
-    has_github: true,
-    has_website: true,
-    is_team: false,
-    team_count: 1,
-  },
-  {
-    id: "3",
-    title: "StudyBuddy - AI Homework Helper",
-    description:
-      "An AI-powered study companion that helps students understand difficult concepts through personalized explanations.",
-    status: "scored",
-    month_year: "2026-01",
-    score: 78,
-    created_at: "2026-01-18",
-    has_video: true,
-    has_github: false,
-    has_website: false,
-    is_team: false,
-    team_count: 1,
-  },
-  {
-    id: "4",
-    title: "PrayerWall - Digital Prayer Board",
-    description:
-      "A community-driven digital prayer board where students can share prayer requests and encourage one another.",
-    status: "draft",
-    month_year: "2026-03",
-    score: null,
-    created_at: "2026-03-28",
-    has_video: false,
-    has_github: false,
-    has_website: false,
-    is_team: true,
-    team_count: 2,
-  },
-];
-
 function filterSubmissionsByTab<
   T extends { status: SubmissionStatus },
 >(subs: T[], tabId: string): T[] {
@@ -127,27 +66,66 @@ function filterSubmissionsByTab<
 }
 
 export default function SubmissionsPage() {
+  const rawSubmissions = useQuery(api.submissions.listMine);
+
+  const submissions: SubmissionListItem[] = useMemo(
+    () =>
+      (rawSubmissions ?? []).map((sub) => ({
+        id: sub._id,
+        title: sub.title,
+        description: sub.description,
+        status: sub.status as SubmissionStatus,
+        month_year: sub.monthYear,
+        score: sub.aiScore?.overallScore ?? null,
+        created_at: new Date(sub._creationTime).toISOString().split("T")[0],
+        has_video: !!sub.videoUrl,
+        has_github: !!sub.githubUrl,
+        has_website: !!sub.websiteUrl,
+        is_team: sub.isTeamSubmission ?? false,
+        team_count: 1,
+      })),
+    [rawSubmissions]
+  );
+
   const tabs = useMemo(
     () => [
-      { id: "all", label: "All", count: mockSubmissions.length },
+      { id: "all", label: "All", count: submissions.length },
       {
         id: "submitted",
         label: "Submitted",
-        count: filterSubmissionsByTab(mockSubmissions, "submitted").length,
+        count: filterSubmissionsByTab(submissions, "submitted").length,
       },
       {
         id: "scored",
         label: "Scored",
-        count: filterSubmissionsByTab(mockSubmissions, "scored").length,
+        count: filterSubmissionsByTab(submissions, "scored").length,
       },
       {
         id: "drafts",
         label: "Drafts",
-        count: filterSubmissionsByTab(mockSubmissions, "drafts").length,
+        count: filterSubmissionsByTab(submissions, "drafts").length,
       },
     ],
-    []
+    [submissions]
   );
+
+  if (rawSubmissions === undefined) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PlatformPageHeader
+          icon={Video}
+          title="My Submissions"
+          description="Track your video pitches and AI scores"
+        />
+        <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-text-secondary">Loading submissions...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -193,7 +171,7 @@ export default function SubmissionsPage() {
       {/* Tabs */}
       <Tabs tabs={tabs}>
         {(activeTab) => {
-          const filtered = filterSubmissionsByTab(mockSubmissions, activeTab);
+          const filtered = filterSubmissionsByTab(submissions, activeTab);
           if (filtered.length === 0) {
             const emptyCopy: Record<
               string,

@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,118 +19,27 @@ import {
 } from "@/lib/community-filter.constants";
 import { Search, Handshake, Filter, X, Users } from "lucide-react";
 
-const mockMembers = [
-  {
-    id: "1",
-    name: "Sarah Chen",
-    school: "Grace Academy",
-    state: "TX",
-    gradYear: 2027,
-    bio: "Passionate about connecting faith communities through technology. Love building apps that make a difference.",
-    skills: ["React", "Python", "UI/UX"],
-    looking_for_cofounders: true,
-    submissions_count: 5,
-    wins: 3,
-    totalEarnings: 5670,
-    avgScore: 94,
-    bqType: "Visionary",
-    networkCount: 12,
-    points: 18750,
-    monthsAsMember: 18,
-  },
-  {
-    id: "2",
-    name: "David Park",
-    school: "Covenant Prep",
-    state: "CA",
-    gradYear: 2027,
-    bio: "Future tech entrepreneur. Building AI-powered solutions for education and mentorship.",
-    skills: ["Machine Learning", "Node.js", "Marketing"],
-    looking_for_cofounders: true,
-    submissions_count: 4,
-    wins: 2,
-    totalEarnings: 3780,
-    avgScore: 91,
-    bqType: "Operator",
-    networkCount: 8,
-    points: 14200,
-    monthsAsMember: 14,
-  },
-  {
-    id: "3",
-    name: "Maria Garcia",
-    school: "Hope Academy",
-    state: "FL",
-    gradYear: 2026,
-    bio: "Social impact enthusiast. I believe technology can solve our biggest community challenges.",
-    skills: ["Design", "Swift", "Leadership"],
-    looking_for_cofounders: false,
-    submissions_count: 3,
-    wins: 2,
-    totalEarnings: 3200,
-    avgScore: 89,
-    bqType: "Catalyst",
-    networkCount: 6,
-    points: 12500,
-    monthsAsMember: 22,
-  },
-  {
-    id: "4",
-    name: "Elijah Thompson",
-    school: "Liberty Christian",
-    state: "VA",
-    gradYear: 2027,
-    bio: "Full-stack developer and aspiring founder. Interested in EdTech and productivity tools.",
-    skills: ["TypeScript", "Go", "DevOps"],
-    looking_for_cofounders: true,
-    submissions_count: 3,
-    wins: 1,
-    totalEarnings: 1500,
-    avgScore: 86,
-    bqType: "Strategist",
-    networkCount: 4,
-    points: 8800,
-    monthsAsMember: 9,
-  },
-  {
-    id: "5",
-    name: "Grace Kim",
-    school: "Faith Lutheran",
-    state: "WA",
-    gradYear: 2028,
-    bio: "Designer and storyteller. I help startups communicate their vision through beautiful products.",
-    skills: ["Figma", "Branding", "Content"],
-    looking_for_cofounders: true,
-    submissions_count: 2,
-    wins: 0,
-    totalEarnings: 0,
-    avgScore: 84,
-    bqType: "Anchor",
-    networkCount: 3,
-    points: 3200,
-    monthsAsMember: 7,
-  },
-  {
-    id: "6",
-    name: "Noah Williams",
-    school: "Heritage Christian",
-    state: "OH",
-    gradYear: 2025,
-    bio: "Data nerd who loves finding patterns. Building tools for smart decision-making.",
-    skills: ["Data Science", "SQL", "Analytics"],
-    looking_for_cofounders: false,
-    submissions_count: 2,
-    wins: 0,
-    totalEarnings: 0,
-    avgScore: 82,
-    bqType: "Builder",
-    networkCount: 2,
-    points: 2800,
-    monthsAsMember: 5,
-  },
-];
-
 export default function MembersPage() {
+  const rawMembers = useQuery(api.users.listMembers, {});
+
+  const members = (rawMembers ?? []).map((m) => ({
+    id: m._id,
+    name: m.fullName,
+    school: m.schoolName ?? "",
+    state: "",
+    gradYear: m.graduationYear ?? 0,
+    bio: m.bio ?? "",
+    skills: m.skills ?? [],
+    looking_for_cofounders: m.lookingForCofounders,
+    submissions_count: 0,
+    wins: 0,
+    totalEarnings: m.totalEarnings ?? 0,
+    avgScore: 0,
+    bqType: "",
+    networkCount: m.networkCount ?? 0,
+    points: m.points ?? 0,
+    monthsAsMember: 0,
+  }));
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [showCoFoundersOnly, setShowCoFoundersOnly] = useState(false);
@@ -171,7 +82,7 @@ export default function MembersPage() {
   };
 
   const filtered = useMemo(() => {
-    return mockMembers.filter((m) => {
+    return members.filter((m) => {
       if (showCoFoundersOnly && !m.looking_for_cofounders) return false;
       if (search && !m.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (
@@ -201,6 +112,7 @@ export default function MembersPage() {
       return true;
     });
   }, [
+    members,
     search,
     showCoFoundersOnly,
     filterSkills,
@@ -215,13 +127,30 @@ export default function MembersPage() {
     filterMaxMemberMonths,
   ]);
 
+  if (rawMembers === undefined) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PlatformPageHeader
+          icon={Users}
+          title="Community"
+          description="Loading members..."
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i} padding="sm" className="h-24 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <PlatformPageHeader
         icon={Users}
         title="Community"
-        description={`${mockMembers.length} members • Connect with fellow founders`}
+        description={`${members.length} members • Connect with fellow founders`}
       />
 
       {/* Search & Filter Toggle */}
@@ -413,7 +342,7 @@ export default function MembersPage() {
       {/* Members Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {filtered.map((member) => (
-          <Link key={member.id} href={`/members/${member.id}`}>
+          <Link key={member.id as string} href={`/members/${member.id}`}>
             <Card hover glow padding="sm" className="h-full">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-start gap-2">

@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
+import { useCurrentUser } from "@/contexts/user-context";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardTitle } from "@/components/ui/card";
 import { InfoCallout } from "@/components/ui/info-callout";
@@ -42,23 +45,33 @@ interface TeamMember {
   status: "pending" | "accepted" | "declined";
 }
 
-const availableMembers = [
-  { id: "m1", name: "Sarah Chen", school: "Grace Academy" },
-  { id: "m2", name: "David Park", school: "Covenant Prep" },
-  { id: "m3", name: "Maria Garcia", school: "Hope Academy" },
-  { id: "m4", name: "Elijah Thompson", school: "Liberty Christian" },
-  { id: "m5", name: "Grace Kim", school: "Faith Lutheran" },
-  { id: "m6", name: "Noah Williams", school: "Heritage Christian" },
-];
-
 export default function NewSubmissionPage() {
   const router = useRouter();
+  const currentUser = useCurrentUser();
+  const createSubmission = useMutation(api.submissions.create);
+  const submitSubmission = useMutation(api.submissions.submit);
+  const membersData = useQuery(api.users.listMembers, {});
+
+  const availableMembers = (membersData ?? [])
+    .filter((m) => m._id !== currentUser?._id)
+    .map((m) => ({
+      id: m._id,
+      name: m.fullName,
+      school: m.schoolName ?? "",
+    }));
+
   const [step, setStep] = useState(0);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [githubUrl, setGithubUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [slideDeckUrl, setSlideDeckUrl] = useState("");
   const [additionalLinks, setAdditionalLinks] = useState<
     { label: string; url: string }[]
   >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Team state
   const [isTeam, setIsTeam] = useState(false);
@@ -114,11 +127,38 @@ export default function NewSubmissionPage() {
     );
   };
 
-  const handleSubmit = () => {
+  const userName = currentUser?.fullName ?? "You";
+
+  // Compute current monthYear for submission (format: YYYY-MM)
+  const now = new Date();
+  const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const handleSubmit = async () => {
     setIsSubmitting(true);
-    setTimeout(() => {
+    setSubmitError(null);
+    try {
+      const submissionId = await createSubmission({
+        title,
+        description,
+        videoUrl: undefined, // Video upload not yet wired to Convex storage
+        githubUrl: githubUrl || undefined,
+        websiteUrl: websiteUrl || undefined,
+        slideDeckUrl: slideDeckUrl || undefined,
+        additionalLinks:
+          additionalLinks.length > 0
+            ? additionalLinks.filter((l) => l.url.trim() !== "")
+            : undefined,
+        monthYear,
+        isTeamSubmission: isTeam,
+      });
+      await submitSubmission({ submissionId });
       router.push("/submissions");
-    }, 2000);
+    } catch (err: unknown) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Failed to submit. Please try again."
+      );
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -179,6 +219,8 @@ export default function NewSubmissionPage() {
               label="Pitch Title"
               placeholder="Give your venture a compelling name"
               required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
             />
             <Textarea
               label="Description"
@@ -186,6 +228,8 @@ export default function NewSubmissionPage() {
               hint="Be clear and concise. Judges will read this alongside your video. (50-500 words)"
               rows={6}
               required
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
         )}
@@ -293,7 +337,7 @@ export default function NewSubmissionPage() {
                 {teamMembers.length > 0 && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-text-secondary">
+                      <label className="block text-sm font-medium text-text-secondary">
                         Revenue Split
                       </label>
                       <div className="flex items-center gap-1.5">
@@ -310,7 +354,7 @@ export default function NewSubmissionPage() {
 
                     {/* Lead (You) */}
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-brand-500/5 border border-brand-500/20">
-                      <Avatar name="Jake Oswald" size="sm" />
+                      <Avatar name={userName} size="sm" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-text-primary">
@@ -423,8 +467,6 @@ export default function NewSubmissionPage() {
                     </div>
                   </div>
                 )}
-
-                {!isTeam || teamMembers.length === 0 ? null : null}
               </>
             )}
           </div>
@@ -514,18 +556,24 @@ export default function NewSubmissionPage() {
               type="url"
               placeholder="https://github.com/your-repo"
               leftIcon={<Code className="h-4 w-4" />}
+              value={githubUrl}
+              onChange={(e) => setGithubUrl(e.target.value)}
             />
             <Input
               label="Website / Demo"
               type="url"
               placeholder="https://your-project.com"
               leftIcon={<Globe className="h-4 w-4" />}
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
             />
             <Input
               label="Slide Deck"
               type="url"
               placeholder="https://docs.google.com/presentation/..."
               leftIcon={<FileText className="h-4 w-4" />}
+              value={slideDeckUrl}
+              onChange={(e) => setSlideDeckUrl(e.target.value)}
             />
 
             {/* Additional Links */}
@@ -595,7 +643,7 @@ export default function NewSubmissionPage() {
                   Pitch Title
                 </h4>
                 <p className="text-sm text-text-primary">
-                  EcoTrack - Carbon Footprint Tracker
+                  {title || "(No title)"}
                 </p>
               </div>
 
@@ -629,7 +677,7 @@ export default function NewSubmissionPage() {
                 <div className="flex items-center gap-2">
                   <Video className="h-4 w-4 text-brand-500" />
                   <p className="text-sm text-text-primary">
-                    {videoFile?.name || "pitch_video.mp4"}
+                    {videoFile?.name || "No video uploaded"}
                   </p>
                 </div>
               </div>
@@ -647,10 +695,10 @@ export default function NewSubmissionPage() {
                     {/* Lead */}
                     <div className="flex items-center justify-between p-2.5 rounded-lg bg-surface-elevated">
                       <div className="flex items-center gap-2">
-                        <Avatar name="Jake Oswald" size="sm" />
+                        <Avatar name={userName} size="sm" />
                         <div>
                           <p className="text-sm font-medium text-text-primary">
-                            Jake Oswald
+                            {userName}
                           </p>
                           <Badge variant="brand" className="mt-0.5">
                             Lead
@@ -729,6 +777,13 @@ export default function NewSubmissionPage() {
                     All team members must accept the invitation before you can
                     submit. Pending members will receive a notification.
                   </p>
+                </div>
+              )}
+
+              {submitError && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-error/10 border border-error/20">
+                  <AlertTriangle className="h-4 w-4 text-error flex-shrink-0" />
+                  <p className="text-xs text-error">{submitError}</p>
                 </div>
               )}
 

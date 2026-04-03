@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
@@ -13,61 +12,52 @@ import {
   Handshake,
   Users,
   Calendar,
-  DollarSign,
   Shield,
   Inbox,
   Video,
+  Loader2,
 } from "lucide-react";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import Link from "next/link";
-
-const mockInvitations = [
-  {
-    id: "inv1",
-    submission: {
-      title: "GreenMind - Eco Education Platform",
-      description:
-        "An interactive learning platform that teaches sustainability through gamified lessons and real-world challenges.",
-      month_year: "2026-04",
-    },
-    lead: { name: "Sarah Chen", school: "Grace Academy" },
-    team: [
-      { name: "Sarah Chen", role: "lead", splitPct: 50, status: "accepted" },
-      { name: "Jake Oswald", role: "collaborator", splitPct: 30, status: "pending" },
-      { name: "David Park", role: "collaborator", splitPct: 20, status: "accepted" },
-    ],
-    yourSplit: 30,
-    created_at: "2026-03-28",
-  },
-  {
-    id: "inv2",
-    submission: {
-      title: "PrayerPal - Daily Devotional App",
-      description:
-        "A mobile app that pairs users with prayer partners and delivers personalized daily devotionals.",
-      month_year: "2026-04",
-    },
-    lead: { name: "Grace Kim", school: "Faith Lutheran" },
-    team: [
-      { name: "Grace Kim", role: "lead", splitPct: 40, status: "accepted" },
-      { name: "Jake Oswald", role: "collaborator", splitPct: 35, status: "pending" },
-      { name: "Maria Garcia", role: "collaborator", splitPct: 25, status: "pending" },
-    ],
-    yourSplit: 35,
-    created_at: "2026-03-27",
-  },
-];
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
+import { useCurrentUser } from "@/contexts/user-context";
 
 export default function InvitationsPage() {
-  const [invitations, setInvitations] = useState(mockInvitations);
+  const currentUser = useCurrentUser();
+  const invitations = useQuery(api.collaborators.listMyInvitations);
+  const respond = useMutation(api.collaborators.respond);
 
-  const handleAccept = (id: string) => {
-    setInvitations(invitations.filter((inv) => inv.id !== id));
+  const handleAccept = async (collaboratorId: typeof invitations extends (infer T)[] | undefined ? T extends { _id: infer I } ? I : never : never) => {
+    await respond({ collaboratorId, accept: true });
   };
 
-  const handleDecline = (id: string) => {
-    setInvitations(invitations.filter((inv) => inv.id !== id));
+  const handleDecline = async (collaboratorId: typeof invitations extends (infer T)[] | undefined ? T extends { _id: infer I } ? I : never : never) => {
+    await respond({ collaboratorId, accept: false });
   };
+
+  // Loading state
+  if (invitations === undefined) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+        <Link
+          href="/submissions"
+          className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Submissions
+        </Link>
+        <PlatformPageHeader
+          icon={Video}
+          title="Team Invitations"
+          description="Review and respond to collaboration requests"
+        />
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-text-muted" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
@@ -101,7 +91,7 @@ export default function InvitationsPage() {
       ) : (
         <div className="space-y-6">
           {invitations.map((inv) => (
-            <Card key={inv.id} padding="none" className="overflow-hidden">
+            <Card key={inv._id} padding="none" className="overflow-hidden">
               {/* Header */}
               <div className="p-5 border-b border-border-default">
                 <div className="flex items-start justify-between gap-4">
@@ -118,7 +108,7 @@ export default function InvitationsPage() {
                     <div className="flex items-center gap-4 mt-2 text-xs text-text-muted">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {inv.submission.month_year}
+                        {inv.submission.monthYear}
                       </span>
                       <span>
                         Invited by{" "}
@@ -141,11 +131,11 @@ export default function InvitationsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {inv.team.map((member, i) => {
-                    const isYou = member.name === "Jake Oswald";
+                  {inv.team.map((member) => {
+                    const isYou = currentUser?.fullName === member.name;
                     return (
                       <div
-                        key={i}
+                        key={member._id}
                         className={`flex items-center justify-between p-2.5 rounded-lg ${
                           isYou
                             ? "bg-brand-500/5 border border-brand-500/20"
@@ -200,7 +190,7 @@ export default function InvitationsPage() {
                     </span>{" "}
                     By accepting, you agree to receive{" "}
                     <span className="font-bold text-brand-500">
-                      {inv.yourSplit}%
+                      {inv.revenueSplitPct}%
                     </span>{" "}
                     of any prize money won. This cannot be changed after the
                     pitch is submitted.
@@ -212,14 +202,14 @@ export default function InvitationsPage() {
               <div className="p-5 flex items-center justify-end gap-3">
                 <Button
                   variant="danger"
-                  onClick={() => handleDecline(inv.id)}
+                  onClick={() => handleDecline(inv._id)}
                   leftIcon={<XCircle className="h-4 w-4" />}
                 >
                   Decline
                 </Button>
                 <Button
                   variant="brand"
-                  onClick={() => handleAccept(inv.id)}
+                  onClick={() => handleAccept(inv._id)}
                   leftIcon={<CheckCircle className="h-4 w-4" />}
                 >
                   Accept Invitation

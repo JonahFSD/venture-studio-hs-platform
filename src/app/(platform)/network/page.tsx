@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { InfoCallout } from "@/components/ui/info-callout";
@@ -25,86 +27,24 @@ import {
   Info,
 } from "lucide-react";
 
-type NetworkConnection = {
-  id: string;
-  name: string;
-  school: string;
-  state: string;
-  gradYear: number;
-  skills: string[];
-  looking_for_cofounders: boolean;
-  avgScore: number;
-  bqType: string;
-  points: number;
-  monthsAsMember: number;
-  connectedSince: string;
-  mutualDMs: number;
-};
-
-const mockNetwork: NetworkConnection[] = [
-  {
-    id: "1",
-    name: "Sarah Chen",
-    school: "Grace Academy",
-    state: "TX",
-    gradYear: 2027,
-    skills: ["React", "Python", "UI/UX"],
-    looking_for_cofounders: true,
-    avgScore: 94,
-    bqType: "Visionary",
-    points: 18750,
-    monthsAsMember: 18,
-    connectedSince: "Jan 2026",
-    mutualDMs: 47,
-  },
-  {
-    id: "2",
-    name: "David Park",
-    school: "Covenant Prep",
-    state: "CA",
-    gradYear: 2027,
-    skills: ["Machine Learning", "Node.js", "Marketing"],
-    looking_for_cofounders: true,
-    avgScore: 91,
-    bqType: "Operator",
-    points: 14200,
-    monthsAsMember: 14,
-    connectedSince: "Dec 2025",
-    mutualDMs: 32,
-  },
-  {
-    id: "4",
-    name: "Elijah Thompson",
-    school: "Liberty Christian",
-    state: "VA",
-    gradYear: 2027,
-    skills: ["TypeScript", "Go", "DevOps"],
-    looking_for_cofounders: true,
-    avgScore: 86,
-    bqType: "Strategist",
-    points: 8800,
-    monthsAsMember: 9,
-    connectedSince: "Feb 2026",
-    mutualDMs: 18,
-  },
-  {
-    id: "6",
-    name: "Grace Kim",
-    school: "Faith Lutheran",
-    state: "WA",
-    gradYear: 2028,
-    skills: ["Figma", "Branding", "Content"],
-    looking_for_cofounders: true,
-    avgScore: 84,
-    bqType: "Anchor",
-    points: 3200,
-    monthsAsMember: 7,
-    connectedSince: "Mar 2026",
-    mutualDMs: 12,
-  },
-];
-
 export default function NetworkPage() {
+  const membersRaw = useQuery(api.users.listMembers, {});
+
+  const members = useMemo(() => {
+    if (!membersRaw) return [];
+    return membersRaw.map((m) => ({
+      id: m._id,
+      name: m.fullName,
+      school: m.schoolName ?? "",
+      state: m.state ?? "",
+      gradYear: m.graduationYear ?? 0,
+      skills: m.skills ?? [],
+      looking_for_cofounders: m.lookingForCofounders ?? false,
+      bqType: m.bqType ?? "",
+      points: m.points ?? 0,
+    }));
+  }, [membersRaw]);
+
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [showCoFoundersOnly, setShowCoFoundersOnly] = useState(false);
@@ -112,24 +52,16 @@ export default function NetworkPage() {
   const [filterBQTypes, setFilterBQTypes] = useState<string[]>([]);
   const [filterStates, setFilterStates] = useState<string[]>([]);
   const [filterGradYears, setFilterGradYears] = useState<string[]>([]);
-  const [filterMinScore, setFilterMinScore] = useState("");
-  const [filterMaxScore, setFilterMaxScore] = useState("");
   const [filterMinPoints, setFilterMinPoints] = useState("");
   const [filterMaxPoints, setFilterMaxPoints] = useState("");
-  const [filterMinMemberMonths, setFilterMinMemberMonths] = useState("");
-  const [filterMaxMemberMonths, setFilterMaxMemberMonths] = useState("");
 
   const activeFilterCount =
     filterSkills.length +
     filterBQTypes.length +
     filterStates.length +
     filterGradYears.length +
-    (filterMinScore ? 1 : 0) +
-    (filterMaxScore ? 1 : 0) +
     (filterMinPoints ? 1 : 0) +
     (filterMaxPoints ? 1 : 0) +
-    (filterMinMemberMonths ? 1 : 0) +
-    (filterMaxMemberMonths ? 1 : 0) +
     (showCoFoundersOnly ? 1 : 0);
 
   const clearFilters = () => {
@@ -137,17 +69,13 @@ export default function NetworkPage() {
     setFilterBQTypes([]);
     setFilterStates([]);
     setFilterGradYears([]);
-    setFilterMinScore("");
-    setFilterMaxScore("");
     setFilterMinPoints("");
     setFilterMaxPoints("");
-    setFilterMinMemberMonths("");
-    setFilterMaxMemberMonths("");
     setShowCoFoundersOnly(false);
   };
 
   const filtered = useMemo(() => {
-    return mockNetwork.filter((m) => {
+    return members.filter((m) => {
       if (showCoFoundersOnly && !m.looking_for_cofounders) return false;
       if (search && !m.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (
@@ -168,35 +96,47 @@ export default function NetworkPage() {
       ) {
         return false;
       }
-      if (filterMinScore && (m.avgScore || 0) < Number(filterMinScore)) return false;
-      if (filterMaxScore && (m.avgScore || 0) > Number(filterMaxScore)) return false;
       if (filterMinPoints && m.points < Number(filterMinPoints)) return false;
       if (filterMaxPoints && m.points > Number(filterMaxPoints)) return false;
-      if (filterMinMemberMonths && m.monthsAsMember < Number(filterMinMemberMonths)) return false;
-      if (filterMaxMemberMonths && m.monthsAsMember > Number(filterMaxMemberMonths)) return false;
       return true;
     });
   }, [
+    members,
     search,
     showCoFoundersOnly,
     filterSkills,
     filterBQTypes,
     filterStates,
     filterGradYears,
-    filterMinScore,
-    filterMaxScore,
     filterMinPoints,
     filterMaxPoints,
-    filterMinMemberMonths,
-    filterMaxMemberMonths,
   ]);
+
+  // Loading state
+  if (membersRaw === undefined) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PlatformPageHeader
+          icon={Network}
+          title="Network"
+          description="Loading..."
+        />
+        <Card className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+            <p className="text-sm text-text-secondary">Loading network...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <PlatformPageHeader
         icon={Network}
         title="Network"
-        description={`${mockNetwork.length} connections • People you've built relationships with`}
+        description={`${members.length} members • Build relationships with fellow founders`}
       />
 
       <InfoCallout>
@@ -309,56 +249,6 @@ export default function NetworkPage() {
             </div>
 
             <div className="flex flex-col">
-              <label className="mb-1 block text-xs font-medium text-text-muted">
-                Avg AI Score
-              </label>
-              <div className="flex gap-1.5">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="Min"
-                  value={filterMinScore}
-                  onChange={(e) => setFilterMinScore(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="Max"
-                  value={filterMaxScore}
-                  onChange={(e) => setFilterMaxScore(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col">
-              <label className="mb-1 block text-xs font-medium text-text-muted">
-                Months on Platform
-              </label>
-              <div className="flex gap-1.5">
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Min"
-                  value={filterMinMemberMonths}
-                  onChange={(e) => setFilterMinMemberMonths(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Max"
-                  value={filterMaxMemberMonths}
-                  onChange={(e) => setFilterMaxMemberMonths(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-border-default bg-surface-elevated px-2 text-sm text-text-primary placeholder:text-text-primary"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col">
               <span className="mb-1 block text-xs font-medium text-text-muted">
                 Open to Cofounders
               </span>
@@ -409,7 +299,7 @@ export default function NetworkPage() {
                       {person.name}
                     </p>
                     <p className="text-xs text-text-muted">
-                      {person.school} &bull; {person.state}
+                      {person.school}{person.state ? ` \u2022 ${person.state}` : ""}
                     </p>
                     <div
                       className="mt-2 border-t border-border-default pt-2 space-y-1"
@@ -423,12 +313,11 @@ export default function NetworkPage() {
                           BQ: {person.bqType}
                         </p>
                       )}
-                      <p className="text-xs text-text-muted tabular-nums">
-                        Connected: {person.connectedSince}
-                      </p>
-                      <p className="text-xs text-text-muted tabular-nums">
-                        DMs: {person.mutualDMs}
-                      </p>
+                      {person.gradYear > 0 && (
+                        <p className="text-xs text-text-muted tabular-nums">
+                          Class of {person.gradYear}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -452,8 +341,8 @@ export default function NetworkPage() {
           <Search className="h-10 w-10 text-text-muted mx-auto mb-3" />
           <p className="text-sm text-text-secondary">
             {search || activeFilterCount > 0
-              ? "No connections match your search and filters."
-              : "No connections yet. Start chatting with other members to build your network!"}
+              ? "No members match your search and filters."
+              : "No members found."}
           </p>
         </Card>
       )}

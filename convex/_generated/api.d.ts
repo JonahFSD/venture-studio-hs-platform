@@ -9,11 +9,24 @@
  */
 
 import type * as addUsers from "../addUsers.js";
+import type * as admin from "../admin.js";
+import type * as applications from "../applications.js";
 import type * as auth from "../auth.js";
+import type * as bounties from "../bounties.js";
+import type * as collaborators from "../collaborators.js";
+import type * as crons from "../crons.js";
 import type * as helpers from "../helpers.js";
 import type * as http from "../http.js";
+import type * as messages from "../messages.js";
+import type * as notifications from "../notifications.js";
+import type * as prizes from "../prizes.js";
 import type * as seed from "../seed.js";
+import type * as storage from "../storage.js";
+import type * as submissions from "../submissions.js";
+import type * as users from "../users.js";
 import type * as verify from "../verify.js";
+import type * as voting from "../voting.js";
+import type * as votingActions from "../votingActions.js";
 
 import type {
   ApiFromModules,
@@ -23,11 +36,24 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   addUsers: typeof addUsers;
+  admin: typeof admin;
+  applications: typeof applications;
   auth: typeof auth;
+  bounties: typeof bounties;
+  collaborators: typeof collaborators;
+  crons: typeof crons;
   helpers: typeof helpers;
   http: typeof http;
+  messages: typeof messages;
+  notifications: typeof notifications;
+  prizes: typeof prizes;
   seed: typeof seed;
+  storage: typeof storage;
+  submissions: typeof submissions;
+  users: typeof users;
   verify: typeof verify;
+  voting: typeof voting;
+  votingActions: typeof votingActions;
 }>;
 
 /**

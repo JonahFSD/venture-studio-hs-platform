@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
@@ -31,42 +33,44 @@ const AdminPlatformTrendsChart = dynamic(
   }
 );
 
-const quickLinks = [
-  {
-    href: "/admin/applications",
-    icon: FileText,
-    label: "Applications",
-    description: "Review pending applications",
-    count: 8,
-    countLabel: "pending",
-  },
-  {
-    href: "/admin/payouts",
-    icon: DollarSign,
-    label: "Payouts",
-    description: "Manage prize pool & payouts",
-    count: 1,
-    countLabel: "pending",
-  },
-  {
-    href: "/admin/analytics",
-    icon: Activity,
-    label: "Analytics",
-    description: "Platform metrics & insights",
-    count: null,
-    countLabel: null,
-  },
-  {
-    href: "/admin/pipeline",
-    icon: Rocket,
-    label: "Venture Pipeline",
-    description: "Flagged students for ACU",
-    count: 5,
-    countLabel: "flagged",
-  },
-];
-
 export default function AdminPage() {
+  const stats = useQuery(api.admin.getDashboardStats);
+
+  const quickLinks = [
+    {
+      href: "/admin/applications",
+      icon: FileText,
+      label: "Applications",
+      description: "Review pending applications",
+      count: stats?.pendingApplications ?? null,
+      countLabel: "pending",
+    },
+    {
+      href: "/admin/payouts",
+      icon: DollarSign,
+      label: "Payouts",
+      description: "Manage prize pool & payouts",
+      count: null,
+      countLabel: null,
+    },
+    {
+      href: "/admin/analytics",
+      icon: Activity,
+      label: "Analytics",
+      description: "Platform metrics & insights",
+      count: null,
+      countLabel: null,
+    },
+    {
+      href: "/admin/pipeline",
+      icon: Rocket,
+      label: "Venture Pipeline",
+      description: "Flagged students for ACU",
+      count: stats?.flaggedStudents ?? null,
+      countLabel: "flagged",
+    },
+  ];
+
   return (
     <div
       className={cn(
@@ -123,22 +127,22 @@ export default function AdminPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
         <StatCard
           label="Total Members"
-          value="210"
+          value={stats ? stats.totalMembers.toLocaleString() : "--"}
           icon={<Users className="h-5 w-5" />}
         />
         <StatCard
           label="Total Submissions"
-          value="342"
+          value={stats ? stats.totalSubmissions.toLocaleString() : "--"}
           icon={<FileText className="h-5 w-5" />}
         />
         <StatCard
           label="Total Revenue"
-          value="$182,400"
+          value={stats ? `$${stats.totalRevenue.toLocaleString()}` : "--"}
           icon={<DollarSign className="h-5 w-5" />}
         />
         <StatCard
-          label="Total Points"
-          value="9,100"
+          label="This Month"
+          value={stats ? stats.currentMonthSubmissions.toLocaleString() : "--"}
           icon={<Trophy className="h-5 w-5" />}
         />
       </div>

@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,17 +17,47 @@ import {
   Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockBounties, formatBountyDate, daysUntilDue } from "@/lib/bounties-data";
+
+function formatBountyDate(epochMs: number) {
+  const d = new Date(epochMs);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function daysUntilDue(epochMs: number) {
+  const now = Date.now();
+  return Math.ceil((epochMs - now) / (1000 * 60 * 60 * 24));
+}
 
 export default function BountiesPage() {
   const [tab, setTab] = useState<"active" | "past">("active");
+  const rawBounties = useQuery(api.bounties.list, {}) ?? [];
 
-  const filtered = useMemo(() => {
-    if (tab === "active") {
-      return mockBounties.filter((b) => b.status === "active" || b.status === "reviewing");
-    }
-    return mockBounties.filter((b) => b.status === "completed");
-  }, [tab]);
+  const activeBounties = useMemo(
+    () => rawBounties.filter((b) => b.status === "active" || b.status === "reviewing"),
+    [rawBounties]
+  );
+
+  const pastBounties = useMemo(
+    () => rawBounties.filter((b) => b.status === "completed"),
+    [rawBounties]
+  );
+
+  const filtered = tab === "active" ? activeBounties : pastBounties;
+
+  if (rawBounties === undefined) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PlatformPageHeader
+          icon={CircleDollarSign}
+          title="Bounties"
+          description="Side projects from real Christian business leaders; winner takes all"
+        />
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -41,14 +73,14 @@ export default function BountiesPage() {
           size="sm"
           onClick={() => setTab("active")}
         >
-          Active ({mockBounties.filter((b) => b.status === "active" || b.status === "reviewing").length})
+          Active ({activeBounties.length})
         </Button>
         <Button
           variant={tab === "past" ? "brand" : "outline"}
           size="sm"
           onClick={() => setTab("past")}
         >
-          Past ({mockBounties.filter((b) => b.status === "completed").length})
+          Past ({pastBounties.length})
         </Button>
       </div>
 
@@ -58,13 +90,13 @@ export default function BountiesPage() {
 
           return (
             <Card
-              key={bounty.id}
+              key={bounty._id}
               padding="none"
               className="overflow-hidden flex flex-col border-border-default"
             >
               <div className="flex flex-col gap-4 p-5">
                 <span className="text-3xl font-bold tabular-nums text-brand-500 tracking-tight">
-                  ${bounty.amount.toLocaleString()}
+                  ${bounty.bountyAmount.toLocaleString()}
                 </span>
 
                 <div className="flex flex-col gap-2">
@@ -72,13 +104,12 @@ export default function BountiesPage() {
                     {bounty.title}
                   </h3>
 
-                  {(bounty.status === "completed" && bounty.winner) ||
-                  bounty.status === "reviewing" ? (
+                  {bounty.status === "completed" || bounty.status === "reviewing" ? (
                     <div className="flex flex-wrap items-center gap-2">
-                      {bounty.status === "completed" && bounty.winner && (
+                      {bounty.status === "completed" && (
                         <Badge variant="success" className="text-[10px]">
                           <Trophy className="h-3 w-3 mr-1" />
-                          {bounty.winner.name}
+                          Completed
                         </Badge>
                       )}
                       {bounty.status === "reviewing" && (
@@ -112,7 +143,7 @@ export default function BountiesPage() {
                 </div>
 
                 <Link
-                  href={`/bounties/${bounty.id}`}
+                  href={`/bounties/${bounty._id}`}
                   className={cn(
                     "inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border-default",
                     "bg-surface-card px-3 py-2.5 text-sm font-medium text-text-primary",

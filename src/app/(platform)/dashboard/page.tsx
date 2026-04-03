@@ -2,6 +2,9 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import { useCurrentUser } from "@/contexts/user-context";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
@@ -71,12 +74,17 @@ const todoItems: {
 ];
 
 export default function DashboardPage() {
+  const stats = useQuery(api.users.getMyStats);
+  const user = useCurrentUser();
+
+  const firstName = user?.fullName?.split(" ")[0];
+
   return (
     <div className="space-y-6 md:space-y-8 animate-fade-in w-full">
       <PlatformPageHeader
         icon={LayoutDashboard}
         title="Dashboard"
-        description={"Welcome back! Here's your venture overview."}
+        description={`Welcome back${firstName ? `, ${firstName}` : ""}! Here's your venture overview.`}
         actions={
           <Link href="/submissions/new">
             <Button variant="brand" leftIcon={<Plus className="h-4 w-4" />}>
@@ -200,37 +208,22 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total points"
-          value="2,847"
-          change={180}
-          changeFormat="delta"
-          deltaSuffix=" pts"
-          changeLabel="mo/mo"
+          value={stats?.points?.toLocaleString() ?? "—"}
           icon={<Award className="h-5 w-5" />}
         />
         <StatCard
           label="Community rank"
-          value="#4"
-          change={1}
-          changeFormat="delta"
-          changeLabel="mo/mo"
+          value={stats?.rank ? `#${stats.rank}` : "—"}
           icon={<Medal className="h-5 w-5" />}
         />
         <StatCard
           label="Network growth"
-          value="24"
-          change={3}
-          changeFormat="delta"
-          deltaSuffix=" connections"
-          changeLabel="mo/mo"
+          value={stats?.networkCount?.toString() ?? "—"}
           icon={<UserPlus className="h-5 w-5" />}
         />
         <StatCard
           label="Total earnings"
-          value="$4,250"
-          change={340}
-          changeFormat="delta"
-          deltaPrefix="$"
-          changeLabel="mo/mo"
+          value={stats?.totalEarnings ? `$${stats.totalEarnings.toLocaleString()}` : "—"}
           icon={<CircleDollarSign className="h-5 w-5" />}
         />
       </div>

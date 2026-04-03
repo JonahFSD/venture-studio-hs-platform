@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
+import { type Id } from "../../../../../convex/_generated/dataModel";
 import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,21 +23,49 @@ import {
   X,
   LinkIcon,
 } from "lucide-react";
-import {
-  getBountyById,
-  formatBountyDate,
-  daysUntilDue,
-} from "@/lib/bounties-data";
+
+function formatBountyDate(epochMs: number) {
+  const d = new Date(epochMs);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function daysUntilDue(epochMs: number) {
+  const now = Date.now();
+  return Math.ceil((epochMs - now) / (1000 * 60 * 60 * 24));
+}
 
 export default function BountyDetailPage() {
   const params = useParams();
   const id = typeof params.id === "string" ? params.id : "";
-  const bounty = getBountyById(id);
+
+  const bounty = useQuery(
+    api.bounties.getById,
+    id ? { bountyId: id as Id<"bounties"> } : "skip"
+  );
 
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitUrl, setSubmitUrl] = useState("");
   const [submitNotes, setSubmitNotes] = useState("");
 
+  // Loading state
+  if (bounty === undefined) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+        <Link
+          href="/bounties"
+          className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Bounties
+        </Link>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
+
+  // Not found
   if (!bounty) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -75,7 +106,7 @@ export default function BountyDetailPage() {
         title={
           <span className="flex items-center gap-3 flex-wrap">
             <span>{bounty.title}</span>
-            {bounty.status === "completed" && bounty.winner && (
+            {bounty.status === "completed" && (
               <Badge variant="success">
                 <Trophy className="h-3 w-3 mr-1" />
                 Completed
@@ -127,55 +158,63 @@ export default function BountyDetailPage() {
               ))}
             </ul>
           </Card>
+
+          {/* Submissions list */}
+          {bounty.submissions.length > 0 && (
+            <Card>
+              <h2 className="text-sm font-semibold text-text-primary mb-3">
+                Submissions ({bounty.submissions.length})
+              </h2>
+              <ul className="space-y-3">
+                {bounty.submissions.map((sub) => (
+                  <li
+                    key={sub._id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-surface-elevated"
+                  >
+                    <Avatar name={sub.user?.fullName ?? "Unknown"} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-text-primary truncate">
+                        {sub.user?.fullName ?? "Unknown"}
+                      </p>
+                      {sub.user?.schoolName && (
+                        <p className="text-xs text-text-muted">{sub.user.schoolName}</p>
+                      )}
+                    </div>
+                    {sub.isWinner && (
+                      <Badge variant="success" className="text-[10px]">
+                        <Trophy className="h-3 w-3 mr-1" />
+                        Winner
+                      </Badge>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">
           <Card className="flex flex-col gap-4">
             <p className="text-3xl font-bold tabular-nums text-brand-500">
-              ${bounty.amount.toLocaleString()}
+              ${bounty.bountyAmount.toLocaleString()}
             </p>
             <ul className="flex flex-col gap-1.5 text-sm text-text-secondary border-t border-border-default pt-4">
-              {bounty.tags.map((tag) => (
-                <li key={tag}>{tag}</li>
-              ))}
+              <li className="flex items-center gap-1.5">
+                <Send className="h-3.5 w-3.5 text-brand-500" />
+                {bounty.submissionsCount} submission{bounty.submissionsCount !== 1 ? "s" : ""}
+              </li>
             </ul>
           </Card>
 
           <Card className="flex items-center gap-3">
-            <Avatar name={bounty.founder.name} size="sm" />
+            <Avatar name={bounty.founderName} size="sm" />
             <div>
-              <p className="text-sm font-medium text-text-primary">{bounty.founder.name}</p>
+              <p className="text-sm font-medium text-text-primary">{bounty.founderName}</p>
               <p className="text-xs text-text-muted">
-                {bounty.founder.company} · Venture Studio Founder
+                {bounty.founderCompany} · Venture Studio Founder
               </p>
             </div>
           </Card>
-
-          {bounty.status === "completed" && bounty.winner && (
-            <Card className="bg-success/5 border-success/20">
-              <div className="flex items-start gap-3">
-                <Trophy className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-text-primary">
-                    Winner: {bounty.winner.name}
-                  </p>
-                  <p className="text-xs text-text-muted mt-0.5">
-                    {bounty.winner.teamSize === 1
-                      ? "Solo submission"
-                      : `Team of ${bounty.winner.teamSize}`}
-                    {" · "}
-                    Awarded ${bounty.amount.toLocaleString()} + {(bounty.amount * 2).toLocaleString()}{" "}
-                    points
-                  </p>
-                  <Link href={`/members/${bounty.winner.id}`} className="inline-block mt-3">
-                    <Button variant="outline" size="sm">
-                      View profile
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </Card>
-          )}
 
           {bounty.status === "active" && (
             <Button
