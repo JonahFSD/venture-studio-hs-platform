@@ -34,13 +34,26 @@ export const submitApplication = mutation({
     }))),
   },
   handler: async (ctx, args) => {
-    // Check if this email already has a pending application
-    const existing = await ctx.db
+    // Check if a user account already exists with this email
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.userEmail))
+      .first();
+    if (existingUser) {
+      throw new Error("An account with this email already exists. Please sign in instead.");
+    }
+
+    // Check if this email already has a pending or approved application
+    const existingApp = await ctx.db
       .query("applications")
       .withIndex("by_email", (q) => q.eq("userEmail", args.userEmail))
       .first();
-    if (existing && existing.status === "pending") {
-      throw new Error("An application for this email is already pending.");
+    if (existingApp && (existingApp.status === "pending" || existingApp.status === "approved")) {
+      throw new Error(
+        existingApp.status === "pending"
+          ? "An application for this email is already pending review."
+          : "An application for this email has already been approved. Please sign in."
+      );
     }
 
     return await ctx.db.insert("applications", {

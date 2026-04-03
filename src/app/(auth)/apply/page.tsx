@@ -248,18 +248,12 @@ export default function ApplyPage() {
     setIsLoading(true);
     setError(null);
     try {
-      // Create the auth account first so the user can sign in after approval
-      await signIn("password", {
-        email: email.trim(),
-        password,
-        flow: "signUp",
-      });
-
       // Gather non-empty portfolio links
       const filledLinks = portfolioLinks
         .filter((l) => l.label.trim() && l.url.trim())
         .map((l) => ({ label: l.label.trim(), url: l.url.trim() }));
 
+      // Submit the application first — this checks for duplicate emails/accounts
       await submitApplication({
         userEmail: email.trim(),
         fullName: `${firstName.trim()} ${lastName.trim()}`,
@@ -282,6 +276,14 @@ export default function ApplyPage() {
         tools: tools.length > 0 ? tools : undefined,
         lookingForCofounders: lookingForCofounders || undefined,
         portfolioLinks: filledLinks.length > 0 ? filledLinks : undefined,
+      });
+
+      // Application accepted — now create the auth account so the user can
+      // sign in at /login once an admin approves their application
+      await signIn("password", {
+        email: email.trim(),
+        password,
+        flow: "signUp",
       });
       setSubmitted(true);
     } catch (err) {
