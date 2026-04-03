@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,9 @@ import {
   Heart,
   ShieldCheck,
   FileCheck,
+  Eye,
+  EyeOff,
+  Lock,
 } from "lucide-react";
 
 const STEPS = [
@@ -98,6 +102,9 @@ export default function ApplyPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
@@ -137,6 +144,7 @@ export default function ApplyPage() {
   const [referralCode, setReferralCode] = useState<string | undefined>(undefined);
   const handleReferralCode = useCallback((code: string) => setReferralCode(code), []);
 
+  const { signIn } = useAuthActions();
   const submitApplication = useMutation(api.applications.submitApplication);
 
   function handleAddSchool(payload: NewSchoolPayload) {
@@ -196,6 +204,11 @@ export default function ApplyPage() {
       if (!email.trim()) errors.email = "Email is required";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
         errors.email = "Please enter a valid email";
+      if (!password) errors.password = "Password is required";
+      else if (password.length < 8)
+        errors.password = "Password must be at least 8 characters";
+      if (password !== confirmPassword)
+        errors.confirmPassword = "Passwords do not match";
       if (!age) errors.age = "Age is required";
       else if (Number(age) < 14 || Number(age) > 18)
         errors.age = "Must be between 14 and 18";
@@ -235,6 +248,13 @@ export default function ApplyPage() {
     setIsLoading(true);
     setError(null);
     try {
+      // Create the auth account first so the user can sign in after approval
+      await signIn("password", {
+        email: email.trim(),
+        password,
+        flow: "signUp",
+      });
+
       // Gather non-empty portfolio links
       const filledLinks = portfolioLinks
         .filter((l) => l.label.trim() && l.url.trim())
@@ -410,6 +430,44 @@ export default function ApplyPage() {
               onChange={(e) => setEmail(e.target.value)}
               error={validationErrors.email}
             />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="relative">
+                <Input
+                  label="Password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Min 8 characters"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  error={validationErrors.password}
+                  leftIcon={<Lock className="h-4 w-4" />}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[34px] text-text-tertiary hover:text-text-secondary transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              <div className="relative">
+                <Input
+                  label="Confirm Password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Re-enter password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  error={validationErrors.confirmPassword}
+                  leftIcon={<Lock className="h-4 w-4" />}
+                />
+              </div>
+            </div>
             <Input
               label="Phone"
               type="tel"
@@ -744,6 +802,7 @@ export default function ApplyPage() {
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
                 <ReviewRow label="Name" value={`${firstName} ${lastName}`} />
                 <ReviewRow label="Email" value={email} />
+                <ReviewRow label="Password" value={"••••••••"} />
                 <ReviewRow label="Phone" value={phone || "Not provided"} />
                 <ReviewRow label="Age" value={age} />
                 <ReviewRow label="Graduation Year" value={graduationYear} />
