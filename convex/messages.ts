@@ -55,6 +55,17 @@ export const listThreads = query({
             (m) => m.recipientUserId === user._id && !m.readAt
           ).length;
 
+          const fromMe = messages.filter((m) => m.senderUserId === user._id);
+          const toMe = messages.filter((m) => m.recipientUserId === user._id);
+          const lastSentAt =
+            fromMe.length > 0
+              ? Math.max(...fromMe.map((m) => m._creationTime))
+              : 0;
+          const lastReceivedAt =
+            toMe.length > 0
+              ? Math.max(...toMe.map((m) => m._creationTime))
+              : 0;
+
           return {
             threadId,
             otherUser: otherUser
@@ -63,6 +74,8 @@ export const listThreads = query({
                   fullName: otherUser.fullName,
                   schoolName: otherUser.schoolName,
                   avatarStorageId: otherUser.avatarStorageId,
+                  lookingForCofounders: otherUser.lookingForCofounders ?? false,
+                  networkCount: otherUser.networkCount ?? 0,
                 }
               : null,
             lastMessage: {
@@ -70,6 +83,8 @@ export const listThreads = query({
               senderUserId: lastMessage.senderUserId,
               _creationTime: lastMessage._creationTime,
             },
+            lastSentAt,
+            lastReceivedAt,
             unreadCount,
           };
         }

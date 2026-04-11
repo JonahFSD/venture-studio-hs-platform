@@ -12,6 +12,7 @@ import {
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { CommunityMembersFiltersWrapper } from "@/components/layout/community-members-filters-wrapper";
 
 export default function PlatformLayout({
   children,
@@ -39,7 +40,7 @@ export default function PlatformLayout({
     return (
       <div className="min-h-dvh flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-circle border-2 border-brand-500 border-t-transparent" />
           <p className="text-sm text-text-secondary">Loading...</p>
         </div>
       </div>
@@ -51,7 +52,7 @@ export default function PlatformLayout({
     return (
       <div className="min-h-dvh flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-circle border-2 border-brand-500 border-t-transparent" />
           <p className="text-sm text-text-secondary">Loading...</p>
         </div>
       </div>
@@ -63,23 +64,25 @@ export default function PlatformLayout({
 
   return (
     <UserProvider user={user}>
-      <SidebarProvider>
-        <div className="min-h-dvh">
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block">
-            <Sidebar isAdmin={isAdmin} />
+      <CommunityMembersFiltersWrapper>
+        <SidebarProvider>
+          <div className="min-h-dvh">
+            {/* Desktop Sidebar */}
+            <div className="hidden lg:block">
+              <Sidebar isAdmin={isAdmin} />
+            </div>
+
+            {/* Main Content — padding tracks sidebar width when collapsed */}
+            <PlatformMainPadding>
+              <TopBar />
+              <main className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">{children}</main>
+            </PlatformMainPadding>
+
+            {/* Mobile Bottom Nav */}
+            <MobileNav />
           </div>
-
-          {/* Main Content — padding tracks sidebar width when collapsed */}
-          <PlatformMainPadding>
-            <TopBar />
-            <main className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8">{children}</main>
-          </PlatformMainPadding>
-
-          {/* Mobile Bottom Nav */}
-          <MobileNav />
-        </div>
-      </SidebarProvider>
+        </SidebarProvider>
+      </CommunityMembersFiltersWrapper>
     </UserProvider>
   );
 }

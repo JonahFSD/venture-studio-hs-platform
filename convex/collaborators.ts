@@ -56,7 +56,7 @@ export const invite = mutation({
         title: "Team Invitation",
         body: `${user.fullName} invited you to collaborate on "${submission.title}"`,
         read: false,
-        actionUrl: "/submissions/invitations",
+        actionUrl: `/pitches/${submission._id}`,
       });
     }
   },
@@ -99,7 +99,7 @@ export const respond = mutation({
         title: args.accept ? "Invitation Accepted" : "Invitation Declined",
         body: `${user.fullName} ${args.accept ? "accepted" : "declined"} your invitation to collaborate on "${submission.title}"`,
         read: false,
-        actionUrl: `/submissions/${submission._id}`,
+        actionUrl: `/pitches/${submission._id}`,
       });
     }
   },
@@ -121,7 +121,6 @@ export const listMyInvitations = query({
     // Filter to pending only
     const pending = collaborators.filter((c) => c.status === "pending");
 
-    // Attach submission and lead user info
     const withDetails = await Promise.all(
       pending.map(async (collab) => {
         const submission = await ctx.db.get(collab.submissionId);
@@ -129,7 +128,11 @@ export const listMyInvitations = query({
 
         const leadUser = await ctx.db.get(submission.userId);
 
-        // Get all collaborators for this submission (for the team display)
+        const aiScore = await ctx.db
+          .query("aiScores")
+          .withIndex("by_submissionId", (q) => q.eq("submissionId", collab.submissionId))
+          .first();
+
         const allCollaborators = await ctx.db
           .query("submissionCollaborators")
           .withIndex("by_submissionId", (q) => q.eq("submissionId", collab.submissionId))
@@ -151,11 +154,10 @@ export const listMyInvitations = query({
         return {
           ...collab,
           submission: {
-            _id: submission._id,
-            title: submission.title,
-            description: submission.description,
-            monthYear: submission.monthYear,
+            ...submission,
+            aiScore: aiScore ?? undefined,
           },
+          teamMemberCount: 1 + allCollaborators.length,
           lead: {
             name: leadUser?.fullName ?? "Unknown",
             school: leadUser?.schoolName ?? "Unknown",

@@ -42,10 +42,14 @@ export default defineSchema({
     referredBy: v.optional(v.id("users")),
     // Points & computed stats (denormalized for leaderboard)
     points: v.optional(v.number()),
+    /** Points earned in the current calendar month (denormalized; reset by a future job). */
+    pointsThisMonth: v.optional(v.number()),
     totalEarnings: v.optional(v.number()),
     networkCount: v.optional(v.number()),
     // Auth link
     authSubject: v.optional(v.string()),
+    /** Last time the user opened the Bounties list (for "new since last visit" sidebar badge). */
+    lastViewedBountiesAt: v.optional(v.number()),
   })
     .index("by_email", ["email"])
     .index("by_authSubject", ["authSubject"])

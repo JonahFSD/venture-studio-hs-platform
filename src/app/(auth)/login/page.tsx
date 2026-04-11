@@ -28,6 +28,18 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (err) {
       if (err instanceof Error) {
+        // If no auth account exists yet, auto-create one via signUp flow.
+        // The createOrUpdateUser callback links to the existing seed user by email.
+        if (err.message.includes("InvalidAccountId")) {
+          try {
+            await signIn("password", { email, password, flow: "signUp" });
+            router.push("/dashboard");
+            return;
+          } catch {
+            setError("Could not create account. Please try again.");
+            return;
+          }
+        }
         if (
           err.message.includes("Invalid") ||
           err.message.includes("credentials")

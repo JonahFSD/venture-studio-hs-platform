@@ -7,7 +7,6 @@ import { type Id } from "../../../../../convex/_generated/dataModel";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Tabs } from "@/components/ui/tabs";
 import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +21,6 @@ import {
   Heart,
   Lightbulb,
   Clock,
-  Shield,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -90,25 +88,14 @@ export default function ApplicationsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Admin
-      </Link>
-
-      <PlatformPageHeader
-        icon={Shield}
-        title="Applications"
-        description="Review and manage membership applications"
-        actions={
+      {pendingApps.length > 0 && (
+        <div className="flex justify-end">
           <Badge variant="warning" className="text-sm py-1 px-3">
             <Clock className="h-3.5 w-3.5 mr-1.5" />
             {pendingApps.length} pending
           </Badge>
-        }
-      />
+        </div>
+      )}
 
       <Tabs
         tabs={[

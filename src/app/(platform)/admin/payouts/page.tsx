@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
-import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,6 @@ import {
   Calendar,
   Medal,
   Crown,
-  Shield,
 } from "lucide-react";
 
 const placeIcon = (place: number) => {
@@ -45,7 +43,7 @@ export default function PayoutsPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-circle border-2 border-brand-500 border-t-transparent" />
           <p className="text-sm text-text-secondary">Loading payouts...</p>
         </div>
       </div>
@@ -81,20 +79,6 @@ export default function PayoutsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Admin
-      </Link>
-
-      <PlatformPageHeader
-        icon={Shield}
-        title="Payouts & Prize Pool"
-        description="Manage monthly prize pools and 1st / 2nd / 3rd place payouts"
-      />
-
       {/* Current Month */}
       {currentPool && (() => {
         const fee = Math.round(currentPool.totalCollected * (currentPool.operationalFeePct / 100));

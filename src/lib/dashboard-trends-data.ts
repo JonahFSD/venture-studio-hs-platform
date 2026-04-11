@@ -174,3 +174,64 @@ export function getDashboardTrendValue(
 ): number {
   return row[METRIC_KEY[id]] as number;
 }
+
+/** Stat tiles on the member dashboard (maps to trend series fields). */
+export type DashboardStatCardMomId =
+  | "points"
+  | "network"
+  | "earnings"
+  | "rank";
+
+const STAT_CARD_MOM: Record<
+  DashboardStatCardMomId,
+  { key: keyof DashboardTrendRow; rankInverted: boolean }
+> = {
+  points: { key: "pointsEarned", rankInverted: false },
+  network: { key: "networkSize", rankInverted: false },
+  earnings: { key: "earnings", rankInverted: false },
+  rank: { key: "communityRank", rankInverted: true },
+};
+
+const MOM_PCT_EPS = 1e-9;
+
+function formatMomPercentNonZero(pct: number): string {
+  const rounded = Math.round(pct * 10) / 10;
+  const abs = Math.abs(rounded);
+  const body = abs % 1 === 0 ? String(abs) : abs.toFixed(1);
+  return rounded > 0 ? `+${body}%` : `-${body}%`;
+}
+
+export type DashboardStatMomTone = "positive" | "negative" | "neutral";
+
+/**
+ * Month-over-month % from the last two months in {@link DASHBOARD_TRENDS_SERIES}
+ * (same sample data as “Your trends”). Rank uses inverted change so “up” is positive when rank improves.
+ */
+export function getDashboardStatMomPercent(id: DashboardStatCardMomId): {
+  text: string;
+  tone: DashboardStatMomTone;
+} {
+  const series = DASHBOARD_TRENDS_SERIES;
+  if (series.length < 2) return { text: "—", tone: "neutral" };
+  const prevRow = series[series.length - 2]!;
+  const currRow = series[series.length - 1]!;
+  const { key, rankInverted } = STAT_CARD_MOM[id];
+  const prev = prevRow[key] as number;
+  const curr = currRow[key] as number;
+
+  let pct: number;
+  if (rankInverted) {
+    if (prev <= 0) return { text: "—", tone: "neutral" };
+    pct = ((prev - curr) / prev) * 100;
+  } else {
+    if (prev === 0 && curr === 0) return { text: "0%", tone: "neutral" };
+    if (prev === 0) return { text: "—", tone: "neutral" };
+    pct = ((curr - prev) / prev) * 100;
+  }
+
+  if (Math.abs(pct) < MOM_PCT_EPS) return { text: "0%", tone: "neutral" };
+  return {
+    text: formatMomPercentNonZero(pct),
+    tone: pct > 0 ? "positive" : "negative",
+  };
+}

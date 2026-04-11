@@ -61,7 +61,7 @@ export function DashboardTrendsChart({ className }: { className?: string }) {
   return (
     <Card
       className={cn(
-        "flex flex-col border-border-default bg-surface-card/80",
+        "flex flex-col bg-transparent",
         className
       )}
     >
@@ -126,7 +126,7 @@ export function DashboardTrendsChart({ className }: { className?: string }) {
               contentStyle={{
                 backgroundColor: "var(--color-surface-elevated)",
                 border: "1px solid var(--color-border-default)",
-                borderRadius: "0.5rem",
+                borderRadius: 0,
                 fontSize: "12px",
               }}
               labelStyle={{ color: "var(--color-text-secondary)" }}

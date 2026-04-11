@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Progress } from "@/components/ui/progress";
@@ -12,8 +11,6 @@ import {
   Video,
   Vote,
   TrendingUp,
-  Activity,
-  Shield,
 } from "lucide-react";
 
 const monthlyData = [
@@ -30,20 +27,6 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Admin
-      </Link>
-
-      <PlatformPageHeader
-        icon={Shield}
-        title="Analytics"
-        description="Platform metrics and growth insights"
-      />
-
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

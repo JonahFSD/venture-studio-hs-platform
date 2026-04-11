@@ -2,31 +2,34 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { useCurrentUser } from "@/contexts/user-context";
-import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   type LucideIcon,
-  LayoutDashboard,
   Trophy,
   ArrowRight,
   Clock,
   Calendar,
-  Plus,
   Sparkles,
   Target,
   Handshake,
-  Award,
-  Medal,
-  UserPlus,
   CircleDollarSign,
   Network,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  platformPaneBleedClass,
+  platformPaneCellPaddingClass,
+  platformPaneGridCellFillClass,
+  platformPaneGridGapClass,
+  platformPaneStackGapClass,
+  platformPaneTileClass,
+} from "@/lib/platform-pane-grid";
+import { getDashboardStatMomPercent } from "@/lib/dashboard-trends-data";
 
 const DashboardTrendsChart = dynamic(
   () =>
@@ -36,199 +39,323 @@ const DashboardTrendsChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-72 rounded-xl border border-border-default bg-surface-card/50 animate-pulse" />
+      <div className="h-72 rounded-none border-0 bg-transparent ring-1 ring-inset ring-border-default/20 animate-pulse" />
     ),
   }
 );
 
-const todoItems: {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  meta?: string;
-}[] = [
-  {
-    href: "/submissions/invitations",
-    label: "Team invitations",
-    icon: Handshake,
-    meta: "2 new",
-  },
-  {
-    href: "/voting",
-    label: "Vote now",
-    icon: Target,
-    meta: "10 new",
-  },
-  {
-    href: "/bounties",
-    label: "Review bounties",
-    icon: CircleDollarSign,
-    meta: "3 new",
-  },
-  {
-    href: "/network",
-    label: "Grow network",
-    icon: Network,
-    meta: "5 new members",
-  },
-];
+/** Row layout inside hairline stacks (gap-px); faces use bg-surface-primary on each row. */
+const dashboardRowLayoutClass =
+  "flex min-h-0 items-center gap-3 p-3 rounded-none lg:flex-1";
 
 export default function DashboardPage() {
   const stats = useQuery(api.users.getMyStats);
-  const user = useCurrentUser();
+  const pendingInvites = useQuery(api.collaborators.listMyInvitations);
 
-  const firstName = user?.fullName?.split(" ")[0];
+  const todoItems: {
+    href: string;
+    label: string;
+    icon: LucideIcon;
+    meta?: string;
+  }[] = useMemo(
+    () => [
+      {
+        href: "/pitches",
+        label: "Team Invitations",
+        icon: Handshake,
+        meta:
+          pendingInvites === undefined
+            ? undefined
+            : pendingInvites.length > 0
+              ? `${pendingInvites.length} pending`
+              : undefined,
+      },
+      {
+        href: "/pitches/voting",
+        label: "Vote Now",
+        icon: Target,
+        meta: "10 new",
+      },
+      {
+        href: "/bounties",
+        label: "Review Bounties",
+        icon: CircleDollarSign,
+        meta: "3 new",
+      },
+      {
+        href: "/community/members",
+        label: "Grow Network",
+        icon: Network,
+        meta: "5 new members",
+      },
+    ],
+    [pendingInvites]
+  );
+  const momPoints = getDashboardStatMomPercent("points");
+  const momRank = getDashboardStatMomPercent("rank");
+  const momNetwork = getDashboardStatMomPercent("network");
+  const momEarnings = getDashboardStatMomPercent("earnings");
 
   return (
-    <div className="space-y-6 md:space-y-8 animate-fade-in w-full">
-      <PlatformPageHeader
-        icon={LayoutDashboard}
-        title="Dashboard"
-        description={`Welcome back${firstName ? `, ${firstName}` : ""}! Here's your venture overview.`}
-        actions={
-          <Link href="/submissions/new">
-            <Button variant="brand" leftIcon={<Plus className="h-4 w-4" />}>
-              New Pitch
-            </Button>
-          </Link>
-        }
-      />
+    <div className="animate-fade-in w-full">
+      <div className={cn("rounded-none overflow-hidden", platformPaneBleedClass)}>
+        {/* To Do + cycle — gap-px only draws lines between columns/rows, not pane edges */}
+        <div
+          className={cn(
+            "grid grid-cols-1 lg:grid-cols-3 lg:items-stretch",
+            platformPaneGridGapClass
+          )}
+        >
+          <div
+            className={cn(
+              "min-w-0 flex min-h-0 h-full flex-col",
+              platformPaneGridCellFillClass,
+              platformPaneCellPaddingClass
+            )}
+          >
+            <Card
+              className={cn(
+                platformPaneTileClass,
+                "flex flex-1 min-h-0 flex-col"
+              )}
+            >
+              <CardHeader>
+                <CardTitle>To Do</CardTitle>
+              </CardHeader>
 
-      {/* To Do (left) + cycle (right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>To Do</CardTitle>
-          </CardHeader>
-
-          <div className="space-y-3">
-            {todoItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-3 p-3 rounded-xl border border-border-default hover:bg-surface-card-hover hover:border-border-strong transition-all group"
-              >
-                <div className="p-2 rounded-xl bg-brand-500/10 text-brand-500 group-hover:bg-brand-500/20 transition-colors shrink-0">
-                  <item.icon className="h-5 w-5" />
-                </div>
-                <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-text-primary group-hover:text-brand-500 transition-colors">
-                    {item.label}
-                  </p>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {item.meta && (
-                      <span className="text-xs text-text-muted">{item.meta}</span>
+              <div className={cn("min-h-0 flex-1", platformPaneStackGapClass)}>
+                {todoItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      dashboardRowLayoutClass,
+                      platformPaneGridCellFillClass,
+                      "hover:bg-surface-elevated/90 transition-colors group"
                     )}
-                    <ArrowRight className="h-4 w-4 text-text-tertiary group-hover:text-brand-500 transition-colors" />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>March 2026 Cycle</CardTitle>
-            <Badge variant="brand">Active</Badge>
-          </CardHeader>
-
-          <div className="space-y-4">
-            {[
-              {
-                icon: Calendar,
-                label: "Submission Window",
-                dates: "Mar 1 - Mar 20",
-                active: true,
-                done: false,
-              },
-              {
-                icon: Sparkles,
-                label: "AI Scoring",
-                dates: "Mar 21 - Mar 23",
-                active: false,
-                done: false,
-              },
-              {
-                icon: Target,
-                label: "Community Voting",
-                dates: "Mar 24 - Mar 28",
-                active: false,
-                done: false,
-              },
-              {
-                icon: Trophy,
-                label: "Winner Announced",
-                dates: "Mar 29 - Mar 30",
-                active: false,
-                done: false,
-              },
-            ].map((phase, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-4 p-3 rounded-xl ${
-                  phase.active
-                    ? "bg-brand-500/5 border border-brand-500/20"
-                    : "border border-transparent"
-                }`}
-              >
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    phase.active
-                      ? "bg-brand-500/10 text-brand-500"
-                      : phase.done
-                        ? "bg-success/10 text-success"
-                        : "bg-surface-elevated text-text-tertiary"
-                  }`}
-                >
-                  <phase.icon className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <p
-                    className={`text-sm font-medium ${
-                      phase.active ? "text-brand-500" : "text-text-primary"
-                    }`}
                   >
-                    {phase.label}
-                  </p>
-                  <p className="text-xs text-text-secondary">{phase.dates}</p>
-                </div>
-                {phase.active && (
-                  <Badge variant="brand">
-                    <Clock className="h-3 w-3 mr-1" />
-                    In Progress
-                  </Badge>
-                )}
+                    <div className="p-2 rounded-none text-brand-500 shrink-0 flex items-center justify-center">
+                      <item.icon className="h-5 w-5 shrink-0" />
+                    </div>
+                    <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-text-primary group-hover:text-brand-500 transition-colors">
+                        {item.label}
+                      </p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {item.meta && (
+                          <span className="text-xs text-text-muted">{item.meta}</span>
+                        )}
+                        <ArrowRight className="h-4 w-4 text-text-tertiary group-hover:text-brand-500 transition-colors" />
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
-            ))}
+            </Card>
           </div>
-        </Card>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Total points"
-          value={stats?.points?.toLocaleString() ?? "—"}
-          icon={<Award className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Community rank"
-          value={stats?.rank ? `#${stats.rank}` : "—"}
-          icon={<Medal className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Network growth"
-          value={stats?.networkCount?.toString() ?? "—"}
-          icon={<UserPlus className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Total earnings"
-          value={stats?.totalEarnings ? `$${stats.totalEarnings.toLocaleString()}` : "—"}
-          icon={<CircleDollarSign className="h-5 w-5" />}
-        />
-      </div>
+          <div
+            className={cn(
+              "min-w-0 flex min-h-0 h-full flex-col lg:col-span-2",
+              platformPaneGridCellFillClass,
+              platformPaneCellPaddingClass
+            )}
+          >
+            <Card
+              className={cn(
+                platformPaneTileClass,
+                "flex flex-1 min-h-0 flex-col"
+              )}
+            >
+              <CardHeader>
+                <CardTitle>March 2026 Cycle</CardTitle>
+              </CardHeader>
 
-      <DashboardTrendsChart />
+              <div className={cn("min-h-0 flex-1", platformPaneStackGapClass)}>
+                {[
+                  {
+                    icon: Calendar,
+                    label: "Submission Window",
+                    dates: "Mar 1 - Mar 20",
+                    active: true,
+                    done: false,
+                  },
+                  {
+                    icon: Sparkles,
+                    label: "AI Scoring",
+                    dates: "Mar 21 - Mar 23",
+                    active: false,
+                    done: false,
+                  },
+                  {
+                    icon: Target,
+                    label: "Community Voting",
+                    dates: "Mar 24 - Mar 28",
+                    active: false,
+                    done: false,
+                  },
+                  {
+                    icon: Trophy,
+                    label: "Winner Announced",
+                    dates: "Mar 29 - Mar 30",
+                    active: false,
+                    done: false,
+                  },
+                ].map((phase, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      dashboardRowLayoutClass,
+                      platformPaneGridCellFillClass,
+                      "transition-all duration-200",
+                      phase.active
+                        ? "rounded-xl text-brand-500 shadow-sm bg-[color-mix(in_oklab,var(--color-brand-500)_10%,var(--color-surface-chrome))]"
+                        : "hover:bg-surface-elevated/90"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "p-2 rounded-none shrink-0 flex items-center justify-center",
+                        phase.active
+                          ? "text-brand-500"
+                          : phase.done
+                            ? "text-success"
+                            : "text-text-tertiary"
+                      )}
+                    >
+                      <phase.icon className="h-5 w-5 shrink-0" />
+                    </div>
+                    <div className="flex-1">
+                      <p
+                        className={cn(
+                          "text-sm font-medium",
+                          phase.active ? "text-brand-500" : "text-text-primary"
+                        )}
+                      >
+                        {phase.label}
+                      </p>
+                      <p
+                        className={cn(
+                          "text-xs",
+                          phase.active
+                            ? "text-brand-500/70"
+                            : "text-text-secondary"
+                        )}
+                      >
+                        {phase.dates}
+                      </p>
+                    </div>
+                    {phase.active && (
+                      <Badge
+                        variant="brand"
+                        className="normal-case tracking-normal shadow-sm"
+                      >
+                        <Clock className="h-3 w-3 mr-1" />
+                        In Progress
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Stat tiles — gap-px only between cells */}
+        <div
+          className={cn(
+            "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-t border-solid border-border-default",
+            platformPaneGridGapClass
+          )}
+        >
+          <div
+            className={cn(
+              "min-w-0",
+              platformPaneGridCellFillClass,
+              platformPaneCellPaddingClass
+            )}
+          >
+            <StatCard
+              plain
+              className={platformPaneTileClass}
+              label="Points"
+              labelTrailing={momPoints.text}
+              labelTrailingTone={momPoints.tone}
+              value={
+                stats === undefined
+                  ? "—"
+                  : `+${stats.points.toLocaleString()}`
+              }
+            />
+          </div>
+          <div
+            className={cn(
+              "min-w-0",
+              platformPaneGridCellFillClass,
+              platformPaneCellPaddingClass
+            )}
+          >
+            <StatCard
+              plain
+              className={platformPaneTileClass}
+              label="Rank"
+              labelTrailing={momRank.text}
+              labelTrailingTone={momRank.tone}
+              value={stats?.rank ? `#${stats.rank}` : "—"}
+            />
+          </div>
+          <div
+            className={cn(
+              "min-w-0",
+              platformPaneGridCellFillClass,
+              platformPaneCellPaddingClass
+            )}
+          >
+            <StatCard
+              plain
+              className={platformPaneTileClass}
+              label="Network"
+              labelTrailing={momNetwork.text}
+              labelTrailingTone={momNetwork.tone}
+              value={
+                stats === undefined
+                  ? "—"
+                  : `+${stats.networkCount.toLocaleString()}`
+              }
+            />
+          </div>
+          <div
+            className={cn(
+              "min-w-0",
+              platformPaneGridCellFillClass,
+              platformPaneCellPaddingClass
+            )}
+          >
+            <StatCard
+              plain
+              className={platformPaneTileClass}
+              label="Earnings"
+              labelTrailing={momEarnings.text}
+              labelTrailingTone={momEarnings.tone}
+              value={
+                stats === undefined
+                  ? "—"
+                  : `$${stats.totalEarnings.toLocaleString()}`
+              }
+            />
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "border-t border-solid border-border-default",
+            platformPaneGridCellFillClass,
+            platformPaneCellPaddingClass
+          )}
+        >
+          <DashboardTrendsChart className={platformPaneTileClass} />
+        </div>
+      </div>
     </div>
   );
 }

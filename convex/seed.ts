@@ -41,13 +41,13 @@ export const insertAll = internalMutation({
     console.log("🌱 Seeding database...");
 
     // ============================================
-    // 1. USERS (12 members + 1 admin)
+    // 1. USERS (demo roster incl. executive team)
     // ============================================
     const users: Record<string, Id<"users">> = {};
 
     // Admin user (Jake / you)
     users.jake = await ctx.db.insert("users", {
-      email: "jake@acuyouthventure.com",
+      email: "jakeoswald12@gmail.com",
       fullName: "Jake Oswald",
       bio: "Platform founder. Building the future of youth entrepreneurship at the intersection of faith and innovation.",
       schoolName: "Austin Christian University",
@@ -78,6 +78,7 @@ export const insertAll = internalMutation({
       lookingForCofounders: true,
       bqType: "Visionary",
       points: 14200,
+      pointsThisMonth: 3100,
       totalEarnings: 4250,
       networkCount: 18,
     });
@@ -90,12 +91,14 @@ export const insertAll = internalMutation({
       schoolName: "Covenant Prep",
       graduationYear: 2027,
       age: 16,
-      state: "TX",
+      city: "Minneapolis",
+      state: "MN",
       role: "member",
       skills: ["React", "Node.js", "UI/UX Design"],
       lookingForCofounders: true,
       bqType: "Operator",
       points: 11800,
+      pointsThisMonth: 2800,
       totalEarnings: 3100,
       networkCount: 15,
     });
@@ -114,6 +117,7 @@ export const insertAll = internalMutation({
       lookingForCofounders: false,
       bqType: "Strategist",
       points: 9400,
+      pointsThisMonth: 1950,
       totalEarnings: 1500,
       networkCount: 12,
     });
@@ -132,6 +136,7 @@ export const insertAll = internalMutation({
       lookingForCofounders: true,
       bqType: "Catalyst",
       points: 8200,
+      pointsThisMonth: 3400,
       totalEarnings: 950,
       networkCount: 14,
     });
@@ -150,6 +155,7 @@ export const insertAll = internalMutation({
       lookingForCofounders: true,
       bqType: "Anchor",
       points: 7600,
+      pointsThisMonth: 2100,
       totalEarnings: 820,
       networkCount: 11,
     });
@@ -168,8 +174,47 @@ export const insertAll = internalMutation({
       lookingForCofounders: false,
       bqType: "Builder",
       points: 6100,
+      pointsThisMonth: 1750,
       totalEarnings: 0,
       networkCount: 8,
+    });
+
+    // Maya Patel — executive team (VP Finance)
+    users.maya = await ctx.db.insert("users", {
+      email: "maya.patel@example.com",
+      fullName: "Maya Patel",
+      bio: "Numbers-driven operator. Building financial literacy tools for student founders.",
+      schoolName: "Heritage Christian",
+      graduationYear: 2028,
+      age: 16,
+      state: "TX",
+      role: "member",
+      skills: ["Finance", "Spreadsheets", "Pitch Analysis"],
+      lookingForCofounders: true,
+      bqType: "Operator",
+      points: 7200,
+      pointsThisMonth: 1500,
+      totalEarnings: 600,
+      networkCount: 10,
+    });
+
+    // Lars Ostervold — advisor (demo profile)
+    users.lars = await ctx.db.insert("users", {
+      email: "lars.ostervold@example.com",
+      fullName: "Lars Ostervold",
+      bio: "Technology leader supporting faith-forward innovation in higher ed.",
+      schoolName: "Austin Christian University",
+      graduationYear: 2026,
+      age: 17,
+      state: "TX",
+      role: "admin",
+      skills: ["Systems Architecture", "Security", "Mentorship"],
+      lookingForCofounders: false,
+      bqType: "Builder",
+      points: 3200,
+      pointsThisMonth: 400,
+      totalEarnings: 0,
+      networkCount: 16,
     });
 
     // Ava Martinez
@@ -186,6 +231,7 @@ export const insertAll = internalMutation({
       lookingForCofounders: true,
       bqType: "Strategist",
       points: 5400,
+      pointsThisMonth: 1200,
       totalEarnings: 500,
       networkCount: 9,
     });
@@ -204,6 +250,7 @@ export const insertAll = internalMutation({
       lookingForCofounders: true,
       bqType: "Visionary",
       points: 4800,
+      pointsThisMonth: 980,
       totalEarnings: 0,
       networkCount: 6,
     });
@@ -222,6 +269,7 @@ export const insertAll = internalMutation({
       lookingForCofounders: false,
       bqType: "Operator",
       points: 3200,
+      pointsThisMonth: 1420,
       totalEarnings: 0,
       networkCount: 5,
     });
@@ -240,6 +288,7 @@ export const insertAll = internalMutation({
       lookingForCofounders: true,
       bqType: "Anchor",
       points: 2800,
+      pointsThisMonth: 890,
       totalEarnings: 0,
       networkCount: 4,
     });
@@ -258,6 +307,7 @@ export const insertAll = internalMutation({
       lookingForCofounders: false,
       bqType: "Catalyst",
       points: 2200,
+      pointsThisMonth: 650,
       totalEarnings: 0,
       networkCount: 3,
     });
@@ -399,6 +449,40 @@ export const insertAll = internalMutation({
       isTeamSubmission: false,
     });
 
+    // Jake's submissions (so the admin/demo account has My Pitches content)
+    submissions.arenacore = await ctx.db.insert("submissions", {
+      userId: users.jake,
+      title: "ArenaCore — Venture Studio Platform Engine",
+      description: "A full-stack platform powering The Arena's monthly pitch competitions, AI scoring, and prize distribution. Built with Next.js, Convex, and Claude for real-time collaboration between student founders.",
+      videoUrl: "https://youtube.com/watch?v=demo-arena",
+      githubUrl: "https://github.com/demo/arenacore",
+      websiteUrl: "https://thearena-demo.vercel.app",
+      monthYear: "2026-03",
+      status: "scored",
+      isTeamSubmission: false,
+    });
+
+    submissions.mentormatch = await ctx.db.insert("submissions", {
+      userId: users.jake,
+      title: "MentorMatch — AI Founder-Advisor Pairing",
+      description: "An AI-powered matching engine that pairs student founders with experienced mentors based on venture stage, industry, skills gaps, and personality fit. Includes scheduling, milestone tracking, and structured feedback loops.",
+      videoUrl: "https://youtube.com/watch?v=demo-mentor",
+      githubUrl: "https://github.com/demo/mentormatch",
+      monthYear: "2026-02",
+      status: "scored",
+      isTeamSubmission: false,
+    });
+
+    submissions.pitchdrill = await ctx.db.insert("submissions", {
+      userId: users.jake,
+      title: "PitchDrill — AI Pitch Coach",
+      description: "A practice tool that lets student founders rehearse their pitch against an AI judge. Records video, provides real-time feedback on delivery, content, and timing, and generates a detailed score report.",
+      videoUrl: "https://youtube.com/watch?v=demo-pitchdrill",
+      monthYear: "2026-04",
+      status: "draft",
+      isTeamSubmission: false,
+    });
+
     // February 2026 submissions (previous cycle)
     submissions.sermonai = await ctx.db.insert("submissions", {
       userId: users.sarah,
@@ -506,6 +590,40 @@ export const insertAll = internalMutation({
     // ============================================
     // 5. AI SCORES
     // ============================================
+
+    // Jake's AI scores
+    await ctx.db.insert("aiScores", {
+      submissionId: submissions.arenacore,
+      rubricVersion: "v2",
+      overallScore: 94,
+      categoryScores: [
+        { category: "Innovation", score: 19, maxScore: 20, feedback: "Meta-platform for venture competitions is a strong concept. Self-referential in the best way." },
+        { category: "Technical Execution", score: 19, maxScore: 20, feedback: "Production-quality stack with real-time data, auth, and AI scoring built in." },
+        { category: "Impact Potential", score: 19, maxScore: 20, feedback: "Direct infrastructure for the youth venture ecosystem. High leverage." },
+        { category: "Presentation", score: 19, maxScore: 20, feedback: "Polished demo with live data. Clear narrative arc from problem to solution." },
+        { category: "Faith Integration", score: 18, maxScore: 20, feedback: "Platform is purpose-built for faith-based entrepreneurship communities." },
+      ],
+      qualitativeFeedback: "ArenaCore is an impressive full-stack platform that directly enables the youth venture studio model. The technical execution is outstanding, and the real-time capabilities provide a genuinely differentiated experience.",
+      modelUsed: "claude-sonnet-4-20250514",
+      scoredAt: Date.now() - 3 * 24 * 60 * 60 * 1000,
+    });
+
+    await ctx.db.insert("aiScores", {
+      submissionId: submissions.mentormatch,
+      rubricVersion: "v2",
+      overallScore: 88,
+      categoryScores: [
+        { category: "Innovation", score: 18, maxScore: 20, feedback: "AI matching for mentorship is well-positioned. Strong differentiation from generic platforms." },
+        { category: "Technical Execution", score: 17, maxScore: 20, feedback: "Matching algorithm is solid. Could benefit from more sophisticated embedding-based similarity." },
+        { category: "Impact Potential", score: 18, maxScore: 20, feedback: "Mentorship is the #1 predictor of founder success. High-impact if adopted." },
+        { category: "Presentation", score: 17, maxScore: 20, feedback: "Good pitch structure. Demo could show more of the matching flow." },
+        { category: "Faith Integration", score: 18, maxScore: 20, feedback: "Discipleship-style mentorship model is a natural fit." },
+      ],
+      qualitativeFeedback: "MentorMatch addresses a critical gap in the founder journey. The AI pairing concept is sound, and the structured feedback loops add real value beyond simple introductions.",
+      modelUsed: "claude-sonnet-4-20250514",
+      scoredAt: Date.now() - 35 * 24 * 60 * 60 * 1000,
+    });
+
     await ctx.db.insert("aiScores", {
       submissionId: submissions.ecotrack,
       rubricVersion: "v2",

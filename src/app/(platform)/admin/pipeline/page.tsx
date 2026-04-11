@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
-import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import {
   Download,
   Flag,
   ExternalLink,
-  Shield,
 } from "lucide-react";
 
 export default function PipelinePage() {
@@ -25,7 +23,7 @@ export default function PipelinePage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-circle border-2 border-brand-500 border-t-transparent" />
           <p className="text-sm text-text-secondary">Loading pipeline...</p>
         </div>
       </div>
@@ -34,35 +32,18 @@ export default function PipelinePage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <Link
-        href="/admin"
-        className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Admin
-      </Link>
-
-      <PlatformPageHeader
-        icon={Shield}
-        title={
-          <span className="inline-flex items-center gap-3 flex-wrap">
-            <span>Venture Studio Pipeline</span>
-            <Badge variant="brand">
-              <Rocket className="h-3 w-3 mr-1" />
-              {flaggedStudents.length} candidates
-            </Badge>
-          </span>
-        }
-        description="High-potential students flagged for ACU venture studio recruitment"
-        actions={
-          <Button
-            variant="outline"
-            leftIcon={<Download className="h-4 w-4" />}
-          >
-            Export CSV
-          </Button>
-        }
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Badge variant="brand" className="w-fit">
+          <Rocket className="h-3 w-3 mr-1" />
+          {flaggedStudents.length} candidates
+        </Badge>
+        <Button
+          variant="outline"
+          leftIcon={<Download className="h-4 w-4" />}
+        >
+          Export CSV
+        </Button>
+      </div>
 
       {flaggedStudents.length === 0 ? (
         <Card padding="lg" className="text-center">

@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUser } from "./helpers";
+import { getAuthUser, getAuthUserIdOrNull } from "./helpers";
 
 /**
  * List the current user's submissions with AI scores.
@@ -15,14 +15,21 @@ export const listMine = query({
       .order("desc")
       .collect();
 
-    // Attach AI scores
     const withScores = await Promise.all(
       submissions.map(async (sub) => {
         const score = await ctx.db
           .query("aiScores")
           .withIndex("by_submissionId", (q) => q.eq("submissionId", sub._id))
           .first();
-        return { ...sub, aiScore: score ?? undefined };
+        const collabs = await ctx.db
+          .query("submissionCollaborators")
+          .withIndex("by_submissionId", (q) => q.eq("submissionId", sub._id))
+          .collect();
+        return {
+          ...sub,
+          aiScore: score ?? undefined,
+          teamMemberCount: 1 + collabs.length,
+        };
       })
     );
 
@@ -67,12 +74,50 @@ export const getById = query({
       (v) => v.submissionId === args.submissionId
     ).length;
 
+    const viewerId = await getAuthUserIdOrNull(ctx);
+    const viewerCollaborator = viewerId
+      ? collaboratorsWithUsers.find((c) => c.userId === viewerId)
+      : undefined;
+
+    const sumCollaboratorPct = collaboratorsWithUsers.reduce(
+      (s, c) => s + c.revenueSplitPct,
+      0
+    );
+    const leadPct = Math.max(0, 100 - sumCollaboratorPct);
+    const revenueSplitBreakdown =
+      submission.isTeamSubmission || collaboratorsWithUsers.length > 0
+        ? {
+            lead: {
+              userId: submission.userId,
+              name: user?.fullName ?? "Lead",
+              pct: leadPct,
+            },
+            collaborators: collaboratorsWithUsers.map((c) => ({
+              _id: c._id,
+              userId: c.userId,
+              name: c.user?.fullName ?? "Unknown",
+              pct: c.revenueSplitPct,
+              status: c.status,
+              role: c.role,
+            })),
+          }
+        : null;
+
     return {
       ...submission,
       user: user ? { _id: user._id, fullName: user.fullName, email: user.email, schoolName: user.schoolName, avatarStorageId: user.avatarStorageId } : null,
       aiScore: aiScore ?? undefined,
       collaborators: collaboratorsWithUsers,
       voteCount,
+      viewerCollaborator: viewerCollaborator
+        ? {
+            _id: viewerCollaborator._id,
+            status: viewerCollaborator.status,
+            revenueSplitPct: viewerCollaborator.revenueSplitPct,
+            role: viewerCollaborator.role,
+          }
+        : undefined,
+      revenueSplitBreakdown,
     };
   },
 });

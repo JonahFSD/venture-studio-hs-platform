@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useCurrentUser } from "@/contexts/user-context";
-import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -34,7 +33,6 @@ import {
   Save,
   ExternalLink,
   CheckCircle,
-  Settings,
   Handshake,
 } from "lucide-react";
 
@@ -206,8 +204,6 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
-      <PlatformPageHeader icon={Settings} title="Settings" />
-
       <Tabs
         tabs={[
           { id: "profile", label: "Profile", icon: <User className="h-4 w-4" /> },

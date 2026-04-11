@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { type Id } from "../../../../../convex/_generated/dataModel";
-import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -51,15 +50,8 @@ export default function BountyDetailPage() {
   if (bounty === undefined) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-        <Link
-          href="/bounties"
-          className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Bounties
-        </Link>
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-circle border-2 border-brand-500 border-t-transparent" />
         </div>
       </div>
     );
@@ -69,13 +61,6 @@ export default function BountyDetailPage() {
   if (!bounty) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-        <Link
-          href="/bounties"
-          className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Bounties
-        </Link>
         <Card className="text-center py-12">
           <CircleDollarSign className="h-10 w-10 text-text-muted mx-auto mb-3" />
           <p className="text-sm text-text-secondary mb-4">This bounty could not be found.</p>
@@ -93,52 +78,39 @@ export default function BountyDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-      <Link
-        href="/bounties"
-        className="inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Bounties
-      </Link>
-
-      <PlatformPageHeader
-        icon={CircleDollarSign}
-        title={
-          <span className="flex items-center gap-3 flex-wrap">
-            <span>{bounty.title}</span>
-            {bounty.status === "completed" && (
-              <Badge variant="success">
-                <Trophy className="h-3 w-3 mr-1" />
-                Completed
-              </Badge>
-            )}
-            {bounty.status === "reviewing" && (
-              <Badge variant="warning">Reviewing</Badge>
-            )}
-            {bounty.status === "active" && (
-              <Badge variant="brand">Open</Badge>
-            )}
+      <div className="space-y-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-2xl font-bold text-text-primary">{bounty.title}</h1>
+          {bounty.status === "completed" && (
+            <Badge variant="success">
+              <Trophy className="h-3 w-3 mr-1" />
+              Completed
+            </Badge>
+          )}
+          {bounty.status === "reviewing" && (
+            <Badge variant="warning">Reviewing</Badge>
+          )}
+          {bounty.status === "active" && (
+            <Badge variant="brand">Open</Badge>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1 text-sm text-text-secondary">
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+            Due {formatBountyDate(bounty.dueDate)}
           </span>
-        }
-        description={
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1 text-sm text-text-secondary">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-              Due {formatBountyDate(bounty.dueDate)}
+          {bounty.status === "active" && (
+            <span
+              className={`flex items-center gap-1 ${
+                days <= 7 ? "text-warning" : days <= 0 ? "text-error" : ""
+              }`}
+            >
+              <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+              {days > 0 ? `${days} days left` : "Overdue"}
             </span>
-            {bounty.status === "active" && (
-              <span
-                className={`flex items-center gap-1 ${
-                  days <= 7 ? "text-warning" : days <= 0 ? "text-error" : ""
-                }`}
-              >
-                <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                {days > 0 ? `${days} days left` : "Overdue"}
-              </span>
-            )}
-          </div>
-        }
-      />
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">

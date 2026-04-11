@@ -81,20 +81,37 @@ export const listMembers = query({
 });
 
 /**
- * Get leaderboard — all users sorted by points descending.
+ * Get top 10 leaderboard — by all-time points or this month’s points (excludes superadmin).
  */
 export const getLeaderboard = query({
-  args: { activeOnly: v.optional(v.boolean()) },
-  handler: async (ctx) => {
+  args: {
+    range: v.union(v.literal("allTime"), v.literal("thisMonth")),
+  },
+  handler: async (ctx, args) => {
     const allUsers = await ctx.db.query("users").collect();
 
+    const score = (u: (typeof allUsers)[0]) =>
+      args.range === "thisMonth"
+        ? (u.pointsThisMonth ?? 0)
+        : (u.points ?? 0);
+
     const ranked = allUsers
-      .filter((u) => u.role !== "superadmin") // Exclude admin from leaderboard
-      .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
-      .map(({ authSubject, ...rest }, index) => ({
-        ...rest,
-        rank: index + 1,
-      }));
+      .filter((u) => u.role !== "superadmin")
+      .sort((a, b) => {
+        const diff = score(b) - score(a);
+        if (diff !== 0) return diff;
+        return (b.points ?? 0) - (a.points ?? 0);
+      })
+      .slice(0, 10)
+      .map((u, index) => {
+        const { authSubject, ...rest } = u;
+        const leaderboardPoints = score(u);
+        return {
+          ...rest,
+          rank: index + 1,
+          leaderboardPoints,
+        };
+      });
 
     return ranked;
   },

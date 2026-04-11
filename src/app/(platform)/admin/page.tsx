@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
-import { PlatformPageHeader } from "@/components/layout/platform-page-header";
 import { Card } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +15,6 @@ import {
   Rocket,
   ArrowRight,
   Activity,
-  Shield,
   Trophy,
 } from "lucide-react";
 
@@ -80,13 +78,6 @@ export default function AdminPage() {
         "lg:overflow-hidden"
       )}
     >
-      <PlatformPageHeader
-        className="shrink-0"
-        icon={Shield}
-        title="Admin"
-        description="Manage applications, payouts, and the venture studio pipeline"
-      />
-
       {/* To-do / quick links first */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 shrink-0">
         {quickLinks.map((link) => (

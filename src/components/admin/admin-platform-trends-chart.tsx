@@ -118,7 +118,7 @@ export function AdminPlatformTrendsChart({ className }: { className?: string }) 
               contentStyle={{
                 backgroundColor: "var(--color-surface-elevated)",
                 border: "1px solid var(--color-border-default)",
-                borderRadius: "0.5rem",
+                borderRadius: 0,
                 fontSize: "12px",
               }}
               labelStyle={{ color: "var(--color-text-secondary)" }}

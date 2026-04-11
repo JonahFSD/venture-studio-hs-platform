@@ -1,18 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Home,
   LayoutDashboard,
   Video,
-  Vote,
-  Trophy,
   Users,
-  MessageCircle,
   Settings,
   Shield,
-  Crown,
-  Star,
-  Network,
-  Brain,
   CircleDollarSign,
 } from "lucide-react";
 
@@ -26,23 +18,10 @@ export interface PlatformNavItem {
 
 /** Primary sidebar routes — keep in sync with page headers using the same icon */
 export const mainNavItems: PlatformNavItem[] = [
-  { href: "/", label: "Home", icon: Home },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/submissions", label: "Submissions", icon: Video },
-  { href: "/voting", label: "Voting", icon: Vote },
+  { href: "/pitches", label: "Pitches", icon: Video },
   { href: "/bounties", label: "Bounties", icon: CircleDollarSign },
-  { href: "/leaderboard", label: "Leaderboard", icon: Star },
-  { href: "/hall-of-fame", label: "Hall of Fame", icon: Trophy },
-  { href: "/members", label: "Community", icon: Users },
-  { href: "/network", label: "Network", icon: Network },
-  { href: "/leadership", label: "Leadership", icon: Crown },
-  { href: "/messages", label: "Messages", icon: MessageCircle },
-  {
-    href: "https://bq.austinchristianu.org/",
-    label: "Builder's Quotient",
-    icon: Brain,
-    external: true,
-  },
+  { href: "/community/leadership", label: "Community", icon: Users },
 ];
 
 export const bottomNavItems: PlatformNavItem[] = [
