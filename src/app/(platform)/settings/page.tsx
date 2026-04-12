@@ -60,6 +60,8 @@ export default function SettingsPage() {
   const firstNameRef = useRef<HTMLInputElement>(null);
   const lastNameRef = useRef<HTMLInputElement>(null);
   const bioRef = useRef<HTMLTextAreaElement>(null);
+  const cityRef = useRef<HTMLInputElement>(null);
+  const stateRef = useRef<HTMLSelectElement>(null);
 
   const [extraSchoolsByState, setExtraSchoolsByState] = useState<
     Record<string, SchoolListing[]>
@@ -114,10 +116,24 @@ export default function SettingsPage() {
         }
       }
 
+      // Extract state and city from the school key and form fields
+      let schoolState: string | undefined;
+      if (selectedSchoolKey) {
+        const parts = selectedSchoolKey.split("|");
+        if (parts.length >= 1) {
+          schoolState = parts[0];
+        }
+      }
+
+      const cityValue = cityRef.current?.value?.trim() || undefined;
+      const stateValue = stateRef.current?.value || schoolState || undefined;
+
       await updateProfile({
         fullName: fullName !== user.fullName ? fullName : undefined,
         bio: bioValue,
         schoolName,
+        city: cityValue,
+        state: stateValue,
         skills,
         lookingForCofounders,
       });
@@ -319,11 +335,14 @@ export default function SettingsPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <Input
+                        ref={cityRef}
                         label="City"
-                        defaultValue=""
+                        defaultValue={user?.city ?? ""}
+                        key={`city-${user?.city ?? ""}`}
                         autoComplete="address-level2"
                       />
                       <Select
+                        ref={stateRef}
                         label="State"
                         options={US_STATE_ABBREVIATIONS.map((abbr) => ({
                           value: abbr,

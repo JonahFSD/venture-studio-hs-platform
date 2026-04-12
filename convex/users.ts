@@ -168,6 +168,7 @@ export const updateProfile = mutation({
     schoolName: v.optional(v.string()),
     graduationYear: v.optional(v.number()),
     age: v.optional(v.number()),
+    city: v.optional(v.string()),
     state: v.optional(v.string()),
     skills: v.optional(v.array(v.string())),
     lookingForCofounders: v.optional(v.boolean()),
