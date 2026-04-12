@@ -343,19 +343,12 @@ function RegionRow({
                   >
                     <Avatar name={ambassador.name} size="md" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-text-primary">
-                        {ambassador.name}
+                      <p className="truncate text-sm font-medium text-text-secondary">
+                        {state}
                       </p>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                        <Badge variant="brand" className="text-[10px]">
-                          <MapPin className="mr-0.5 h-2.5 w-2.5" />
-                          {state}
-                        </Badge>
-                        <span className="text-[10px] text-text-muted">
-                          {ambassador.school} &apos;
-                          {String(ambassador.graduation).slice(2)}
-                        </span>
-                      </div>
+                      <p className="mt-0.5 truncate text-[10px] text-text-muted">
+                        {ambassador.name} &bull; {ambassador.school}&apos;{String(ambassador.graduation).slice(2)}
+                      </p>
                     </div>
                     <Button variant="ghost" size="sm">
                       <MessageCircle className="h-3.5 w-3.5" />
