@@ -5,11 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
+import { useCurrentUser } from "@/contexts/user-context";
 import { PaywallGate } from "@/components/auth/paywall-gate";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MessageCircle, Send } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MessageCircle, Send, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   platformPaneBleedClass,
@@ -24,6 +26,11 @@ import {
   parseMessagesSortFromSearch,
   sortMessagesThreads,
 } from "@/lib/messages-list-filters";
+
+/** Same deterministic thread ID as convex/messages.ts */
+function computeThreadId(userId1: string, userId2: string): string {
+  return [userId1, userId2].sort().join("_");
+}
 
 function formatRelativeTime(epochMs: number): string {
   const now = Date.now();
@@ -65,13 +72,28 @@ function MessagesPageInner() {
   const cofoundersOnly = parseMessagesCofoundersOnly(searchParams);
   const networkOnly = parseMessagesNetworkOnly(searchParams);
 
+  const currentUser = useCurrentUser();
+  const toParam = searchParams.get("to");
+
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showNewThread, setShowNewThread] = useState(false);
+  const [newThreadSearch, setNewThreadSearch] = useState("");
+
+  // New thread target (from ?to= param or Start Thread search)
+  const [newThreadTargetId, setNewThreadTargetId] = useState<string | null>(toParam);
 
   const threadsRaw = useQuery(api.messages.listThreads);
   const sendMessage = useMutation(api.messages.send);
   const markRead = useMutation(api.messages.markThreadRead);
+  const allMembers = useQuery(api.users.listMembers, {});
+
+  // Query target user info for new threads
+  const newThreadTargetUser = useQuery(
+    api.users.getById,
+    newThreadTargetId ? { userId: newThreadTargetId as Id<"users"> } : "skip"
+  );
 
   const threads = threadsRaw ?? [];
 
@@ -83,7 +105,28 @@ function MessagesPageInner() {
     return list;
   }, [threads, q, sort, cofoundersOnly, networkOnly]);
 
+  // Compute thread ID for ?to= or Start Thread target
+  const newThreadId = useMemo(() => {
+    if (!newThreadTargetId || !currentUser?._id) return null;
+    return computeThreadId(currentUser._id, newThreadTargetId);
+  }, [newThreadTargetId, currentUser?._id]);
+
+  // Check if the new thread already exists in the thread list
+  const existingNewThread = useMemo(() => {
+    if (!newThreadId) return null;
+    return threads.find((t) => t.threadId === newThreadId) ?? null;
+  }, [newThreadId, threads]);
+
+  // When ?to= param is set, auto-select that thread
+  useEffect(() => {
+    if (newThreadId) {
+      setSelectedThread(newThreadId);
+    }
+  }, [newThreadId]);
+
   const displayThreadId = useMemo(() => {
+    // If we have a new thread target, always show that thread
+    if (newThreadId && selectedThread === newThreadId) return newThreadId;
     if (filteredThreads.length === 0) return null;
     if (
       selectedThread &&
@@ -92,13 +135,13 @@ function MessagesPageInner() {
       return selectedThread;
     }
     return filteredThreads[0]!.threadId;
-  }, [filteredThreads, selectedThread]);
+  }, [filteredThreads, selectedThread, newThreadId]);
 
   useEffect(() => {
-    if (displayThreadId !== selectedThread) {
+    if (!newThreadId && displayThreadId !== selectedThread) {
       setSelectedThread(displayThreadId);
     }
-  }, [displayThreadId, selectedThread]);
+  }, [displayThreadId, selectedThread, newThreadId]);
 
   const selectedMessages = useQuery(
     api.messages.getThread,
@@ -120,13 +163,55 @@ function MessagesPageInner() {
 
   const selectedThreadData = threads.find((t) => t.threadId === displayThreadId);
 
+  // Determine what to show in the right pane header
+  const paneUser = selectedThreadData?.otherUser ?? (
+    newThreadTargetId && newThreadTargetUser
+      ? {
+          _id: newThreadTargetUser._id,
+          fullName: newThreadTargetUser.fullName,
+          schoolName: newThreadTargetUser.schoolName,
+          avatarUrl: newThreadTargetUser.avatarUrl ?? null,
+        }
+      : null
+  );
+
   const handleSend = async () => {
-    if (!messageInput.trim() || !selectedThreadData?.otherUser?._id) return;
+    if (!messageInput.trim()) return;
+    // Use thread data's other user, or the new thread target
+    const recipientId = selectedThreadData?.otherUser?._id ?? newThreadTargetId;
+    if (!recipientId) return;
     await sendMessage({
-      recipientUserId: selectedThreadData.otherUser._id as Id<"users">,
+      recipientUserId: recipientId as Id<"users">,
       body: messageInput.trim(),
     });
     setMessageInput("");
+    // Clear the new thread target after first message (thread now exists in list)
+    if (newThreadTargetId && !existingNewThread) {
+      // Keep the thread selected, clear the target flag
+      // The thread will appear in the list on next query refresh
+    }
+  };
+
+  // Start Thread search: filter members
+  const searchResults = useMemo(() => {
+    if (!newThreadSearch.trim() || !allMembers) return [];
+    const search = newThreadSearch.toLowerCase();
+    return allMembers
+      .filter(
+        (m) =>
+          m._id !== currentUser?._id &&
+          m.fullName.toLowerCase().includes(search)
+      )
+      .slice(0, 8);
+  }, [newThreadSearch, allMembers, currentUser?._id]);
+
+  const handleSelectNewThreadUser = (userId: string) => {
+    setNewThreadTargetId(userId);
+    setShowNewThread(false);
+    setNewThreadSearch("");
+    if (currentUser?._id) {
+      setSelectedThread(computeThreadId(currentUser._id, userId));
+    }
   };
 
   if (threadsRaw === undefined) {
@@ -139,6 +224,9 @@ function MessagesPageInner() {
       </div>
     );
   }
+
+  // Is the right pane showing a valid conversation (existing or new)?
+  const showConversation = (displayThreadId && selectedThreadData) || (newThreadId && paneUser);
 
   return (
     <div className="animate-fade-in w-full">
@@ -163,7 +251,7 @@ function MessagesPageInner() {
           >
             <div className="min-h-0 flex-1 overflow-y-auto">
               <div className="divide-y divide-border-subtle">
-                {filteredThreads.length === 0 ? (
+                {filteredThreads.length === 0 && !showNewThread ? (
                   <div className="px-4 md:px-6 lg:px-8 py-10 text-center">
                     <p className="text-sm text-text-muted">
                       {threads.length === 0
@@ -176,11 +264,15 @@ function MessagesPageInner() {
                     <button
                       key={thread.threadId}
                       type="button"
-                      onClick={() => setSelectedThread(thread.threadId)}
+                      onClick={() => {
+                        setSelectedThread(thread.threadId);
+                        setNewThreadTargetId(null);
+                      }}
                       className={`w-full text-left py-4 pr-4 pl-4 md:pl-6 lg:pl-8 hover:bg-surface-card-hover transition-colors ${displayThreadId === thread.threadId ? "bg-surface-elevated" : ""}`}
                     >
                       <div className="flex items-start gap-3">
                         <Avatar
+                          src={thread.otherUser?.avatarUrl}
                           name={thread.otherUser?.fullName ?? "Unknown"}
                           size="md"
                         />
@@ -214,6 +306,59 @@ function MessagesPageInner() {
                 )}
               </div>
             </div>
+
+            {/* Start Thread */}
+            <div className="shrink-0 border-t border-border-default p-3 px-4 md:px-6 lg:px-8">
+              {showNewThread ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        placeholder="Search by name..."
+                        leftIcon={<Search className="h-4 w-4" />}
+                        value={newThreadSearch}
+                        onChange={(e) => setNewThreadSearch(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <button
+                      onClick={() => { setShowNewThread(false); setNewThreadSearch(""); }}
+                      className="p-2 rounded-lg hover:bg-surface-overlay text-text-tertiary hover:text-text-primary transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {newThreadSearch.trim() && (
+                    <div className="max-h-48 overflow-y-auto rounded-xl border border-border-default bg-surface-elevated">
+                      {searchResults.length === 0 ? (
+                        <div className="p-3 text-sm text-text-muted text-center">No members found</div>
+                      ) : (
+                        searchResults.map((member) => (
+                          <button
+                            key={member._id}
+                            onClick={() => handleSelectNewThreadUser(member._id)}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-surface-overlay transition-colors text-left"
+                          >
+                            <Avatar src={member.avatarUrl} name={member.fullName} size="sm" />
+                            <p className="text-sm font-medium text-text-primary truncate">{member.fullName}</p>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-center text-brand-500 hover:text-brand-400"
+                  onClick={() => setShowNewThread(true)}
+                  leftIcon={<Plus className="h-4 w-4" />}
+                >
+                  Start Thread
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Message view */}
@@ -223,19 +368,20 @@ function MessagesPageInner() {
               platformPaneGridCellFillClass
             )}
           >
-            {displayThreadId && selectedThreadData ? (
+            {showConversation && paneUser ? (
               <>
                 <div className="p-4 border-b border-border-default flex items-center gap-3 shrink-0">
                   <Avatar
-                    name={selectedThreadData.otherUser?.fullName ?? "Unknown"}
+                    src={paneUser.avatarUrl}
+                    name={paneUser.fullName ?? "Unknown"}
                     size="sm"
                   />
                   <div>
                     <p className="text-sm font-semibold text-text-primary">
-                      {selectedThreadData.otherUser?.fullName ?? "Unknown"}
+                      {paneUser.fullName ?? "Unknown"}
                     </p>
                     <p className="text-xs text-text-muted">
-                      {selectedThreadData.otherUser?.schoolName ?? ""}
+                      {paneUser.schoolName ?? ""}
                     </p>
                   </div>
                 </div>
@@ -304,7 +450,7 @@ function MessagesPageInner() {
                 <EmptyState
                   icon={<MessageCircle className="h-8 w-8" />}
                   title="No conversation selected"
-                  description="Choose a conversation from the list to start chatting"
+                  description="Choose a conversation from the list or start a new thread"
                 />
               </div>
             )}

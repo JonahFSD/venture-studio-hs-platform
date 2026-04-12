@@ -66,6 +66,10 @@ export const listThreads = query({
               ? Math.max(...toMe.map((m) => m._creationTime))
               : 0;
 
+          const otherAvatarUrl = otherUser?.avatarStorageId
+            ? await ctx.storage.getUrl(otherUser.avatarStorageId)
+            : null;
+
           return {
             threadId,
             otherUser: otherUser
@@ -74,6 +78,7 @@ export const listThreads = query({
                   fullName: otherUser.fullName,
                   schoolName: otherUser.schoolName,
                   avatarStorageId: otherUser.avatarStorageId,
+                  avatarUrl: otherAvatarUrl,
                   lookingForCofounders: otherUser.lookingForCofounders ?? false,
                   networkCount: otherUser.networkCount ?? 0,
                 }

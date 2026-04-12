@@ -75,7 +75,7 @@ export default function MemberProfilePage() {
                 {member.graduationYear && <span className="flex items-center gap-1"><Calendar className="h-4 w-4" />Class of {member.graduationYear}</span>}
               </div>
             </div>
-            <Link href="/community/messages">
+            <Link href={`/community/messages?to=${member._id}`}>
               <Button variant="brand" leftIcon={<MessageCircle className="h-4 w-4" />}>Message</Button>
             </Link>
           </div>
