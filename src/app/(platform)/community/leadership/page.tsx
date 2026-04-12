@@ -305,9 +305,13 @@ function RegionRow({
           "hover:bg-surface-card-hover"
         )}
       >
-        <div className="shrink-0 p-2 bg-brand-500/10">
-          <MapPin className="h-5 w-5 text-brand-500" />
-        </div>
+        {region.director ? (
+          <Avatar name={region.director.name} size="md" />
+        ) : (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-border-strong text-text-muted">
+            <MapPin className="h-4 w-4" />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-bold text-text-primary">{region.name}</h3>
           {region.director ? (
