@@ -164,7 +164,7 @@ export function TopBar() {
           ) : null}
         </div>
       ) : backLink ? (
-        <div className="flex h-full items-center px-4 md:px-6 lg:px-8">
+        <div className="flex h-full items-end px-4 pb-2.5 md:px-6 lg:px-8">
           <Link
             href={backLink.href}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-500 hover:text-brand-400 transition-colors"
