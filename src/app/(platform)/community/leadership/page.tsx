@@ -76,8 +76,8 @@ const filledAmbassadors: Record<string, { name: string; school: string; graduati
   "Virginia": { name: "Aiden Brooks", school: "Covenant Christian", graduation: 2028 },
 };
 
-function ExecutiveTeamMemberContent(props: ExecutiveLeader) {
-  const { name, role } = props;
+function ExecutiveTeamMemberContent(props: ExecutiveLeader & { avatarUrl?: string }) {
+  const { name, role, avatarUrl } = props;
   const meta = "company" in props ? (
     <div className="mt-1 flex flex-col items-start gap-1 text-sm text-text-secondary">
       <span className="flex items-center gap-1.5">
@@ -104,7 +104,7 @@ function ExecutiveTeamMemberContent(props: ExecutiveLeader) {
 
   return (
     <div className="flex flex-row items-start gap-3 sm:gap-4">
-      <Avatar name={name} size="lg" className="shrink-0" />
+      <Avatar src={avatarUrl} name={name} size="lg" className="shrink-0" />
       <div className="min-w-0 flex-1 text-left">
         <h3 className="mb-1.5 text-base font-bold leading-snug text-text-primary">
           {name}
@@ -121,7 +121,7 @@ function ExecutiveTeamMemberContent(props: ExecutiveLeader) {
   );
 }
 
-function ExecutiveTeamGrid({ leaders, profileIdByName }: { leaders: ExecutiveLeader[]; profileIdByName: Map<string, string> }) {
+function ExecutiveTeamGrid({ leaders, profileIdByName, avatarUrlByName }: { leaders: ExecutiveLeader[]; profileIdByName: Map<string, string>; avatarUrlByName: Map<string, string> }) {
   const gridCols = useResponsiveGridColumnCount(BOUNTIES_GRID_BREAKPOINTS);
   const rows = useMemo(
     () => chunkIntoRows(leaders, gridCols),
@@ -154,7 +154,7 @@ function ExecutiveTeamGrid({ leaders, profileIdByName }: { leaders: ExecutiveLea
                   "flex h-full min-h-[11rem] min-w-0 flex-1 flex-col overflow-hidden p-4 sm:min-h-0 sm:p-5 md:p-[30px]"
                 )}
               >
-                <ExecutiveTeamMemberContent {...leader} />
+                <ExecutiveTeamMemberContent {...leader} avatarUrl={avatarUrlByName.get(leader.name)} />
               </Card>
             );
 
@@ -236,11 +236,13 @@ function RegionalDirectorsPane({
   filledAmbassadors: ambassadors,
   onApply,
   profileIdByName,
+  avatarUrlByName,
 }: {
   regions: Region[];
   filledAmbassadors: Record<string, { name: string; school: string; graduation: number }>;
   onApply: (state: string) => void;
   profileIdByName: Map<string, string>;
+  avatarUrlByName: Map<string, string>;
 }) {
   return (
     <div
@@ -268,6 +270,7 @@ function RegionalDirectorsPane({
                 filledAmbassadors={ambassadors}
                 onApply={onApply}
                 profileIdByName={profileIdByName}
+                avatarUrlByName={avatarUrlByName}
               />
             </div>
           </div>
@@ -282,11 +285,13 @@ function RegionRow({
   filledAmbassadors: ambassadors,
   onApply,
   profileIdByName,
+  avatarUrlByName,
 }: {
   region: Region;
   filledAmbassadors: Record<string, { name: string; school: string; graduation: number }>;
   onApply: (state: string) => void;
   profileIdByName: Map<string, string>;
+  avatarUrlByName: Map<string, string>;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -309,10 +314,10 @@ function RegionRow({
                 onClick={(e) => e.stopPropagation()}
                 className="shrink-0 hover:opacity-80 transition-opacity"
               >
-                <Avatar name={region.director!.name} size="md" />
+                <Avatar src={avatarUrlByName.get(region.director!.name)} name={region.director!.name} size="md" />
               </Link>
             ) : (
-              <Avatar name={region.director!.name} size="md" />
+              <Avatar src={avatarUrlByName.get(region.director!.name)} name={region.director!.name} size="md" />
             );
           })()
         ) : (
@@ -365,10 +370,10 @@ function RegionRow({
                   >
                     {ambHref ? (
                       <Link href={`/community/${ambHref}`} className="shrink-0 hover:opacity-80 transition-opacity">
-                        <Avatar name={ambassador.name} size="md" />
+                        <Avatar src={avatarUrlByName.get(ambassador.name)} name={ambassador.name} size="md" />
                       </Link>
                     ) : (
-                      <Avatar name={ambassador.name} size="md" />
+                      <Avatar src={avatarUrlByName.get(ambassador.name)} name={ambassador.name} size="md" />
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-text-secondary">
@@ -436,6 +441,15 @@ export default function LeadershipPage() {
     return m;
   }, [members]);
 
+  const avatarUrlByName = useMemo(() => {
+    const m = new Map<string, string>();
+    if (!members) return m;
+    for (const u of members) {
+      if (u.avatarUrl && !m.has(u.fullName)) m.set(u.fullName, u.avatarUrl);
+    }
+    return m;
+  }, [members]);
+
   const handleApply = (state: string) => { setApplyState(state); setApplied(false); setApplyModalOpen(true); };
   const handleSubmitApplication = () => { setIsSubmitting(true); setTimeout(() => { setIsSubmitting(false); setApplied(true); }, 1500); };
 
@@ -443,7 +457,7 @@ export default function LeadershipPage() {
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-bold text-text-primary mb-4">Executive Team</h2>
-        <ExecutiveTeamGrid leaders={leaders} profileIdByName={profileIdByName} />
+        <ExecutiveTeamGrid leaders={leaders} profileIdByName={profileIdByName} avatarUrlByName={avatarUrlByName} />
       </div>
 
       <div className="pt-[25px]">
@@ -453,6 +467,7 @@ export default function LeadershipPage() {
           filledAmbassadors={filledAmbassadors}
           onApply={handleApply}
           profileIdByName={profileIdByName}
+          avatarUrlByName={avatarUrlByName}
         />
       </div>
 

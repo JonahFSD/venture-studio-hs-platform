@@ -55,7 +55,7 @@ export default function MemberProfilePage() {
         <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-r from-brand-500/10 to-brand-600/5" />
         <div className="relative pt-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-            <Avatar name={member.fullName} size="xl" className="ring-4 ring-surface-card" />
+            <Avatar src={member.avatarUrl} name={member.fullName} size="xl" className="ring-4 ring-surface-card" />
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl font-bold text-text-primary">{member.fullName}</h1>

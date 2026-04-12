@@ -24,9 +24,12 @@ export const getById = query({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
-    // Strip internal fields
+    // Strip internal fields, resolve avatar URL
     const { authSubject, ...publicProfile } = user;
-    return publicProfile;
+    const avatarUrl = user.avatarStorageId
+      ? await ctx.storage.getUrl(user.avatarStorageId)
+      : null;
+    return { ...publicProfile, avatarUrl };
   },
 });
 
@@ -75,8 +78,15 @@ export const listMembers = query({
       );
     }
 
-    // Strip internal fields
-    return members.map(({ authSubject, ...rest }) => rest);
+    // Strip internal fields and resolve avatar URLs
+    return await Promise.all(
+      members.map(async ({ authSubject, ...rest }) => {
+        const avatarUrl = rest.avatarStorageId
+          ? await ctx.storage.getUrl(rest.avatarStorageId)
+          : null;
+        return { ...rest, avatarUrl };
+      })
+    );
   },
 });
 
@@ -95,23 +105,30 @@ export const getLeaderboard = query({
         ? (u.pointsThisMonth ?? 0)
         : (u.points ?? 0);
 
-    const ranked = allUsers
+    const top10 = allUsers
       .filter((u) => u.role !== "superadmin")
       .sort((a, b) => {
         const diff = score(b) - score(a);
         if (diff !== 0) return diff;
         return (b.points ?? 0) - (a.points ?? 0);
       })
-      .slice(0, 10)
-      .map((u, index) => {
+      .slice(0, 10);
+
+    const ranked = await Promise.all(
+      top10.map(async (u, index) => {
         const { authSubject, ...rest } = u;
         const leaderboardPoints = score(u);
+        const avatarUrl = u.avatarStorageId
+          ? await ctx.storage.getUrl(u.avatarStorageId)
+          : null;
         return {
           ...rest,
           rank: index + 1,
           leaderboardPoints,
+          avatarUrl,
         };
-      });
+      })
+    );
 
     return ranked;
   },

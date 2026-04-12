@@ -18,6 +18,7 @@ import { PROFILE_SKILL_OPTIONS, PROFILE_TOOL_CATEGORIES } from "@/lib/profile-op
 import { US_STATE_ABBREVIATIONS } from "@/lib/us-states";
 import {
   schoolToKey,
+  keyToSchool,
   type NewSchoolPayload,
   type SchoolListing,
 } from "@/lib/school-directory";
@@ -106,22 +107,14 @@ export default function SettingsPage() {
       const fullName = `${newFirstName} ${newLastName}`.trim();
       const bioValue = bioRef.current?.value ?? bio;
 
-      // Extract school name from selected key if possible
-      // schoolToKey creates "STATE|city|name" format
+      // Extract school info from selected key
       let schoolName: string | undefined;
-      if (selectedSchoolKey) {
-        const parts = selectedSchoolKey.split("|");
-        if (parts.length >= 3) {
-          schoolName = parts[2];
-        }
-      }
-
-      // Extract state and city from the school key and form fields
       let schoolState: string | undefined;
       if (selectedSchoolKey) {
-        const parts = selectedSchoolKey.split("|");
-        if (parts.length >= 1) {
-          schoolState = parts[0];
+        const parsed = keyToSchool(selectedSchoolKey);
+        if (parsed) {
+          schoolName = parsed.name;
+          schoolState = parsed.state;
         }
       }
 
@@ -358,6 +351,14 @@ export default function SettingsPage() {
                       extraSchoolsByState={extraSchoolsByState}
                       onAddSchool={handleAddSchool}
                     />
+                    {user?.graduationYear ? (
+                      <Input
+                        label="Graduation Year"
+                        defaultValue={String(user.graduationYear)}
+                        disabled
+                        hint="Set during sign-up and cannot be changed"
+                      />
+                    ) : null}
                     <Textarea
                       ref={bioRef}
                       label="Bio"

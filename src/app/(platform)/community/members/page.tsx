@@ -113,6 +113,7 @@ export default function MembersPage() {
     points: m.points ?? 0,
     monthsAsMember: 0,
     isInNetwork: false,
+    avatarUrl: m.avatarUrl ?? null,
   }));
 
   const networkMembers = useMemo(
@@ -522,6 +523,7 @@ export default function MembersPage() {
                               >
                                 <div className="aspect-square h-full w-auto shrink-0">
                                   <Avatar
+                                    src={member.avatarUrl}
                                     name={member.name}
                                     size="lg"
                                     className="!h-full !w-full !max-w-none aspect-square min-h-0"

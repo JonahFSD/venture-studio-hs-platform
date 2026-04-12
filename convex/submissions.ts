@@ -105,7 +105,14 @@ export const getById = query({
 
     return {
       ...submission,
-      user: user ? { _id: user._id, fullName: user.fullName, email: user.email, schoolName: user.schoolName, avatarStorageId: user.avatarStorageId } : null,
+      user: user ? {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        schoolName: user.schoolName,
+        avatarStorageId: user.avatarStorageId,
+        avatarUrl: user.avatarStorageId ? await ctx.storage.getUrl(user.avatarStorageId) : null,
+      } : null,
       aiScore: aiScore ?? undefined,
       collaborators: collaboratorsWithUsers,
       voteCount,
@@ -145,7 +152,12 @@ export const listByMonth = query({
             .first();
           return {
             ...sub,
-            user: user ? { _id: user._id, fullName: user.fullName, schoolName: user.schoolName } : null,
+            user: user ? {
+              _id: user._id,
+              fullName: user.fullName,
+              schoolName: user.schoolName,
+              avatarUrl: user.avatarStorageId ? await ctx.storage.getUrl(user.avatarStorageId) : null,
+            } : null,
             aiScore: score ?? undefined,
           };
         })

@@ -107,6 +107,7 @@ export function LeaderboardContent({ range }: { range: LeaderboardRangeMode }) {
       bountiesWon: 0,
       points: l.leaderboardPoints,
       rank: l.rank,
+      avatarUrl: l.avatarUrl ?? null,
     })) ?? [];
 
   if (rawLeaders === undefined) {
@@ -188,7 +189,7 @@ export function LeaderboardContent({ range }: { range: LeaderboardRangeMode }) {
                   <td className="whitespace-nowrap px-3 py-4">
                     <Link href={`/community/${leader.id}`}>
                       <div className="flex items-center gap-3">
-                        <Avatar name={leader.name} size="sm" />
+                        <Avatar src={leader.avatarUrl} name={leader.name} size="sm" />
                         <span className="text-sm font-medium text-text-primary hover:text-brand-500 transition-colors">
                           {leader.name}
                         </span>
