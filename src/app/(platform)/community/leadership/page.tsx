@@ -311,14 +311,11 @@ function RegionRow({
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-bold text-text-primary">{region.name}</h3>
           {region.director ? (
-            <div className="mt-1 flex items-center gap-2">
-              <Avatar name={region.director.name} size="xs" />
-              <span className="text-xs text-text-secondary">
-                {region.director.name} &bull; {region.director.school}
-              </span>
-            </div>
+            <p className="mt-0.5 text-[10px] text-text-muted">
+              {region.director.name} &bull; {region.director.school}&apos;{String(region.director.graduation).slice(2)}
+            </p>
           ) : (
-            <p className="mt-1 text-xs italic text-text-muted">
+            <p className="mt-0.5 text-[10px] italic text-text-muted">
               Regional Director — position open
             </p>
           )}
