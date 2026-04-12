@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { PaywallGate } from "@/components/auth/paywall-gate";
 import {
   Upload,
   Video,
@@ -49,6 +50,8 @@ export default function NewSubmissionPage() {
   const currentUser = useCurrentUser();
   const createSubmission = useMutation(api.submissions.create);
   const submitSubmission = useMutation(api.submissions.submit);
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const inviteCollaborator = useMutation(api.collaborators.invite);
   const membersData = useQuery(api.users.listMembers, {});
 
   const availableMembers = (membersData ?? [])
@@ -136,10 +139,24 @@ export default function NewSubmissionPage() {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
+      // Upload video file to Convex storage if present
+      let videoStorageId: string | undefined;
+      if (videoFile) {
+        const uploadUrl = await generateUploadUrl();
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": videoFile.type },
+          body: videoFile,
+        });
+        if (!result.ok) throw new Error("Video upload failed");
+        const json = await result.json();
+        videoStorageId = json.storageId;
+      }
+
       const submissionId = await createSubmission({
         title,
         description,
-        videoUrl: undefined,
+        videoStorageId: videoStorageId as any,
         githubUrl: githubUrl || undefined,
         websiteUrl: websiteUrl || undefined,
         slideDeckUrl: slideDeckUrl || undefined,
@@ -150,6 +167,21 @@ export default function NewSubmissionPage() {
         monthYear,
         isTeamSubmission: isTeam,
       });
+
+      // Invite team collaborators if this is a team submission
+      if (isTeam && teamMembers.length > 0) {
+        await Promise.all(
+          teamMembers.map((member) =>
+            inviteCollaborator({
+              submissionId,
+              userId: member.id as any,
+              role: "collaborator",
+              revenueSplitPct: member.splitPct,
+            })
+          )
+        );
+      }
+
       await submitSubmission({ submissionId });
       router.push("/pitches");
     } catch (err: unknown) {
@@ -161,18 +193,8 @@ export default function NewSubmissionPage() {
   };
 
   return (
+    <PaywallGate feature="submit pitches">
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors mb-4"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
-      </div>
-
       {/* Progress */}
       <div className="flex items-center gap-2">
         {steps.map((s, i) => (
@@ -409,11 +431,10 @@ export default function NewSubmissionPage() {
             <div className="p-4 rounded-xl bg-surface-elevated border border-border-default">
               <h4 className="text-sm font-medium text-text-primary mb-2">Tips for a great pitch video:</h4>
               <ul className="space-y-1.5 text-xs text-text-secondary">
-                <li>&bull; Start with the problem you&apos;re solving</li>
-                <li>&bull; Explain your solution clearly</li>
-                <li>&bull; Share your target market/audience</li>
-                <li>&bull; Mention how faith drives your mission</li>
-                <li>&bull; End with your ask or next steps</li>
+                <li>&bull; Start with the customer &amp; their problem</li>
+                <li>&bull; Explain your solution &amp; its defensibility</li>
+                <li>&bull; Articulate your plan to launch &amp; scale</li>
+                <li>&bull; End with realistic revenue projections</li>
               </ul>
             </div>
           </div>
@@ -527,5 +548,6 @@ export default function NewSubmissionPage() {
         </div>
       </Card>
     </div>
+    </PaywallGate>
   );
 }

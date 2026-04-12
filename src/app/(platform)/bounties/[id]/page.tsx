@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { type Id } from "../../../../../convex/_generated/dataModel";
+import { PaywallGate } from "@/components/auth/paywall-gate";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -77,6 +78,7 @@ export default function BountyDetailPage() {
   const days = daysUntilDue(bounty.dueDate);
 
   return (
+    <PaywallGate feature="submit for bounties">
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div className="space-y-2">
         <div className="flex items-center gap-3 flex-wrap">
@@ -287,5 +289,6 @@ export default function BountyDetailPage() {
         </div>
       )}
     </div>
+    </PaywallGate>
   );
 }

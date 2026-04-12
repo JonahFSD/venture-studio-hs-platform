@@ -61,7 +61,7 @@ const leaders: ExecutiveLeader[] = [
   { name: "Elijah Thompson", role: "VP Recruitment", school: "Liberty Christian", graduation: 2028 },
   { name: "Grace Kim", role: "VP Operations", school: "Faith Lutheran", graduation: 2029 },
   { name: "Maya Patel", role: "VP Finance", school: "Heritage Christian", graduation: 2028 },
-  { name: "Jake Oswald", role: "Advisor", company: "Gen1 Ventures", jobTitle: "Managing Partner" },
+  { name: "Jake Oswald", role: "Advisor", company: "Austin Christian U", jobTitle: "Accelerator Director" },
   { name: "Lars Ostervold", role: "Advisor", company: "Austin Christian U", jobTitle: "CTO" },
 ];
 

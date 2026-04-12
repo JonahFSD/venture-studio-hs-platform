@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
+import { PaywallGate } from "@/components/auth/paywall-gate";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { InfoCallout } from "@/components/ui/info-callout";
@@ -254,6 +255,7 @@ export default function MembersPage() {
   }
 
   return (
+    <PaywallGate feature="view the member directory">
     <div className="space-y-6">
       {networkView === "network" && (
         <InfoCallout>
@@ -627,5 +629,6 @@ export default function MembersPage() {
         )}
       </div>
     </div>
+    </PaywallGate>
   );
 }

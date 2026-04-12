@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
+import { PaywallGate } from "@/components/auth/paywall-gate";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -316,14 +317,16 @@ function MessagesPageInner() {
 
 export default function MessagesPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[calc(100dvh-10rem)] items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-circle border-2 border-brand-500 border-t-transparent" />
-        </div>
-      }
-    >
-      <MessagesPageInner />
-    </Suspense>
+    <PaywallGate feature="use messaging">
+      <Suspense
+        fallback={
+          <div className="flex min-h-[calc(100dvh-10rem)] items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-circle border-2 border-brand-500 border-t-transparent" />
+          </div>
+        }
+      >
+        <MessagesPageInner />
+      </Suspense>
+    </PaywallGate>
   );
 }

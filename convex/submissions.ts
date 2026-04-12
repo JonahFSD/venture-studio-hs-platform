@@ -162,6 +162,7 @@ export const create = mutation({
   args: {
     title: v.string(),
     description: v.string(),
+    videoStorageId: v.optional(v.id("_storage")),
     videoUrl: v.optional(v.string()),
     githubUrl: v.optional(v.string()),
     websiteUrl: v.optional(v.string()),
@@ -172,11 +173,19 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const user = await getAuthUser(ctx);
+
+    // Resolve video URL from storage if a storageId was provided
+    let videoUrl = args.videoUrl;
+    if (args.videoStorageId) {
+      videoUrl = (await ctx.storage.getUrl(args.videoStorageId)) ?? undefined;
+    }
+
     return await ctx.db.insert("submissions", {
       userId: user._id,
       title: args.title,
       description: args.description,
-      videoUrl: args.videoUrl,
+      videoUrl,
+      videoStorageId: args.videoStorageId,
       githubUrl: args.githubUrl,
       websiteUrl: args.websiteUrl,
       slideDeckUrl: args.slideDeckUrl,

@@ -126,6 +126,7 @@ export default defineSchema({
     title: v.string(),
     description: v.string(),
     videoUrl: v.optional(v.string()),
+    videoStorageId: v.optional(v.id("_storage")),
     videoThumbnailStorageId: v.optional(v.id("_storage")),
     githubUrl: v.optional(v.string()),
     websiteUrl: v.optional(v.string()),
