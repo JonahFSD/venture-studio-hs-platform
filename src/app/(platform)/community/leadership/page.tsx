@@ -45,11 +45,11 @@ type ExecutiveLeader =
   | { name: string; role: string; company: string; jobTitle: string };
 
 const regions: Region[] = [
-  { name: "New England", states: ["Connecticut", "Maine", "Massachusetts", "New Hampshire", "New York", "Rhode Island", "Vermont"], director: { name: "Hannah Lee", school: "Cornerstone Academy", graduation: 2028 } },
-  { name: "Mid-Atlantic", states: ["Delaware", "Maryland", "New Jersey", "North Carolina", "Pennsylvania", "Virginia", "West Virginia"], director: { name: "Aiden Brooks", school: "Covenant Christian", graduation: 2028 } },
-  { name: "Southeast", states: ["Alabama", "Florida", "Georgia", "Kentucky", "Louisiana", "Mississippi", "South Carolina", "Tennessee"], director: { name: "Sophia Johnson", school: "Trinity Prep", graduation: 2029 } },
-  { name: "Midwest", states: ["Illinois", "Indiana", "Iowa", "Michigan", "Minnesota", "Missouri", "Ohio", "Wisconsin"], director: { name: "Liam Carter", school: "Cornerstone Academy", graduation: 2028 } },
-  { name: "South Central", states: ["Arkansas", "Kansas", "Nebraska", "North Dakota", "Oklahoma", "South Dakota", "Texas"], director: { name: "Caleb Martinez", school: "Redeemer Prep", graduation: 2028 } },
+  { name: "New England", states: ["Connecticut", "Maine", "Massachusetts", "New Hampshire", "New York", "Rhode Island", "Vermont"], director: { name: "Ava Martinez", school: "Cornerstone Academy", graduation: 2028 } },
+  { name: "Mid-Atlantic", states: ["Delaware", "Maryland", "New Jersey", "North Carolina", "Pennsylvania", "Virginia", "West Virginia"], director: { name: "Noah Williams", school: "Heritage Christian", graduation: 2028 } },
+  { name: "Southeast", states: ["Alabama", "Florida", "Georgia", "Kentucky", "Louisiana", "Mississippi", "South Carolina", "Tennessee"], director: { name: "Sophia Lee", school: "Trinity Christian", graduation: 2029 } },
+  { name: "Midwest", states: ["Illinois", "Indiana", "Iowa", "Michigan", "Minnesota", "Missouri", "Ohio", "Wisconsin"], director: { name: "Caleb Johnson", school: "Redeemer Prep", graduation: 2028 } },
+  { name: "South Central", states: ["Arkansas", "Kansas", "Nebraska", "North Dakota", "Oklahoma", "South Dakota", "Texas"], director: { name: "Isaiah Brown", school: "Victory Christian", graduation: 2028 } },
   { name: "Mountain West", states: ["Arizona", "Colorado", "Idaho", "Montana", "New Mexico", "Utah", "Wyoming"], director: null },
   { name: "Pacific", states: ["Alaska", "California", "Hawaii", "Nevada", "Oregon", "Washington"], director: null },
 ];
