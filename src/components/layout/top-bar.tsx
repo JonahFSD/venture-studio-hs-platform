@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { SubTabNav } from "@/components/layout/sub-tab-nav";
 import type { SubTab } from "@/components/layout/sub-tab-nav";
 import {
+  COMMUNITY_SUB_TABS,
   getHeaderSubTabs,
   getDetailBackLink,
   isBountiesDetailRoute,
@@ -51,7 +52,37 @@ export function TopBar() {
     return tabs;
   }, [pathname, onBountiesList, subTabBadges]);
 
-  const backLink = useMemo(() => getDetailBackLink(pathname), [pathname]);
+  // Track last visited subtab path per section for dynamic back navigation
+  useEffect(() => {
+    if (subTabs && pathname.startsWith("/community")) {
+      const matched = subTabs.find((t) => pathname === t.href || pathname.startsWith(t.href + "/"));
+      if (matched) {
+        try { sessionStorage.setItem("lastCommunitySubTab", matched.href); } catch {}
+      }
+    }
+    if (subTabs && pathname.startsWith("/pitches")) {
+      const matched = subTabs.find((t) => pathname === t.href || pathname.startsWith(t.href + "/"));
+      if (matched) {
+        try { sessionStorage.setItem("lastPitchesSubTab", matched.href); } catch {}
+      }
+    }
+  }, [pathname, subTabs]);
+
+  const backLink = useMemo(() => {
+    const link = getDetailBackLink(pathname);
+    if (!link) return null;
+    // Override community back link with last visited subtab
+    if (link.href === "/community/members") {
+      try {
+        const last = sessionStorage.getItem("lastCommunitySubTab");
+        if (last && last !== "/community/members") {
+          const tab = COMMUNITY_SUB_TABS.find((t) => t.href === last);
+          if (tab) return { href: last, label: `Back to ${tab.label}` };
+        }
+      } catch {}
+    }
+    return link;
+  }, [pathname]);
 
   const showPitchesMyActions = pathname === "/pitches";
   const showBountiesHeaderActions =
