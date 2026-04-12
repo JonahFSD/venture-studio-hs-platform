@@ -521,12 +521,11 @@ export default function MembersPage() {
                                   member.bqType ? "row-span-3" : "row-span-2"
                                 )}
                               >
-                                <div className="aspect-square h-full w-auto shrink-0">
+                                <div className="shrink-0">
                                   <Avatar
                                     src={member.avatarUrl}
                                     name={member.name}
                                     size="lg"
-                                    className="!h-full !w-full !max-w-none aspect-square min-h-0"
                                   />
                                 </div>
                               </div>
