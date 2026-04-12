@@ -121,17 +121,7 @@ function ExecutiveTeamMemberContent(props: ExecutiveLeader) {
   );
 }
 
-function ExecutiveTeamGrid({ leaders }: { leaders: ExecutiveLeader[] }) {
-  const members = useQuery(api.users.listMembers, {});
-  const profileIdByName = useMemo(() => {
-    const m = new Map<string, string>();
-    if (!members) return m;
-    for (const u of members) {
-      if (!m.has(u.fullName)) m.set(u.fullName, u._id);
-    }
-    return m;
-  }, [members]);
-
+function ExecutiveTeamGrid({ leaders, profileIdByName }: { leaders: ExecutiveLeader[]; profileIdByName: Map<string, string> }) {
   const gridCols = useResponsiveGridColumnCount(BOUNTIES_GRID_BREAKPOINTS);
   const rows = useMemo(
     () => chunkIntoRows(leaders, gridCols),
@@ -245,10 +235,12 @@ function RegionalDirectorsPane({
   regions: regionList,
   filledAmbassadors: ambassadors,
   onApply,
+  profileIdByName,
 }: {
   regions: Region[];
   filledAmbassadors: Record<string, { name: string; school: string; graduation: number }>;
   onApply: (state: string) => void;
+  profileIdByName: Map<string, string>;
 }) {
   return (
     <div
@@ -275,6 +267,7 @@ function RegionalDirectorsPane({
                 region={region}
                 filledAmbassadors={ambassadors}
                 onApply={onApply}
+                profileIdByName={profileIdByName}
               />
             </div>
           </div>
@@ -288,10 +281,12 @@ function RegionRow({
   region,
   filledAmbassadors: ambassadors,
   onApply,
+  profileIdByName,
 }: {
   region: Region;
   filledAmbassadors: Record<string, { name: string; school: string; graduation: number }>;
   onApply: (state: string) => void;
+  profileIdByName: Map<string, string>;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -306,7 +301,20 @@ function RegionRow({
         )}
       >
         {region.director ? (
-          <Avatar name={region.director.name} size="md" />
+          (() => {
+            const directorHref = profileIdByName.get(region.director!.name);
+            return directorHref ? (
+              <Link
+                href={`/community/${directorHref}`}
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0 hover:opacity-80 transition-opacity"
+              >
+                <Avatar name={region.director!.name} size="md" />
+              </Link>
+            ) : (
+              <Avatar name={region.director!.name} size="md" />
+            );
+          })()
         ) : (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-border-strong text-text-muted">
             <MapPin className="h-4 w-4" />
@@ -315,9 +323,21 @@ function RegionRow({
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-bold text-text-primary">{region.name}</h3>
           {region.director ? (
-            <p className="mt-0.5 text-[10px] text-text-muted">
-              {region.director.name} &bull; {region.director.school}&apos;{String(region.director.graduation).slice(2)}
-            </p>
+            (() => {
+              const directorHref = profileIdByName.get(region.director!.name);
+              const content = <>{region.director!.name} &bull; {region.director!.school}&apos;{String(region.director!.graduation).slice(2)}</>;
+              return directorHref ? (
+                <Link
+                  href={`/community/${directorHref}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-0.5 block truncate text-[10px] text-text-muted hover:text-brand-500 transition-colors"
+                >
+                  {content}
+                </Link>
+              ) : (
+                <p className="mt-0.5 truncate text-[10px] text-text-muted">{content}</p>
+              );
+            })()
           ) : (
             <p className="mt-0.5 text-[10px] italic text-text-muted">
               Regional Director — position open
@@ -337,23 +357,33 @@ function RegionRow({
             {region.states.map((state) => {
               const ambassador = ambassadors[state];
               if (ambassador) {
+                const ambHref = profileIdByName.get(ambassador.name);
                 return (
                   <div
                     key={state}
                     className="flex items-center gap-3 bg-surface-primary px-4 py-3 transition-colors duration-200 hover:bg-surface-card-hover sm:px-5 md:px-[30px]"
                   >
-                    <Avatar name={ambassador.name} size="md" />
+                    {ambHref ? (
+                      <Link href={`/community/${ambHref}`} className="shrink-0 hover:opacity-80 transition-opacity">
+                        <Avatar name={ambassador.name} size="md" />
+                      </Link>
+                    ) : (
+                      <Avatar name={ambassador.name} size="md" />
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-text-secondary">
                         {state}
                       </p>
-                      <p className="mt-0.5 truncate text-[10px] text-text-muted">
-                        {ambassador.name} &bull; {ambassador.school}&apos;{String(ambassador.graduation).slice(2)}
-                      </p>
+                      {ambHref ? (
+                        <Link href={`/community/${ambHref}`} className="mt-0.5 block truncate text-[10px] text-text-muted hover:text-brand-500 transition-colors">
+                          {ambassador.name} &bull; {ambassador.school}&apos;{String(ambassador.graduation).slice(2)}
+                        </Link>
+                      ) : (
+                        <p className="mt-0.5 truncate text-[10px] text-text-muted">
+                          {ambassador.name} &bull; {ambassador.school}&apos;{String(ambassador.graduation).slice(2)}
+                        </p>
+                      )}
                     </div>
-                    <Button variant="ghost" size="sm">
-                      <MessageCircle className="h-3.5 w-3.5" />
-                    </Button>
                   </div>
                 );
               }
@@ -396,6 +426,16 @@ export default function LeadershipPage() {
   const [applied, setApplied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const members = useQuery(api.users.listMembers, {});
+  const profileIdByName = useMemo(() => {
+    const m = new Map<string, string>();
+    if (!members) return m;
+    for (const u of members) {
+      if (!m.has(u.fullName)) m.set(u.fullName, u._id);
+    }
+    return m;
+  }, [members]);
+
   const handleApply = (state: string) => { setApplyState(state); setApplied(false); setApplyModalOpen(true); };
   const handleSubmitApplication = () => { setIsSubmitting(true); setTimeout(() => { setIsSubmitting(false); setApplied(true); }, 1500); };
 
@@ -403,7 +443,7 @@ export default function LeadershipPage() {
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-bold text-text-primary mb-4">Executive Team</h2>
-        <ExecutiveTeamGrid leaders={leaders} />
+        <ExecutiveTeamGrid leaders={leaders} profileIdByName={profileIdByName} />
       </div>
 
       <div className="pt-[25px]">
@@ -412,6 +452,7 @@ export default function LeadershipPage() {
           regions={regions}
           filledAmbassadors={filledAmbassadors}
           onApply={handleApply}
+          profileIdByName={profileIdByName}
         />
       </div>
 
