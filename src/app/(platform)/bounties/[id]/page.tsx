@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
@@ -17,11 +17,14 @@ import {
   Trophy,
   Calendar,
   CheckCircle,
-  ArrowLeft,
   AlertCircle,
   Send,
   X,
   LinkIcon,
+  ExternalLink,
+  Link2,
+  Check,
+  Star,
 } from "lucide-react";
 
 function formatBountyDate(epochMs: number) {
@@ -42,13 +45,31 @@ export default function BountyDetailPage() {
     api.bounties.getById,
     id ? { bountyId: id as Id<"bounties"> } : "skip"
   );
+  const me = useQuery(api.users.getMe);
+  const isAdmin = me?.role === "admin" || me?.role === "superadmin";
 
   const submitSolution = useMutation(api.bounties.submitSolution);
+  const confirmWinner = useMutation(api.bounties.confirmWinner);
+
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitUrl, setSubmitUrl] = useState("");
   const [submitNotes, setSubmitNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  // Sort submissions: winner first, then entrepreneur pick, then by date
+  const sortedSubmissions = useMemo(() => {
+    if (!bounty?.submissions) return [];
+    return [...bounty.submissions].sort((a, b) => {
+      if (a.isWinner && !b.isWinner) return -1;
+      if (!a.isWinner && b.isWinner) return 1;
+      if (a.entrepreneurPick && !b.entrepreneurPick) return -1;
+      if (!a.entrepreneurPick && b.entrepreneurPick) return 1;
+      return b.submittedAt - a.submittedAt;
+    });
+  }, [bounty?.submissions]);
 
   // Loading state
   if (bounty === undefined) {
@@ -79,6 +100,23 @@ export default function BountyDetailPage() {
   }
 
   const days = daysUntilDue(bounty.dueDate);
+
+  async function handleCopyReviewLink() {
+    if (!bounty?.reviewToken) return;
+    const url = `${window.location.origin}/review/bounty/${bounty.reviewToken}`;
+    await navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
+  }
+
+  async function handleConfirmWinner(submissionId: Id<"bountySubmissions">) {
+    setConfirmingId(submissionId);
+    try {
+      await confirmWinner({ bountySubmissionId: submissionId });
+    } finally {
+      setConfirmingId(null);
+    }
+  }
 
   return (
     <PaywallGate feature="submit for bounties">
@@ -138,39 +176,6 @@ export default function BountyDetailPage() {
               ))}
             </ul>
           </Card>
-
-          {/* Submissions list */}
-          {bounty.submissions.length > 0 && (
-            <Card>
-              <h2 className="text-sm font-semibold text-text-primary mb-3">
-                Submissions ({bounty.submissions.length})
-              </h2>
-              <ul className="space-y-3">
-                {bounty.submissions.map((sub) => (
-                  <li
-                    key={sub._id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-surface-elevated"
-                  >
-                    <Avatar name={sub.user?.fullName ?? "Unknown"} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate">
-                        {sub.user?.fullName ?? "Unknown"}
-                      </p>
-                      {sub.user?.schoolName && (
-                        <p className="text-xs text-text-muted">{sub.user.schoolName}</p>
-                      )}
-                    </div>
-                    {sub.isWinner && (
-                      <Badge variant="success" className="text-[10px]">
-                        <Trophy className="h-3 w-3 mr-1" />
-                        Winner
-                      </Badge>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
         </div>
 
         <div className="space-y-6">
@@ -206,9 +211,134 @@ export default function BountyDetailPage() {
               Submit your work
             </Button>
           )}
+
+          {/* Admin: Copy Review Link */}
+          {isAdmin && bounty.reviewToken && (
+            <Button
+              variant="outline"
+              className="w-full"
+              leftIcon={
+                copiedLink ? (
+                  <Check className="h-4 w-4 text-success" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )
+              }
+              onClick={handleCopyReviewLink}
+            >
+              {copiedLink ? "Review link copied!" : "Copy Review Link"}
+            </Button>
+          )}
         </div>
       </div>
 
+      {/* ============================== */}
+      {/* Submissions Section             */}
+      {/* ============================== */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-text-primary">
+          Submissions ({bounty.submissionsCount})
+        </h2>
+
+        {sortedSubmissions.length === 0 ? (
+          <Card className="text-center py-8">
+            <Send className="h-8 w-8 text-text-muted mx-auto mb-3" />
+            <p className="text-sm text-text-secondary">
+              No submissions yet.{" "}
+              {bounty.status === "active" && "Be the first to submit your work!"}
+            </p>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {sortedSubmissions.map((sub) => (
+              <Card
+                key={sub._id}
+                className={
+                  sub.isWinner
+                    ? "border-success/30 bg-success/[0.02]"
+                    : sub.entrepreneurPick
+                      ? "border-brand-500/30 bg-brand-500/[0.02]"
+                      : ""
+                }
+              >
+                <div className="flex items-start gap-4">
+                  <Avatar name={sub.user?.fullName ?? "Unknown"} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {sub.user?.fullName ?? "Unknown"}
+                      </p>
+                      {sub.isWinner && (
+                        <Badge variant="success" className="text-[10px]">
+                          <Trophy className="h-3 w-3 mr-1" />
+                          Winner
+                        </Badge>
+                      )}
+                      {sub.entrepreneurPick && !sub.isWinner && (
+                        <Badge variant="brand" className="text-[10px]">
+                          <Star className="h-3 w-3 mr-1" />
+                          Entrepreneur&apos;s Pick
+                        </Badge>
+                      )}
+                    </div>
+
+                    {sub.user?.schoolName && (
+                      <p className="text-xs text-text-muted mt-0.5">
+                        {sub.user.schoolName}
+                      </p>
+                    )}
+
+                    {sub.notes && (
+                      <p className="text-xs text-text-secondary mt-2 line-clamp-2">
+                        {sub.notes}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-4 mt-2 flex-wrap">
+                      <a
+                        href={sub.submissionUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-brand-500 hover:text-brand-400 transition-colors"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View submission
+                      </a>
+                      <span className="text-[11px] text-text-muted">
+                        {formatBountyDate(sub.submittedAt)}
+                      </span>
+                    </div>
+
+                    {/* Admin: Confirm Winner button */}
+                    {isAdmin &&
+                      sub.entrepreneurPick &&
+                      !sub.isWinner &&
+                      bounty.status !== "completed" && (
+                        <Button
+                          variant="brand"
+                          size="sm"
+                          className="mt-3"
+                          leftIcon={<Trophy className="h-3.5 w-3.5" />}
+                          onClick={() =>
+                            handleConfirmWinner(
+                              sub._id as Id<"bountySubmissions">
+                            )
+                          }
+                          isLoading={confirmingId === sub._id}
+                          disabled={confirmingId !== null}
+                        >
+                          Confirm Winner
+                        </Button>
+                      )}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Submit Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <Card className="w-full max-w-lg" padding="lg">
