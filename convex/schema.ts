@@ -81,14 +81,12 @@ export default defineSchema({
   applications: defineTable({
     userEmail: v.string(),
     fullName: v.string(),
-    age: v.number(),
+    birthdate: v.string(), // ISO date string e.g. "2010-03-15"
     school: v.string(),
     graduationYear: v.number(),
     faithStatement: v.string(),
-    entrepreneurshipInterest: v.string(),
-    aiInterest: v.string(),
-    videoIntroUrl: v.optional(v.string()),
-    parentName: v.string(),
+    parentFirstName: v.string(),
+    parentLastName: v.string(),
     parentEmail: v.string(),
     parentPhone: v.string(),
     status: v.union(
@@ -105,10 +103,18 @@ export default defineSchema({
     phone: v.optional(v.string()),
     city: v.optional(v.string()),
     state: v.optional(v.string()),
-    bio: v.optional(v.string()),
     skills: v.optional(v.array(v.string())),
     tools: v.optional(v.array(v.string())),
+    linkedinUrl: v.optional(v.string()),
+    portfolioUrl: v.optional(v.string()),
+    // Legacy fields (kept optional for existing data)
+    age: v.optional(v.number()),
+    bio: v.optional(v.string()),
     lookingForCofounders: v.optional(v.boolean()),
+    entrepreneurshipInterest: v.optional(v.string()),
+    aiInterest: v.optional(v.string()),
+    videoIntroUrl: v.optional(v.string()),
+    parentName: v.optional(v.string()),
     portfolioLinks: v.optional(v.array(v.object({
       label: v.string(),
       url: v.string(),

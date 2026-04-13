@@ -32,28 +32,23 @@ import {
   ArrowLeft,
   CheckCircle,
   AlertCircle,
-  Handshake,
-  X,
-  Plus,
-  ExternalLink,
   ClipboardList,
   User,
   Sparkles,
-  Link2,
   Heart,
   ShieldCheck,
   FileCheck,
   Eye,
   EyeOff,
   Lock,
+  ExternalLink,
 } from "lucide-react";
 
 const STEPS = [
-  { id: "personal", label: "About You", icon: User },
-  { id: "profile", label: "Your Profile", icon: Sparkles },
-  { id: "portfolio", label: "Portfolio", icon: Link2 },
-  { id: "faith", label: "Faith & Venture", icon: Heart },
-  { id: "parent", label: "Parent / Guardian", icon: ShieldCheck },
+  { id: "personal", label: "About", icon: User },
+  { id: "profile", label: "Profile", icon: Sparkles },
+  { id: "faith", label: "Faith", icon: Heart },
+  { id: "parent", label: "Guardian", icon: ShieldCheck },
   { id: "review", label: "Review & Submit", icon: FileCheck },
 ];
 
@@ -61,8 +56,6 @@ const graduationYears = Array.from({ length: 7 }, (_, i) => ({
   value: String(2025 + i),
   label: String(2025 + i),
 }));
-
-type PortfolioLink = { label: string; url: string };
 
 function ApplyReferralBanner({ onRef }: { onRef: (code: string) => void }) {
   const params = useSearchParams();
@@ -91,6 +84,18 @@ function ApplyReferralBanner({ onRef }: { onRef: (code: string) => void }) {
   );
 }
 
+/** Calculate age in years from an ISO date string. */
+function ageFromBirthdate(birthdate: string): number {
+  const bd = new Date(birthdate);
+  const today = new Date();
+  let age = today.getFullYear() - bd.getFullYear();
+  const monthDiff = today.getMonth() - bd.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < bd.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 export default function ApplyPage() {
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -98,15 +103,15 @@ export default function ApplyPage() {
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // Step 1: About You
+  // Step 0: About
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [age, setAge] = useState("");
+  const [birthdate, setBirthdate] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -117,28 +122,21 @@ export default function ApplyPage() {
   >({});
   const [selectedSchoolKey, setSelectedSchoolKey] = useState<string | null>(null);
 
-  // Step 2: Your Profile
-  const [bio, setBio] = useState("");
+  // Step 1: Profile
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [portfolioUrl, setPortfolioUrl] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
   const [tools, setTools] = useState<string[]>([]);
-  const [lookingForCofounders, setLookingForCofounders] = useState(false);
 
-  // Step 3: Portfolio
-  const [portfolioLinks, setPortfolioLinks] = useState<PortfolioLink[]>([
-    { label: "", url: "" },
-  ]);
-
-  // Step 4: Faith & Venture
+  // Step 2: Faith
   const [faithStatement, setFaithStatement] = useState("");
-  const [entrepreneurshipInterest, setEntrepreneurshipInterest] = useState("");
-  const [aiInterest, setAiInterest] = useState("");
 
-  // Step 5: Parent / Guardian
-  const [parentName, setParentName] = useState("");
+  // Step 3: Guardian
+  const [parentFirstName, setParentFirstName] = useState("");
+  const [parentLastName, setParentLastName] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   const [consent, setConsent] = useState(false);
-  const [videoIntroUrl, setVideoIntroUrl] = useState("");
 
   // Referral
   const [referralCode, setReferralCode] = useState<string | undefined>(undefined);
@@ -160,39 +158,11 @@ export default function ApplyPage() {
     );
   }
 
-  // Extract school name from key
   function getSchoolName(): string {
     if (!selectedSchoolKey) return "";
     const parts = selectedSchoolKey.split("|");
     return parts.length >= 3 ? parts[2] : "";
   }
-
-  // Portfolio link helpers
-  function updatePortfolioLink(index: number, field: "label" | "url", value: string) {
-    setPortfolioLinks((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
-      return next;
-    });
-  }
-
-  function addPortfolioLink() {
-    if (portfolioLinks.length >= 5) return;
-    setPortfolioLinks((prev) => [...prev, { label: "", url: "" }]);
-  }
-
-  function removePortfolioLink(index: number) {
-    if (portfolioLinks.length <= 1) {
-      setPortfolioLinks([{ label: "", url: "" }]);
-      return;
-    }
-    setPortfolioLinks((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  // Check if last portfolio link row is populated (both fields have values)
-  const lastLink = portfolioLinks[portfolioLinks.length - 1];
-  const lastLinkPopulated = lastLink.label.trim() !== "" && lastLink.url.trim() !== "";
-  const canAddMore = portfolioLinks.length < 5 && lastLinkPopulated;
 
   // Validation
   function validateStep(stepIndex: number): boolean {
@@ -209,25 +179,29 @@ export default function ApplyPage() {
         errors.password = "Password must be at least 8 characters";
       if (password !== confirmPassword)
         errors.confirmPassword = "Passwords do not match";
-      if (!age) errors.age = "Age is required";
-      else if (Number(age) < 14 || Number(age) > 18)
-        errors.age = "Must be between 14 and 18";
+      if (!birthdate) errors.birthdate = "Birthdate is required";
+      else {
+        const age = ageFromBirthdate(birthdate);
+        if (age < 14 || age > 18)
+          errors.birthdate = "Must be between 14 and 18 years old";
+      }
       if (!graduationYear) errors.graduationYear = "Graduation year is required";
       if (!selectedSchoolKey) errors.school = "School is required";
     }
 
-    if (stepIndex === 3) {
+    if (stepIndex === 2) {
       if (!faithStatement.trim()) errors.faithStatement = "Faith statement is required";
       else if (faithStatement.trim().split(/\s+/).length < 20)
         errors.faithStatement = "Please write at least 20 words";
     }
 
-    if (stepIndex === 4) {
-      if (!parentName.trim()) errors.parentName = "Parent/guardian name is required";
-      if (!parentEmail.trim()) errors.parentEmail = "Parent/guardian email is required";
+    if (stepIndex === 3) {
+      if (!parentFirstName.trim()) errors.parentFirstName = "First name is required";
+      if (!parentLastName.trim()) errors.parentLastName = "Last name is required";
+      if (!parentEmail.trim()) errors.parentEmail = "Guardian email is required";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail.trim()))
         errors.parentEmail = "Please enter a valid email";
-      if (!parentPhone.trim()) errors.parentPhone = "Parent/guardian phone is required";
+      if (!parentPhone.trim()) errors.parentPhone = "Guardian phone is required";
       if (!consent) errors.consent = "You must agree to proceed";
     }
 
@@ -237,7 +211,6 @@ export default function ApplyPage() {
 
   function handleNext() {
     if (step < STEPS.length - 1) {
-      // Validate current step before proceeding
       if (validateStep(step)) {
         setStep(step + 1);
       }
@@ -248,38 +221,27 @@ export default function ApplyPage() {
     setIsLoading(true);
     setError(null);
     try {
-      // Gather non-empty portfolio links
-      const filledLinks = portfolioLinks
-        .filter((l) => l.label.trim() && l.url.trim())
-        .map((l) => ({ label: l.label.trim(), url: l.url.trim() }));
-
-      // Submit the application first — this checks for duplicate emails/accounts
       await submitApplication({
         userEmail: email.trim(),
         fullName: `${firstName.trim()} ${lastName.trim()}`,
-        age: Number(age),
+        birthdate,
         school: getSchoolName(),
         graduationYear: Number(graduationYear),
         faithStatement,
-        entrepreneurshipInterest,
-        aiInterest,
-        videoIntroUrl: videoIntroUrl || undefined,
-        parentName,
-        parentEmail,
-        parentPhone,
+        parentFirstName: parentFirstName.trim(),
+        parentLastName: parentLastName.trim(),
+        parentEmail: parentEmail.trim(),
+        parentPhone: parentPhone.trim(),
         referralCode,
         phone: phone || undefined,
         city: city || undefined,
         state: state || undefined,
-        bio: bio || undefined,
         skills: skills.length > 0 ? skills : undefined,
         tools: tools.length > 0 ? tools : undefined,
-        lookingForCofounders: lookingForCofounders || undefined,
-        portfolioLinks: filledLinks.length > 0 ? filledLinks : undefined,
+        linkedinUrl: linkedinUrl || undefined,
+        portfolioUrl: portfolioUrl || undefined,
       });
 
-      // Application accepted — now create the auth account so the user can
-      // sign in at /login once an admin approves their application
       await signIn("password", {
         email: email.trim(),
         password,
@@ -362,10 +324,6 @@ export default function ApplyPage() {
     ? formatSchoolLabel(parsedSchool)
     : "Not selected";
 
-  const filledPortfolioLinks = portfolioLinks.filter(
-    (l) => l.label.trim() && l.url.trim()
-  );
-
   // ---------- Main form ----------
   return (
     <div className="w-full animate-fade-in">
@@ -399,11 +357,11 @@ export default function ApplyPage() {
       </div>
 
       <Card padding="lg">
-        {/* ──────────── Step 1: About You ──────────── */}
+        {/* ──────────── Step 0: About ──────────── */}
         {step === 0 && (
           <div className="space-y-5 animate-fade-in">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Tell Us About Yourself
+              About
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <Input
@@ -431,6 +389,16 @@ export default function ApplyPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               error={validationErrors.email}
+            />
+            <Input
+              label="Phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="(555) 555-5555"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              hint="Optional"
             />
             <div className="grid grid-cols-2 gap-4">
               <div className="relative">
@@ -470,27 +438,14 @@ export default function ApplyPage() {
                 />
               </div>
             </div>
-            <Input
-              label="Phone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="(555) 555-5555"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              hint="Optional"
-            />
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Age"
-                type="number"
-                placeholder="16"
+                label="Birthdate"
+                type="date"
                 required
-                min={14}
-                max={18}
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                error={validationErrors.age}
+                value={birthdate}
+                onChange={(e) => setBirthdate(e.target.value)}
+                error={validationErrors.birthdate}
               />
               <Select
                 label="Graduation Year"
@@ -534,20 +489,28 @@ export default function ApplyPage() {
           </div>
         )}
 
-        {/* ──────────── Step 2: Your Profile ──────────── */}
+        {/* ──────────── Step 1: Profile ──────────── */}
         {step === 1 && (
           <div className="space-y-5 animate-fade-in">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Your Profile
+              Profile
             </h2>
-            <Textarea
-              label="Bio"
-              placeholder="Tell us about yourself and what drives you..."
-              rows={4}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              hint="Optional -- give us a sense of who you are"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="LinkedIn URL"
+                type="url"
+                placeholder="https://linkedin.com/in/..."
+                value={linkedinUrl}
+                onChange={(e) => setLinkedinUrl(e.target.value)}
+              />
+              <Input
+                label="Portfolio URL"
+                type="url"
+                placeholder="https://..."
+                value={portfolioUrl}
+                onChange={(e) => setPortfolioUrl(e.target.value)}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="min-w-0">
                 <MultiSelectDropdown
@@ -568,166 +531,57 @@ export default function ApplyPage() {
                 />
               </div>
             </div>
-            <div className="flex flex-col">
-              <span className="mb-1 block text-xs font-medium text-text-muted">
-                Open to Cofounders
-              </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={lookingForCofounders}
-                aria-label="Open to Cofounders"
-                onClick={() => setLookingForCofounders((v) => !v)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setLookingForCofounders((v) => !v);
-                  }
-                }}
-                className={cn(
-                  "relative h-9 w-[3.75rem] shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-card",
-                  lookingForCofounders
-                    ? "border-brand-500 bg-brand-500/15"
-                    : "border-border-default bg-surface-elevated"
-                )}
-              >
-                <span
-                  className={cn(
-                    "pointer-events-none absolute left-0.5 top-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-surface-card shadow-sm transition-transform duration-200",
-                    lookingForCofounders
-                      ? "translate-x-7 text-brand-500"
-                      : "translate-x-0 text-white"
-                  )}
-                >
-                  <Handshake className="h-4 w-4" aria-hidden />
-                </span>
-              </button>
-            </div>
           </div>
         )}
 
-        {/* ──────────── Step 3: Portfolio ──────────── */}
+        {/* ──────────── Step 2: Faith ──────────── */}
         {step === 2 && (
           <div className="space-y-5 animate-fade-in">
-            <h2 className="text-lg font-semibold text-text-primary mb-1">
-              Portfolio
-            </h2>
-            <p className="text-sm text-text-secondary">
-              Share links to any published work -- existing startups, websites, social
-              media profiles, codebases, YouTube channels, etc. (Optional)
-            </p>
-
-            <div className="space-y-3">
-              {portfolioLinks.map((link, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <div className="grid grid-cols-2 gap-3 flex-1">
-                    <Input
-                      label={index === 0 ? "Label" : undefined}
-                      placeholder="e.g., My GitHub Profile"
-                      value={link.label}
-                      onChange={(e) =>
-                        updatePortfolioLink(index, "label", e.target.value)
-                      }
-                    />
-                    <Input
-                      label={index === 0 ? "URL" : undefined}
-                      type="url"
-                      placeholder="https://..."
-                      value={link.url}
-                      onChange={(e) =>
-                        updatePortfolioLink(index, "url", e.target.value)
-                      }
-                    />
-                  </div>
-                  {(portfolioLinks.length > 1 || link.label || link.url) && (
-                    <button
-                      type="button"
-                      onClick={() => removePortfolioLink(index)}
-                      className={cn(
-                        "shrink-0 rounded-lg p-2 text-text-muted hover:text-error hover:bg-error/10 transition-colors",
-                        index === 0 ? "mt-7" : "mt-0.5"
-                      )}
-                      aria-label="Remove link"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {canAddMore && (
-              <button
-                type="button"
-                onClick={addPortfolioLink}
-                className="flex items-center gap-2 text-sm text-brand-500 hover:text-brand-400 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                Add another link
-              </button>
-            )}
-
-            {portfolioLinks.length >= 5 && (
-              <p className="text-xs text-text-muted">
-                Maximum of 5 portfolio links reached.
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* ──────────── Step 4: Faith & Venture ──────────── */}
-        {step === 3 && (
-          <div className="space-y-5 animate-fade-in">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Faith & Venture
+              Faith
             </h2>
             <Textarea
-              label="Faith Statement"
-              placeholder="Share how your faith shapes your approach to entrepreneurship and innovation..."
+              placeholder="Share what you believe about God and how your faith shows up in your everyday life."
               hint="100-500 words"
-              rows={5}
+              rows={8}
               required
               value={faithStatement}
               onChange={(e) => setFaithStatement(e.target.value)}
               error={validationErrors.faithStatement}
             />
-            <Textarea
-              label="Entrepreneurship Interest"
-              placeholder="What entrepreneurial experiences do you have? What problems do you want to solve?"
-              rows={4}
-              value={entrepreneurshipInterest}
-              onChange={(e) => setEntrepreneurshipInterest(e.target.value)}
-            />
-            <Textarea
-              label="AI & Technology Interest"
-              placeholder="How do you use or want to use AI and technology?"
-              rows={4}
-              value={aiInterest}
-              onChange={(e) => setAiInterest(e.target.value)}
-            />
           </div>
         )}
 
-        {/* ──────────── Step 5: Parent / Guardian ──────────── */}
-        {step === 4 && (
+        {/* ──────────── Step 3: Guardian ──────────── */}
+        {step === 3 && (
           <div className="space-y-5 animate-fade-in">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Parent / Guardian Information
+              Guardian
             </h2>
             <p className="text-sm text-text-secondary bg-surface-elevated rounded-xl p-4 border border-border-default">
               Since all members are under 18, we require parent/guardian consent.
               They&apos;ll receive an email to verify and co-sign your membership.
             </p>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="First Name"
+                placeholder="Jane"
+                required
+                value={parentFirstName}
+                onChange={(e) => setParentFirstName(e.target.value)}
+                error={validationErrors.parentFirstName}
+              />
+              <Input
+                label="Last Name"
+                placeholder="Doe"
+                required
+                value={parentLastName}
+                onChange={(e) => setParentLastName(e.target.value)}
+                error={validationErrors.parentLastName}
+              />
+            </div>
             <Input
-              label="Parent/Guardian Full Name"
-              placeholder="Jane Doe"
-              required
-              value={parentName}
-              onChange={(e) => setParentName(e.target.value)}
-              error={validationErrors.parentName}
-            />
-            <Input
-              label="Parent/Guardian Email"
+              label="Email"
               type="email"
               placeholder="parent@example.com"
               required
@@ -736,7 +590,7 @@ export default function ApplyPage() {
               error={validationErrors.parentEmail}
             />
             <Input
-              label="Parent/Guardian Phone"
+              label="Phone"
               type="tel"
               placeholder="+1 (555) 123-4567"
               required
@@ -777,36 +631,28 @@ export default function ApplyPage() {
                 </p>
               )}
             </div>
-            <Input
-              label="Video Introduction URL"
-              type="url"
-              placeholder="https://youtube.com/watch?v=..."
-              hint="Optional: Link to a 1-2 minute video introduction"
-              value={videoIntroUrl}
-              onChange={(e) => setVideoIntroUrl(e.target.value)}
-            />
           </div>
         )}
 
-        {/* ──────────── Step 6: Review & Submit ──────────── */}
-        {step === 5 && (
+        {/* ──────────── Step 4: Review & Submit ──────────── */}
+        {step === 4 && (
           <div className="space-y-5 animate-fade-in">
             <h2 className="text-lg font-semibold text-text-primary mb-4">
               Review Your Application
             </h2>
 
-            {/* Personal Info */}
+            {/* About */}
             <div className="rounded-xl border border-border-default bg-surface-elevated p-4 space-y-2">
               <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
                 <User className="h-4 w-4 text-brand-500" />
-                Personal Information
+                About
               </h3>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
                 <ReviewRow label="Name" value={`${firstName} ${lastName}`} />
                 <ReviewRow label="Email" value={email} />
                 <ReviewRow label="Password" value={"••••••••"} />
                 <ReviewRow label="Phone" value={phone || "Not provided"} />
-                <ReviewRow label="Age" value={age} />
+                <ReviewRow label="Birthdate" value={birthdate || "Not provided"} />
                 <ReviewRow label="Graduation Year" value={graduationYear} />
                 <ReviewRow label="Location" value={city && state ? `${city}, ${state}` : city || state || "Not provided"} />
                 <ReviewRow label="School" value={schoolLabel} />
@@ -820,7 +666,8 @@ export default function ApplyPage() {
                 Profile
               </h3>
               <div className="space-y-2 text-sm">
-                <ReviewRow label="Bio" value={bio || "Not provided"} />
+                <ReviewRow label="LinkedIn" value={linkedinUrl || "Not provided"} />
+                <ReviewRow label="Portfolio" value={portfolioUrl || "Not provided"} />
                 <div>
                   <span className="text-text-muted">Skills: </span>
                   {skills.length > 0 ? (
@@ -849,73 +696,30 @@ export default function ApplyPage() {
                     <span className="text-text-secondary">None selected</span>
                   )}
                 </div>
-                <ReviewRow
-                  label="Open to Cofounders"
-                  value={lookingForCofounders ? "Yes" : "No"}
-                />
               </div>
             </div>
 
-            {/* Portfolio Links */}
-            {filledPortfolioLinks.length > 0 && (
-              <div className="rounded-xl border border-border-default bg-surface-elevated p-4 space-y-2">
-                <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
-                  <Link2 className="h-4 w-4 text-brand-500" />
-                  Portfolio Links
-                </h3>
-                <div className="space-y-1 text-sm">
-                  {filledPortfolioLinks.map((l, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="text-text-muted">{l.label}:</span>
-                      <a
-                        href={l.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-brand-500 hover:text-brand-400 truncate"
-                      >
-                        {l.url}
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Faith & Venture */}
+            {/* Faith */}
             <div className="rounded-xl border border-border-default bg-surface-elevated p-4 space-y-2">
               <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
                 <Heart className="h-4 w-4 text-brand-500" />
-                Faith & Venture
+                Faith
               </h3>
               <div className="space-y-2 text-sm">
                 <ReviewRow label="Faith Statement" value={faithStatement} multiline />
-                <ReviewRow
-                  label="Entrepreneurship Interest"
-                  value={entrepreneurshipInterest || "Not provided"}
-                  multiline
-                />
-                <ReviewRow
-                  label="AI & Technology Interest"
-                  value={aiInterest || "Not provided"}
-                  multiline
-                />
               </div>
             </div>
 
-            {/* Parent Info */}
+            {/* Guardian */}
             <div className="rounded-xl border border-border-default bg-surface-elevated p-4 space-y-2">
               <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-brand-500" />
-                Parent / Guardian
+                Guardian
               </h3>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-                <ReviewRow label="Name" value={parentName} />
+                <ReviewRow label="Name" value={`${parentFirstName} ${parentLastName}`} />
                 <ReviewRow label="Email" value={parentEmail} />
                 <ReviewRow label="Phone" value={parentPhone} />
-                <ReviewRow
-                  label="Video Intro"
-                  value={videoIntroUrl || "Not provided"}
-                />
               </div>
             </div>
 
@@ -1018,7 +822,7 @@ function ReviewRow({
   multiline?: boolean;
 }) {
   return (
-    <div className={multiline ? "" : ""}>
+    <div>
       <span className="text-text-muted">{label}: </span>
       {multiline ? (
         <p className="text-text-secondary mt-0.5 whitespace-pre-wrap">{value}</p>

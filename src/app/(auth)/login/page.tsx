@@ -59,7 +59,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full animate-fade-in">
+    <div className="w-full max-w-md mx-auto animate-fade-in">
       {/* Logo */}
       <div className="flex items-center justify-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center">

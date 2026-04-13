@@ -10,14 +10,12 @@ export const submitApplication = mutation({
   args: {
     userEmail: v.string(),
     fullName: v.string(),
-    age: v.number(),
+    birthdate: v.string(),
     school: v.string(),
     graduationYear: v.number(),
     faithStatement: v.string(),
-    entrepreneurshipInterest: v.string(),
-    aiInterest: v.string(),
-    videoIntroUrl: v.optional(v.string()),
-    parentName: v.string(),
+    parentFirstName: v.string(),
+    parentLastName: v.string(),
     parentEmail: v.string(),
     parentPhone: v.string(),
     referralCode: v.optional(v.string()),
@@ -25,14 +23,10 @@ export const submitApplication = mutation({
     phone: v.optional(v.string()),
     city: v.optional(v.string()),
     state: v.optional(v.string()),
-    bio: v.optional(v.string()),
     skills: v.optional(v.array(v.string())),
     tools: v.optional(v.array(v.string())),
-    lookingForCofounders: v.optional(v.boolean()),
-    portfolioLinks: v.optional(v.array(v.object({
-      label: v.string(),
-      url: v.string(),
-    }))),
+    linkedinUrl: v.optional(v.string()),
+    portfolioUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Check if a user account already exists with this email
@@ -139,20 +133,23 @@ export const reviewApplication = mutation({
       }
 
       if (!existingUser) {
+        // Calculate age from birthdate if available
+        const age = application.birthdate
+          ? Math.floor((Date.now() - new Date(application.birthdate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+          : application.age ?? 0;
         await ctx.db.insert("users", {
           email: application.userEmail,
           fullName: application.fullName,
           schoolName: application.school,
           graduationYear: application.graduationYear,
-          age: application.age,
+          age,
           role: "member",
           skills: application.skills ?? [],
           tools: application.tools,
-          lookingForCofounders: application.lookingForCofounders ?? false,
+          lookingForCofounders: false,
           points: 0,
           totalEarnings: 0,
           networkCount: 0,
-          bio: application.bio,
           city: application.city,
           state: application.state,
           phone: application.phone,
