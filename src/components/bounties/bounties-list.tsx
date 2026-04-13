@@ -61,11 +61,8 @@ function BountiesListInner({ mode }: { mode: "active" | "past" }) {
       const f = bountyFilter as BountiesActiveFilter;
       return filterActiveBountiesByStatus(rawBounties, f);
     }
-    const closed = rawBounties.filter(
-      (b) => b.status === "completed" || b.status === "reviewing"
-    );
     const f = bountyFilter as BountiesPastFilter;
-    return sortPastBounties(closed, f);
+    return sortPastBounties(rawBounties, f);
   }, [rawBounties, mode, bountyFilter]);
 
   const filtered = useMemo(
@@ -148,12 +145,12 @@ function BountiesListInner({ mode }: { mode: "active" | "past" }) {
                             <span className="min-w-0 text-3xl font-bold tabular-nums text-brand-500 tracking-tight">
                               ${bounty.bountyAmount.toLocaleString()}
                             </span>
-                            {bounty.status === "reviewing" && (
+                            {bounty.status === "completed" && (
                               <Badge
-                                variant="warning"
+                                variant="success"
                                 className="shrink-0 text-[10px]"
                               >
-                                In Review
+                                Completed
                               </Badge>
                             )}
                           </div>

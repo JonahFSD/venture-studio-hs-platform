@@ -28,17 +28,10 @@ export const getCounts = query({
       .collect();
     const community = received.filter((m) => m.readAt === undefined).length;
 
-    const [activeRows, reviewingRows] = await Promise.all([
-      ctx.db
-        .query("bounties")
-        .withIndex("by_status", (q) => q.eq("status", "active"))
-        .collect(),
-      ctx.db
-        .query("bounties")
-        .withIndex("by_status", (q) => q.eq("status", "reviewing"))
-        .collect(),
-    ]);
-    const listedBounties = [...activeRows, ...reviewingRows];
+    const listedBounties = await ctx.db
+      .query("bounties")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .collect();
     const lastViewed = user.lastViewedBountiesAt;
     const bounties =
       lastViewed === undefined

@@ -38,6 +38,7 @@ export default defineSchema({
       )
     ),
     bqResultsUrl: v.optional(v.string()),
+    linkedinUrl: v.optional(v.string()),
     referralCode: v.optional(v.string()),
     referredBy: v.optional(v.id("users")),
     // Points & computed stats (denormalized for leaderboard)
@@ -280,7 +281,7 @@ export default defineSchema({
   }).index("by_adminUserId", ["adminUserId"]),
 
   // ============================================
-  // BOUNTIES — external funding opportunities
+  // BOUNTIES — marketplace funding opportunities
   // ============================================
   bounties: defineTable({
     title: v.string(),
@@ -290,14 +291,23 @@ export default defineSchema({
     bountyAmount: v.number(),
     dueDate: v.number(),
     status: v.union(
+      v.literal("needs_review"),
       v.literal("active"),
-      v.literal("reviewing"),
       v.literal("completed"),
-      v.literal("cancelled")
+      v.literal("archived"),
+      v.literal("rejected")
     ),
     requirements: v.array(v.string()),
     winnerSubmissionId: v.optional(v.id("bountySubmissions")),
-  }).index("by_status", ["status"]),
+    creatorUserId: v.id("users"),
+    reviewToken: v.optional(v.string()),
+    stripePaymentIntentId: v.optional(v.string()),
+    stripeCheckoutSessionId: v.optional(v.string()),
+    adminNotes: v.optional(v.string()),
+  })
+    .index("by_status", ["status"])
+    .index("by_reviewToken", ["reviewToken"])
+    .index("by_creatorUserId", ["creatorUserId"]),
 
   // ============================================
   // BOUNTY SUBMISSIONS
@@ -310,6 +320,7 @@ export default defineSchema({
     notes: v.optional(v.string()),
     isWinner: v.boolean(),
     submittedAt: v.number(),
+    entrepreneurPick: v.optional(v.boolean()),
   })
     .index("by_bountyId", ["bountyId"])
     .index("by_userId", ["userId"]),

@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Filter, Check, Search } from "lucide-react";
+import { Filter, Check, Search, Plus } from "lucide-react";
 import { HEADER_SEARCH_INPUT_WRAPPER_CLASS } from "@/lib/header-search-input";
 import { cn } from "@/lib/utils";
 import {
@@ -163,6 +164,11 @@ export function BountiesHeaderActions() {
           </ul>
         )}
       </div>
+      <Link href="/bounties/new">
+        <Button variant="brand" size="sm" leftIcon={<Plus className="h-4 w-4" />}>
+          Create
+        </Button>
+      </Link>
     </div>
   );
 }

@@ -946,7 +946,7 @@ export const insertAll = internalMutation({
       title: "February Winners Announced!",
       body: "Congratulations to Sarah Chen (1st) and Maria Garcia (2nd) for the February round!",
       read: true,
-      actionUrl: "/hall-of-fame",
+      actionUrl: "/pitches/results",
     });
 
     await ctx.db.insert("notifications", {
@@ -973,6 +973,7 @@ export const insertAll = internalMutation({
       bountyAmount: 2500,
       dueDate: new Date("2026-04-30").getTime(),
       status: "active",
+      creatorUserId: users.jake,
       requirements: [
         "Tablet-optimized responsive UI",
         "Family group check-in flow",
@@ -990,6 +991,7 @@ export const insertAll = internalMutation({
       bountyAmount: 5000,
       dueDate: new Date("2026-05-15").getTime(),
       status: "active",
+      creatorUserId: users.jake,
       requirements: [
         "Audio/video transcription pipeline",
         "Semantic search with embeddings",
@@ -1006,7 +1008,8 @@ export const insertAll = internalMutation({
       founderCompany: "GiveSmart",
       bountyAmount: 1500,
       dueDate: new Date("2026-04-15").getTime(),
-      status: "reviewing",
+      status: "needs_review",
+      creatorUserId: users.sarah,
       requirements: [
         "Stripe payment integration",
         "One-time and recurring giving",
@@ -1024,6 +1027,7 @@ export const insertAll = internalMutation({
       bountyAmount: 3000,
       dueDate: new Date("2026-05-01").getTime(),
       status: "active",
+      creatorUserId: users.jake,
       requirements: [
         "Event creation with RSVP tracking",
         "Push notification reminders",
@@ -1041,6 +1045,7 @@ export const insertAll = internalMutation({
       bountyAmount: 2000,
       dueDate: new Date("2026-04-20").getTime(),
       status: "active",
+      creatorUserId: users.jake,
       requirements: [
         "Personalized content generation",
         "Scripture integration with context",
@@ -1058,6 +1063,7 @@ export const insertAll = internalMutation({
       bountyAmount: 500,
       dueDate: new Date("2026-02-28").getTime(),
       status: "completed",
+      creatorUserId: users.jake,
       requirements: [
         "3+ responsive templates",
         "Drag-and-drop customization",

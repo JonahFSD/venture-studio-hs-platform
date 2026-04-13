@@ -1,6 +1,6 @@
 import type { Doc } from "../../convex/_generated/dataModel";
 
-/** Open tab: active bounties only. Past: completed + reviewing. */
+/** Open tab: active bounties only. Past: completed + archived. */
 export type BountiesActiveFilter = "all" | "open";
 export type BountiesPastFilter = "all" | "reward";
 
@@ -47,6 +47,9 @@ export function sortPastBounties(
   items: BountyRow[],
   f: BountiesPastFilter
 ): BountyRow[] {
-  if (f !== "reward") return [...items].sort((a, b) => b.dueDate - a.dueDate);
-  return [...items].sort((a, b) => b.bountyAmount - a.bountyAmount);
+  const closed = items.filter(
+    (b) => b.status === "completed" || b.status === "archived"
+  );
+  if (f !== "reward") return [...closed].sort((a, b) => b.dueDate - a.dueDate);
+  return [...closed].sort((a, b) => b.bountyAmount - a.bountyAmount);
 }

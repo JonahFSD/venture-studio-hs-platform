@@ -7,6 +7,13 @@ export const COMMUNITY_SUB_TABS: SubTab[] = [
   { href: "/community/messages", label: "Chat" },
 ];
 
+export const ADMIN_SUB_TABS: SubTab[] = [
+  { href: "/admin/applications", label: "Applications" },
+  { href: "/admin/payouts", label: "Payouts" },
+  { href: "/admin/analytics", label: "Analytics" },
+  { href: "/admin/bounties", label: "Bounties" },
+];
+
 export function isCommunityDetailRoute(pathname: string): boolean {
   if (/^\/community\/messages\/.+$/.test(pathname)) return true;
   const segments = pathname.split("/").filter(Boolean);
@@ -42,13 +49,20 @@ export function isPitchesDetailRoute(pathname: string): boolean {
   return false;
 }
 
-/** `/bounties/[id]` detail — not the list / past routes. */
+/** `/bounties/[id]` or `/bounties/new` detail — not the list / past routes. */
 export function isBountiesDetailRoute(pathname: string): boolean {
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length === 2 && segments[0] === "bounties") {
     if (segments[1] === "past") return false;
     return true;
   }
+  return false;
+}
+
+/** True when on an admin detail route (e.g. `/admin/bounties/new`) that should
+ *  show a back-link instead of subtabs. */
+export function isAdminDetailRoute(pathname: string): boolean {
+  if (pathname === "/admin/bounties/new") return true;
   return false;
 }
 
@@ -65,14 +79,8 @@ export function getDetailBackLink(
   if (isBountiesDetailRoute(pathname)) {
     return { href: "/bounties", label: "Back to Bounties" };
   }
-  // Admin sub-pages
-  if (
-    pathname === "/admin/applications" ||
-    pathname === "/admin/analytics" ||
-    pathname === "/admin/payouts" ||
-    pathname === "/admin/pipeline"
-  ) {
-    return { href: "/admin", label: "Back to Admin" };
+  if (isAdminDetailRoute(pathname)) {
+    return { href: "/admin/bounties", label: "Back to Bounties" };
   }
   return null;
 }
@@ -84,6 +92,9 @@ export function getHeaderSubTabs(pathname: string): SubTab[] | null {
   }
   if (pathname.startsWith("/pitches") && !isPitchesDetailRoute(pathname)) {
     return PITCHES_SUB_TABS;
+  }
+  if (pathname.startsWith("/admin") && !isAdminDetailRoute(pathname)) {
+    return ADMIN_SUB_TABS;
   }
   return null;
 }

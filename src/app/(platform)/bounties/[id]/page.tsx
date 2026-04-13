@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { type Id } from "../../../../../convex/_generated/dataModel";
 import { PaywallGate } from "@/components/auth/paywall-gate";
@@ -43,9 +43,12 @@ export default function BountyDetailPage() {
     id ? { bountyId: id as Id<"bounties"> } : "skip"
   );
 
+  const submitSolution = useMutation(api.bounties.submitSolution);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitUrl, setSubmitUrl] = useState("");
   const [submitNotes, setSubmitNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Loading state
   if (bounty === undefined) {
@@ -89,8 +92,11 @@ export default function BountyDetailPage() {
               Completed
             </Badge>
           )}
-          {bounty.status === "reviewing" && (
-            <Badge variant="warning">Reviewing</Badge>
+          {bounty.status === "needs_review" && (
+            <Badge variant="warning">Pending Review</Badge>
+          )}
+          {bounty.status === "archived" && (
+            <Badge variant="default">Archived</Badge>
           )}
           {bounty.status === "active" && (
             <Badge variant="brand">Open</Badge>
@@ -263,6 +269,13 @@ export default function BountyDetailPage() {
                 </p>
               </div>
 
+              {submitError && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-error/10 border border-error/20">
+                  <AlertCircle className="h-4 w-4 text-error flex-shrink-0" />
+                  <p className="text-xs text-error">{submitError}</p>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"
@@ -278,8 +291,30 @@ export default function BountyDetailPage() {
                 <Button
                   variant="brand"
                   className="flex-1"
-                  disabled={!submitUrl}
+                  disabled={!submitUrl || isSubmitting}
+                  isLoading={isSubmitting}
                   leftIcon={<Send className="h-4 w-4" />}
+                  onClick={async () => {
+                    if (!submitUrl) return;
+                    setIsSubmitting(true);
+                    setSubmitError(null);
+                    try {
+                      await submitSolution({
+                        bountyId: id as Id<"bounties">,
+                        submissionUrl: submitUrl.trim(),
+                        notes: submitNotes.trim() || undefined,
+                      });
+                      setShowSubmitModal(false);
+                      setSubmitUrl("");
+                      setSubmitNotes("");
+                    } catch (err: unknown) {
+                      setSubmitError(
+                        err instanceof Error ? err.message : "Failed to submit"
+                      );
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  }}
                 >
                   Submit
                 </Button>
