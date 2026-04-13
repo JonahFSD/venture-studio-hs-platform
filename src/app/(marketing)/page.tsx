@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  Zap,
+  Swords,
   Video,
   Brain,
   Trophy,
@@ -20,10 +20,10 @@ function NavBar() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center">
-            <Zap className="h-5 w-5 text-black" />
+            <Swords className="h-5 w-5 text-black" />
           </div>
           <span className="text-lg font-bold text-text-primary">
-            ACU Youth Venture
+            The Arena
           </span>
         </Link>
         <div className="flex items-center gap-3">
@@ -57,21 +57,20 @@ function HeroSection() {
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-dashed border-brand-500/30 mb-8">
           <Sparkles className="h-3.5 w-3.5 text-brand-500" />
           <span className="text-sm font-medium text-brand-500">
-            Faith-Driven Entrepreneurship
+            Invite Only
           </span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-text-primary">
-          Launch Your
+          Supercharge Your
           <span className="block mt-2 bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
-            Venture Journey
+            Entrepreneurial Journey
           </span>
         </h1>
 
         <p className="mt-6 text-lg sm:text-xl text-text-secondary max-w-2xl mx-auto leading-relaxed">
-          A community for Christian high school students to pitch ideas, get
-          AI-powered feedback, compete for monthly prizes, and connect with
-          like-minded young founders.
+          A community for Christian high school students to pitch ideas, compete
+          for cash prizes, and network with future founders.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
@@ -289,10 +288,10 @@ function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-black" />
+              <Swords className="h-4 w-4 text-black" />
             </div>
             <span className="text-sm font-semibold text-text-primary">
-              ACU Youth Venture
+              The Arena
             </span>
           </div>
           <div className="flex items-center gap-6 text-sm text-text-tertiary">
