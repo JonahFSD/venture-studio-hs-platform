@@ -17,6 +17,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { PitchesMyHeaderActions } from "@/components/pitches/pitches-my-header-actions";
 import { BountiesHeaderActions } from "@/components/bounties/bounties-header-actions";
+import { AdminBountiesHeaderActions } from "@/components/admin/admin-bounties-header-actions";
 import { MembersHeaderActions } from "@/components/community/members-header-actions";
 import { MessagesHeaderActions } from "@/components/community/messages-header-actions";
 import { LeaderboardRangeSubTabs } from "@/components/community/leaderboard-range-sub-tabs";
@@ -87,6 +88,7 @@ export function TopBar() {
   const showPitchesMyActions = pathname === "/pitches";
   const showBountiesHeaderActions =
     pathname === "/bounties" || pathname === "/bounties/past";
+  const showAdminBountiesHeaderActions = pathname === "/admin/bounties";
   const showCommunityMembersActions = pathname === "/community/members";
   const showMessagesHeaderActions = pathname === "/community/messages";
   const showLeaderboardRangeTabs =
@@ -154,6 +156,19 @@ export function TopBar() {
               }
             >
               <MessagesHeaderActions />
+            </Suspense>
+          ) : showAdminBountiesHeaderActions ? (
+            <Suspense
+              fallback={
+                <div
+                  className="flex shrink-0 items-center gap-2 sm:h-full"
+                  aria-hidden
+                >
+                  <div className="h-8 w-[6.5rem] rounded-md bg-brand-500/20 animate-pulse" />
+                </div>
+              }
+            >
+              <AdminBountiesHeaderActions />
             </Suspense>
           ) : showCommunityMembersActions ? (
             <MembersHeaderActions />

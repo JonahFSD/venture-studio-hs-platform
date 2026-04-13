@@ -61,6 +61,7 @@ export default function SettingsPage() {
   const firstNameRef = useRef<HTMLInputElement>(null);
   const lastNameRef = useRef<HTMLInputElement>(null);
   const bioRef = useRef<HTMLTextAreaElement>(null);
+  const linkedinRef = useRef<HTMLInputElement>(null);
   const cityRef = useRef<HTMLInputElement>(null);
   const stateRef = useRef<HTMLSelectElement>(null);
 
@@ -121,9 +122,12 @@ export default function SettingsPage() {
       const cityValue = cityRef.current?.value?.trim() || undefined;
       const stateValue = stateRef.current?.value || schoolState || undefined;
 
+      const linkedinValue = linkedinRef.current?.value?.trim() || undefined;
+
       await updateProfile({
         fullName: fullName !== user.fullName ? fullName : undefined,
         bio: bioValue,
+        linkedinUrl: linkedinValue,
         schoolName,
         city: cityValue,
         state: stateValue,
@@ -364,6 +368,14 @@ export default function SettingsPage() {
                       label="Bio"
                       defaultValue={bio}
                       key={`bio-${bio}`}
+                    />
+                    <Input
+                      ref={linkedinRef}
+                      label="LinkedIn URL"
+                      type="url"
+                      placeholder="https://linkedin.com/in/yourname"
+                      defaultValue={user?.linkedinUrl ?? ""}
+                      key={`linkedin-${user?.linkedinUrl ?? ""}`}
                     />
                     <div className="grid grid-cols-2 gap-4">
                       <div className="min-w-0">

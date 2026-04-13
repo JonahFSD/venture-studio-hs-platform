@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { PaywallGate } from "@/components/auth/paywall-gate";
@@ -14,13 +15,6 @@ import {
   platformPaneBleedClass,
   platformPaneCellPaddingClass,
   platformPaneGridCellFillClass,
-  platformPaneGridHangingCellBottomClass,
-  platformPaneGridPartialHairlineClass,
-  platformPaneGridPartialRowTailFillClass,
-  platformPaneGridRowFullClass,
-  platformPaneGridRowPartialClass,
-  platformPaneGridRowsStackClass,
-  platformPaneTileClass,
 } from "@/lib/platform-pane-grid";
 import {
   BQ_TYPES,
@@ -29,43 +23,29 @@ import {
   STATES,
 } from "@/lib/community-filter.constants";
 import { useCommunityMembersFilters } from "@/contexts/community-members-filters-context";
-import {
-  COMMUNITY_MEMBERS_GRID_BREAKPOINTS,
-  chunkIntoRows,
-  isLastRowCell,
-  paneGridCellFractionStyle,
-  useResponsiveGridColumnCount,
-} from "@/lib/responsive-grid-columns";
-import { Search, Handshake, Info, Link2 } from "lucide-react";
+import { Search, Handshake, Info, Link2, MessageCircle } from "lucide-react";
 
-/** e.g. 2027 → '27 */
-function formatGradYearShort(year: number): string {
-  if (year <= 0) return "";
-  const yy = year % 100;
-  return `'${String(yy).padStart(2, "0")}`;
+function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden
+    >
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  );
 }
 
-function formatSchoolYearRow(school: string, gradYear: number): string {
-  const s = school.trim();
-  const y = formatGradYearShort(gradYear);
-  if (!s && !y) return "";
-  if (!y) return s;
-  if (!s) return y;
-  return `${s} | ${y}`;
-}
-
-/** e.g. Minneapolis + MN → "Minneapolis, MN"; state-only still shown */
-function formatCityStateLine(city: string, state: string): string | null {
-  const c = city.trim();
-  const st = state.trim();
-  if (c && st) return `${c}, ${st}`;
-  if (st) return st;
-  if (c) return c;
-  return null;
-}
+const EDGE_PL = "pl-4 md:pl-6 lg:pl-8";
+const EDGE_PR = "pr-4 md:pr-6 lg:pr-8";
+const TBODY_DIVIDE = "divide-y divide-border-default/60";
 
 export default function MembersPage() {
   const rawMembers = useQuery(api.users.listMembers, {});
+  const router = useRouter();
 
   const {
     search,
@@ -111,9 +91,11 @@ export default function MembersPage() {
     bqType: m.bqType ?? "",
     networkCount: m.networkCount ?? 0,
     points: m.points ?? 0,
+    totalEarnings: m.totalEarnings ?? 0,
     monthsAsMember: 0,
     isInNetwork: false,
     avatarUrl: m.avatarUrl ?? null,
+    linkedinUrl: m.linkedinUrl ?? null,
   }));
 
   const networkMembers = useMemo(
@@ -177,80 +159,14 @@ export default function MembersPage() {
     filterMaxMemberMonths,
   ]);
 
-  const gridCols = useResponsiveGridColumnCount(COMMUNITY_MEMBERS_GRID_BREAKPOINTS);
-  const memberRows = useMemo(
-    () => chunkIntoRows(filtered, gridCols),
-    [filtered, gridCols]
-  );
-
   if (rawMembers === undefined) {
     return (
       <div
         className={cn("overflow-hidden rounded-none", platformPaneBleedClass)}
       >
-          <div className={platformPaneGridRowsStackClass}>
-            {chunkIntoRows(Array.from({ length: 8 }), gridCols).map(
-              (row, rowIndex) => {
-                const isPartial = row.length < gridCols;
-                const rowKey = `sk-${rowIndex}`;
-                const cells = row.map((_, i) => (
-                  <div
-                    key={`${rowKey}-${i}`}
-                    className={cn("min-w-0", platformPaneGridCellFillClass)}
-                    style={
-                      isPartial ? paneGridCellFractionStyle(gridCols) : undefined
-                    }
-                  >
-                    <Card
-                      padding="none"
-                      className={cn(
-                        platformPaneTileClass,
-                        "h-24 animate-pulse p-4 md:p-6 lg:p-8"
-                      )}
-                    />
-                  </div>
-                ));
-                if (isPartial) {
-                  return (
-                    <div key={rowKey} className={platformPaneGridRowPartialClass}>
-                      {cells.flatMap((node, i) =>
-                        i === 0
-                          ? [node]
-                          : [
-                              <div
-                                key={`${rowKey}-v-${i}`}
-                                className={platformPaneGridPartialHairlineClass}
-                                aria-hidden
-                              />,
-                              node,
-                            ]
-                      )}
-                      <div
-                        key={`${rowKey}-v-end`}
-                        className={platformPaneGridPartialHairlineClass}
-                        aria-hidden
-                      />
-                      <div
-                        className={platformPaneGridPartialRowTailFillClass}
-                        aria-hidden
-                      />
-                    </div>
-                  );
-                }
-                return (
-                  <div
-                    key={rowKey}
-                    className={platformPaneGridRowFullClass}
-                    style={{
-                      gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-                    }}
-                  >
-                    {cells}
-                  </div>
-                );
-              }
-            )}
-          </div>
+        <div className="-mx-4 flex items-center justify-center py-16 text-text-muted md:-mx-6 lg:-mx-8">
+          Loading members...
+        </div>
       </div>
     );
   }
@@ -455,7 +371,10 @@ export default function MembersPage() {
       ) : null}
 
       <div
-        className={cn("overflow-hidden rounded-none", platformPaneBleedClass)}
+        className={cn(
+          "min-w-0 max-w-none overflow-hidden rounded-none",
+          "-mx-4 md:-mx-6 lg:-mx-8"
+        )}
       >
         {filtered.length === 0 ? (
           <div
@@ -475,157 +394,148 @@ export default function MembersPage() {
             </p>
           </div>
         ) : (
-          <div className={platformPaneGridRowsStackClass}>
-            {memberRows.map((row, rowIndex) => {
-              const isPartial = row.length < gridCols;
-              const rowKey = `${rowIndex}-${String(row[0]!.id)}`;
-
-              const cells = row.map((member, i) => {
-                const index = rowIndex * gridCols + i;
-                const schoolYearLine = formatSchoolYearRow(
-                  member.school,
-                  member.gradYear
-                );
-                const cityStateLine = formatCityStateLine(
-                  member.city,
-                  member.state
-                );
-                return (
-                  <div
-                    key={member.id as string}
+          <div className="min-w-0 w-full overflow-x-auto lg:overflow-x-visible">
+            <table className="w-full min-w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border-default">
+                  <th
                     className={cn(
-                      "min-w-0",
-                      platformPaneGridCellFillClass,
-                      isLastRowCell(index, filtered.length, gridCols) &&
-                        platformPaneGridHangingCellBottomClass
+                      "whitespace-nowrap py-3 pr-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted",
+                      EDGE_PL
                     )}
-                    style={
-                      isPartial ? paneGridCellFractionStyle(gridCols) : undefined
-                    }
                   >
-                    <Link href={`/community/${member.id}`} className="block h-full">
-                      <Card
-                        hover
-                        padding="none"
-                        className={cn(
-                          platformPaneTileClass,
-                          "h-full p-4 md:p-6 lg:p-8"
-                        )}
-                      >
-                        <div className="flex flex-col gap-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="grid min-w-0 flex-1 grid-cols-[auto_1fr] gap-x-2 gap-y-1">
-                              <div
-                                className={cn(
-                                  "flex items-stretch justify-center",
-                                  member.bqType ? "row-span-3" : "row-span-2"
-                                )}
-                              >
-                                <div className="shrink-0">
-                                  <Avatar
-                                    src={member.avatarUrl}
-                                    name={member.name}
-                                    size="lg"
-                                  />
-                                </div>
-                              </div>
-                              <p className="col-start-2 min-w-0 truncate text-sm font-semibold text-text-primary">
-                                {member.name}
-                              </p>
-                              <p className="col-start-2 text-xs text-text-muted tabular-nums">
-                                {member.points.toLocaleString()} pts
-                              </p>
-                              {member.bqType ? (
-                                <p className="col-start-2 text-xs text-text-muted tabular-nums">
-                                  {member.bqType}
-                                </p>
-                              ) : null}
-                            </div>
-                            <div className="flex shrink-0 flex-col items-center gap-1 self-start">
-                              {member.looking_for_cofounders && (
-                                <span
-                                  className="text-brand-500"
-                                  aria-label="Open to co-founders"
-                                  title="Open to co-founders"
-                                >
-                                  <Handshake className="h-4 w-4" />
-                                </span>
-                              )}
-                              {member.isInNetwork && (
-                                <span
-                                  className="text-brand-500"
-                                  aria-label="In your network"
-                                  title="In your network"
-                                >
-                                  <Link2 className="h-4 w-4" />
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div
-                            className="mt-[calc(0.5rem+2px)] border-t border-border-default pt-2"
-                            role="presentation"
-                          >
-                            <div className="space-y-1">
-                              {schoolYearLine ? (
-                                <p className="text-xs text-text-muted truncate">
-                                  {schoolYearLine}
-                                </p>
-                              ) : null}
-                              {cityStateLine ? (
-                                <p className="text-xs text-text-muted truncate">
-                                  {cityStateLine}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    </Link>
-                  </div>
-                );
-              });
-
-              if (isPartial) {
-                return (
-                  <div key={rowKey} className={platformPaneGridRowPartialClass}>
-                    {cells.flatMap((node, i) =>
-                      i === 0
-                        ? [node]
-                        : [
-                            <div
-                              key={`${rowKey}-v-${i}`}
-                              className={platformPaneGridPartialHairlineClass}
-                              aria-hidden
-                            />,
-                            node,
-                          ]
+                    Member
+                  </th>
+                  <th className="w-[88px] whitespace-nowrap px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
+                    Grad Year
+                  </th>
+                  <th className="hidden w-[60px] whitespace-nowrap px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
+                    State
+                  </th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted md:table-cell">
+                    School
+                  </th>
+                  <th className="w-[80px] px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-text-muted">
+                    Points
+                  </th>
+                  <th className="hidden w-[80px] px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
+                    Earned
+                  </th>
+                  <th className="hidden w-[100px] px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted lg:table-cell">
+                    BQ
+                  </th>
+                  <th className="hidden w-[70px] px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-text-muted lg:table-cell">
+                    Network
+                  </th>
+                  <th
+                    className={cn(
+                      "w-[140px] py-3 pl-3 text-right text-xs font-medium uppercase tracking-wider text-text-muted",
+                      EDGE_PR
                     )}
-                    <div
-                      key={`${rowKey}-v-end`}
-                      className={platformPaneGridPartialHairlineClass}
-                      aria-hidden
-                    />
-                    <div
-                      className={platformPaneGridPartialRowTailFillClass}
-                      aria-hidden
-                    />
-                  </div>
-                );
-              }
-
-              return (
-                <div
-                  key={rowKey}
-                  className={platformPaneGridRowFullClass}
-                  style={{
-                    gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-                  }}
-                >
-                  {cells}
-                </div>
-              );
-            })}
+                  >
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className={TBODY_DIVIDE}>
+                {filtered.map((member) => (
+                  <tr
+                    key={member.id as string}
+                    className="transition-colors hover:bg-surface-card-hover"
+                  >
+                    <td className={cn("whitespace-nowrap py-4 pr-3", EDGE_PL)}>
+                      <Link href={`/community/${member.id}`}>
+                        <div className="flex items-center gap-3">
+                          <Avatar src={member.avatarUrl} name={member.name} size="sm" />
+                          <span className="text-sm font-medium text-text-primary hover:text-brand-500 transition-colors">
+                            {member.name}
+                          </span>
+                        </div>
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4">
+                      <span className="text-sm font-mono text-text-secondary tabular-nums">
+                        {member.gradYear > 0 ? member.gradYear : "-"}
+                      </span>
+                    </td>
+                    <td className="hidden whitespace-nowrap px-3 py-4 text-sm text-text-secondary sm:table-cell">
+                      {member.state || "-"}
+                    </td>
+                    <td className="hidden truncate px-3 py-4 text-sm text-text-secondary md:table-cell max-w-[200px]">
+                      {member.school || "-"}
+                    </td>
+                    <td className="px-3 py-4 text-right">
+                      <span className="text-sm font-mono font-bold text-brand-500 tabular-nums">
+                        {member.points.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="hidden px-3 py-4 text-right text-sm font-medium text-text-primary sm:table-cell">
+                      {member.totalEarnings > 0
+                        ? `$${(member.totalEarnings / 100).toLocaleString()}`
+                        : "-"}
+                    </td>
+                    <td className="hidden px-3 py-4 text-sm text-text-secondary lg:table-cell">
+                      {member.bqType || "-"}
+                    </td>
+                    <td className="hidden px-3 py-4 text-center text-sm text-text-secondary lg:table-cell">
+                      {member.networkCount}
+                    </td>
+                    <td
+                      className={cn(
+                        "py-4 pl-3",
+                        EDGE_PR
+                      )}
+                    >
+                      <div className="flex items-center justify-end gap-2">
+                        {member.looking_for_cofounders && (
+                          <span
+                            className="text-yellow-500"
+                            aria-label="Open to co-founders"
+                            title="Open to co-founders"
+                          >
+                            <Handshake className="h-4 w-4" />
+                          </span>
+                        )}
+                        {member.isInNetwork && (
+                          <span
+                            className="text-yellow-500"
+                            aria-label="In your network"
+                            title="In your network"
+                          >
+                            <Link2 className="h-4 w-4" />
+                          </span>
+                        )}
+                        {member.linkedinUrl && (
+                          <a
+                            href={member.linkedinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-text-primary hover:text-brand-500 transition-colors"
+                            aria-label={`${member.name} on LinkedIn`}
+                            title="LinkedIn profile"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <LinkedInIcon className="h-4 w-4" />
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          className="text-text-primary hover:text-brand-500 transition-colors"
+                          aria-label={`Message ${member.name}`}
+                          title="Send message"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            router.push(`/community/messages?to=${member.id}`);
+                          }}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
