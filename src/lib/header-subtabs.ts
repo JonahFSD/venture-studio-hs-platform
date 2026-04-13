@@ -9,6 +9,7 @@ export const COMMUNITY_SUB_TABS: SubTab[] = [
 
 export const ADMIN_SUB_TABS: SubTab[] = [
   { href: "/admin/applications", label: "Applications" },
+  { href: "/admin/leadership", label: "Leadership" },
   { href: "/admin/payouts", label: "Payouts" },
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/bounties", label: "Bounties" },

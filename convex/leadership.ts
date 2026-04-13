@@ -74,6 +74,7 @@ export const update = mutation({
     positionId: v.id("leadershipPositions"),
     name: v.optional(v.string()),
     userId: v.optional(v.id("users")),
+    clearUserId: v.optional(v.boolean()),
     role: v.optional(v.string()),
     region: v.optional(v.string()),
     state: v.optional(v.string()),
@@ -85,10 +86,13 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    const { positionId, ...updates } = args;
+    const { positionId, clearUserId, ...updates } = args;
     const filtered: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) filtered[key] = value;
+    }
+    if (clearUserId) {
+      filtered.userId = undefined;
     }
     if (Object.keys(filtered).length > 0) {
       await ctx.db.patch(positionId, filtered);
