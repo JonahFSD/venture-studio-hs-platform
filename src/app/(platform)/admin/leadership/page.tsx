@@ -70,7 +70,7 @@ function SlotCard({
           <span className="font-medium text-text-primary truncate">
             {position.name}
           </span>
-          <Badge variant="default" size="sm">
+          <Badge variant="default">
             {position.role}
           </Badge>
         </div>
@@ -368,7 +368,7 @@ export default function AdminLeadershipPage() {
             <h2 className="text-lg font-semibold text-text-primary">
               Executive Team
             </h2>
-            <Badge variant="default" size="sm">
+            <Badge variant="default">
               {executives.length} slots
             </Badge>
           </div>
@@ -424,7 +424,7 @@ export default function AdminLeadershipPage() {
             <h2 className="text-lg font-semibold text-text-primary">
               Regional Directors
             </h2>
-            <Badge variant="default" size="sm">
+            <Badge variant="default">
               {leadership.regionalDirectors.length}
             </Badge>
           </div>
@@ -458,7 +458,7 @@ export default function AdminLeadershipPage() {
             <h2 className="text-lg font-semibold text-text-primary">
               Ambassadors
             </h2>
-            <Badge variant="default" size="sm">
+            <Badge variant="default">
               {leadership.ambassadors.length}
             </Badge>
           </div>
