@@ -1235,6 +1235,8 @@ export const clearAll = internalMutation({
   args: {},
   handler: async (ctx) => {
     const tables = [
+      "authRateLimits", "authRefreshTokens", "authSessions",
+      "authVerificationCodes", "authVerifiers", "authAccounts",
       "ambassadorApplications", "leadershipPositions",
       "auditLog", "ventureStudioFlags", "bountySubmissions", "bounties",
       "notifications", "messages", "votes", "prizePools", "votingRounds",
