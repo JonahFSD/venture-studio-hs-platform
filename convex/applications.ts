@@ -16,6 +16,7 @@ export const submitApplication = mutation({
     faithStatement: v.string(),
     parentFirstName: v.string(),
     parentLastName: v.string(),
+    parentRelation: v.string(),
     parentEmail: v.string(),
     parentPhone: v.string(),
     referralCode: v.optional(v.string()),

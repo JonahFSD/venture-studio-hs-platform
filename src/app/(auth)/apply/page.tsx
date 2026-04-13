@@ -57,6 +57,12 @@ const graduationYears = Array.from({ length: 7 }, (_, i) => ({
   label: String(2025 + i),
 }));
 
+const GUARDIAN_RELATIONS = [
+  { value: "Mother", label: "Mother" },
+  { value: "Father", label: "Father" },
+  { value: "Guardian", label: "Guardian" },
+];
+
 function ApplyReferralBanner({ onRef }: { onRef: (code: string) => void }) {
   const params = useSearchParams();
   const ref = params.get("ref");
@@ -111,18 +117,16 @@ export default function ApplyPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Step 1: Profile
   const [birthdate, setBirthdate] = useState("");
   const [graduationYear, setGraduationYear] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
-
-  // School picker state
   const [extraSchoolsByState, setExtraSchoolsByState] = useState<
     Record<string, SchoolListing[]>
   >({});
   const [selectedSchoolKey, setSelectedSchoolKey] = useState<string | null>(null);
-
-  // Step 1: Profile
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [portfolioUrl, setPortfolioUrl] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
@@ -134,6 +138,7 @@ export default function ApplyPage() {
   // Step 3: Guardian
   const [parentFirstName, setParentFirstName] = useState("");
   const [parentLastName, setParentLastName] = useState("");
+  const [parentRelation, setParentRelation] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   const [consent, setConsent] = useState(false);
@@ -179,6 +184,9 @@ export default function ApplyPage() {
         errors.password = "Password must be at least 8 characters";
       if (password !== confirmPassword)
         errors.confirmPassword = "Passwords do not match";
+    }
+
+    if (stepIndex === 1) {
       if (!birthdate) errors.birthdate = "Birthdate is required";
       else {
         const age = ageFromBirthdate(birthdate);
@@ -198,10 +206,11 @@ export default function ApplyPage() {
     if (stepIndex === 3) {
       if (!parentFirstName.trim()) errors.parentFirstName = "First name is required";
       if (!parentLastName.trim()) errors.parentLastName = "Last name is required";
-      if (!parentEmail.trim()) errors.parentEmail = "Guardian email is required";
+      if (!parentRelation) errors.parentRelation = "Relation is required";
+      if (!parentEmail.trim()) errors.parentEmail = "Email is required";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(parentEmail.trim()))
         errors.parentEmail = "Please enter a valid email";
-      if (!parentPhone.trim()) errors.parentPhone = "Guardian phone is required";
+      if (!parentPhone.trim()) errors.parentPhone = "Phone is required";
       if (!consent) errors.consent = "You must agree to proceed";
     }
 
@@ -230,6 +239,7 @@ export default function ApplyPage() {
         faithStatement,
         parentFirstName: parentFirstName.trim(),
         parentLastName: parentLastName.trim(),
+        parentRelation,
         parentEmail: parentEmail.trim(),
         parentPhone: parentPhone.trim(),
         referralCode,
@@ -324,6 +334,9 @@ export default function ApplyPage() {
     ? formatSchoolLabel(parsedSchool)
     : "Not selected";
 
+  // Progress bar: stop at midpoint of current step's segment
+  const progressPercent = ((step + 0.5) / STEPS.length) * 100;
+
   // ---------- Main form ----------
   return (
     <div className="w-full animate-fade-in">
@@ -353,16 +366,13 @@ export default function ApplyPage() {
             </div>
           ))}
         </div>
-        <Progress value={step + 1} max={STEPS.length} size="sm" />
+        <Progress value={progressPercent} max={100} size="sm" />
       </div>
 
       <Card padding="lg">
         {/* ──────────── Step 0: About ──────────── */}
         {step === 0 && (
           <div className="space-y-5 animate-fade-in">
-            <h2 className="text-lg font-semibold text-text-primary mb-4">
-              About
-            </h2>
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="First Name"
@@ -381,25 +391,27 @@ export default function ApplyPage() {
                 error={validationErrors.lastName}
               />
             </div>
-            <Input
-              label="Email"
-              type="email"
-              placeholder="you@example.com"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={validationErrors.email}
-            />
-            <Input
-              label="Phone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="(555) 555-5555"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              hint="Optional"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={validationErrors.email}
+              />
+              <Input
+                label="Phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="(555) 555-5555"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                hint="Optional"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="relative">
                 <Input
@@ -438,6 +450,12 @@ export default function ApplyPage() {
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ──────────── Step 1: Profile ──────────── */}
+        {step === 1 && (
+          <div className="space-y-5 animate-fade-in">
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Birthdate"
@@ -486,15 +504,6 @@ export default function ApplyPage() {
                 <p className="text-xs text-error mt-1.5">{validationErrors.school}</p>
               )}
             </div>
-          </div>
-        )}
-
-        {/* ──────────── Step 1: Profile ──────────── */}
-        {step === 1 && (
-          <div className="space-y-5 animate-fade-in">
-            <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Profile
-            </h2>
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="LinkedIn URL"
@@ -537,9 +546,6 @@ export default function ApplyPage() {
         {/* ──────────── Step 2: Faith ──────────── */}
         {step === 2 && (
           <div className="space-y-5 animate-fade-in">
-            <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Faith
-            </h2>
             <Textarea
               placeholder="Share what you believe about God and how your faith shows up in your everyday life."
               hint="100-500 words"
@@ -555,9 +561,6 @@ export default function ApplyPage() {
         {/* ──────────── Step 3: Guardian ──────────── */}
         {step === 3 && (
           <div className="space-y-5 animate-fade-in">
-            <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Guardian
-            </h2>
             <p className="text-sm text-text-secondary bg-surface-elevated rounded-xl p-4 border border-border-default">
               Since all members are under 18, we require parent/guardian consent.
               They&apos;ll receive an email to verify and co-sign your membership.
@@ -580,24 +583,34 @@ export default function ApplyPage() {
                 error={validationErrors.parentLastName}
               />
             </div>
-            <Input
-              label="Email"
-              type="email"
-              placeholder="parent@example.com"
-              required
-              value={parentEmail}
-              onChange={(e) => setParentEmail(e.target.value)}
-              error={validationErrors.parentEmail}
+            <Select
+              label="Relation to Student"
+              options={GUARDIAN_RELATIONS}
+              placeholder="Select relation"
+              value={parentRelation}
+              onChange={(e) => setParentRelation(e.target.value)}
+              error={validationErrors.parentRelation}
             />
-            <Input
-              label="Phone"
-              type="tel"
-              placeholder="+1 (555) 123-4567"
-              required
-              value={parentPhone}
-              onChange={(e) => setParentPhone(e.target.value)}
-              error={validationErrors.parentPhone}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Email"
+                type="email"
+                placeholder="parent@example.com"
+                required
+                value={parentEmail}
+                onChange={(e) => setParentEmail(e.target.value)}
+                error={validationErrors.parentEmail}
+              />
+              <Input
+                label="Phone"
+                type="tel"
+                placeholder="+1 (555) 123-4567"
+                required
+                value={parentPhone}
+                onChange={(e) => setParentPhone(e.target.value)}
+                error={validationErrors.parentPhone}
+              />
+            </div>
             <div>
               <label className="flex items-start gap-3 text-sm text-text-secondary mt-2">
                 <input
@@ -637,10 +650,6 @@ export default function ApplyPage() {
         {/* ──────────── Step 4: Review & Submit ──────────── */}
         {step === 4 && (
           <div className="space-y-5 animate-fade-in">
-            <h2 className="text-lg font-semibold text-text-primary mb-4">
-              Review Your Application
-            </h2>
-
             {/* About */}
             <div className="rounded-xl border border-border-default bg-surface-elevated p-4 space-y-2">
               <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
@@ -652,10 +661,6 @@ export default function ApplyPage() {
                 <ReviewRow label="Email" value={email} />
                 <ReviewRow label="Password" value={"••••••••"} />
                 <ReviewRow label="Phone" value={phone || "Not provided"} />
-                <ReviewRow label="Birthdate" value={birthdate || "Not provided"} />
-                <ReviewRow label="Graduation Year" value={graduationYear} />
-                <ReviewRow label="Location" value={city && state ? `${city}, ${state}` : city || state || "Not provided"} />
-                <ReviewRow label="School" value={schoolLabel} />
               </div>
             </div>
 
@@ -666,6 +671,12 @@ export default function ApplyPage() {
                 Profile
               </h3>
               <div className="space-y-2 text-sm">
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                  <ReviewRow label="Birthdate" value={birthdate || "Not provided"} />
+                  <ReviewRow label="Graduation Year" value={graduationYear} />
+                  <ReviewRow label="Location" value={city && state ? `${city}, ${state}` : city || state || "Not provided"} />
+                  <ReviewRow label="School" value={schoolLabel} />
+                </div>
                 <ReviewRow label="LinkedIn" value={linkedinUrl || "Not provided"} />
                 <ReviewRow label="Portfolio" value={portfolioUrl || "Not provided"} />
                 <div>
@@ -718,6 +729,7 @@ export default function ApplyPage() {
               </h3>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
                 <ReviewRow label="Name" value={`${parentFirstName} ${parentLastName}`} />
+                <ReviewRow label="Relation" value={parentRelation || "Not provided"} />
                 <ReviewRow label="Email" value={parentEmail} />
                 <ReviewRow label="Phone" value={parentPhone} />
               </div>

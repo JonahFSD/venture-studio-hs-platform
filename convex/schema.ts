@@ -87,6 +87,7 @@ export default defineSchema({
     faithStatement: v.string(),
     parentFirstName: v.string(),
     parentLastName: v.string(),
+    parentRelation: v.string(), // "Mother", "Father", "Guardian"
     parentEmail: v.string(),
     parentPhone: v.string(),
     status: v.union(
