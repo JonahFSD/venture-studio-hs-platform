@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   Swords,
-  Video,
   Brain,
   Trophy,
   Users,
@@ -93,15 +92,13 @@ function HeroSection() {
         {/* Stats */}
         <div className="flex items-center justify-center gap-8 sm:gap-16 mt-16 pt-8 border-t border-border-default">
           {[
-            { value: "$10", label: "/month membership" },
-            { value: "Top 3", label: "win prizes each month" },
-            { value: "14-18", label: "year old founders" },
+            { icon: Trophy, label: "Monthly Cash Prizes" },
+            { icon: Shield, label: "Elite Founders Only" },
+            { icon: DollarSign, label: "4-Figure Bounties" },
           ].map((stat, i) => (
-            <div key={i} className="text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-text-primary">
-                {stat.value}
-              </p>
-              <p className="text-xs sm:text-sm text-text-secondary mt-1">
+            <div key={i} className="flex items-center gap-2 text-center">
+              <stat.icon className="h-5 w-5 text-brand-500" />
+              <p className="text-sm sm:text-base font-semibold text-text-primary">
                 {stat.label}
               </p>
             </div>
@@ -115,28 +112,24 @@ function HeroSection() {
 function HowItWorksSection() {
   const steps = [
     {
-      icon: Users,
       title: "Apply & Join",
       description:
         "Complete a short application sharing your faith journey and entrepreneurial interests. Approved members join with a $10/month subscription.",
     },
     {
-      icon: Video,
-      title: "Pitch Your Idea",
+      title: "Pitch Your Ideas",
       description:
         "Record and upload a video pitch with supporting materials. Share your GitHub repos, websites, or slide decks alongside your vision.",
     },
     {
-      icon: Brain,
-      title: "Get AI Feedback",
+      title: "Win Serious Cash",
       description:
-        "Our AI judges your pitch against a professional rubric, providing detailed scores and actionable feedback across multiple categories.",
+        "Compete for monthly prize pools funded by membership fees and tackle 4-figure bounties from real entrepreneurs looking for fresh solutions.",
     },
     {
-      icon: Trophy,
-      title: "Compete & Win",
+      title: "Build Your Network",
       description:
-        "Top-scoring pitches go to community vote. The top 3 each month split the prize pool: 1st (55%), 2nd (30%), 3rd (15%).",
+        "Connect with ambitious Christian founders, find co-founders for your projects, and grow a professional network that lasts beyond high school.",
     },
   ];
 
@@ -158,11 +151,8 @@ function HowItWorksSection() {
               key={i}
               className="relative p-6 rounded-2xl border border-border-default bg-surface-card hover:bg-surface-card-hover hover:border-border-strong transition-all duration-300 group"
             >
-              <div className="absolute top-4 right-4 text-6xl font-bold text-text-muted/10 select-none">
+              <div className="text-5xl font-bold text-brand-500 mb-4 select-none">
                 {i + 1}
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-brand-500/10 flex items-center justify-center mb-4 group-hover:bg-brand-500/20 transition-colors">
-                <step.icon className="h-6 w-6 text-brand-500" />
               </div>
               <h3 className="text-lg font-semibold text-text-primary mb-2">
                 {step.title}
@@ -194,7 +184,7 @@ function FeaturesSection() {
     },
     {
       icon: Shield,
-      title: "Safe Community",
+      title: "Elite Founder Community",
       description:
         "A vetted, faith-driven community exclusively for high school students aged 14-18.",
     },
