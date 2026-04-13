@@ -1,4 +1,5 @@
 import { internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
 /**
@@ -82,8 +83,22 @@ export const openNewRound = internalMutation({
         title: "Voting is Open!",
         body: `The ${monthYear} voting round is now open. Cast your votes before the 8th!`,
         read: false,
-        actionUrl: "/voting",
+        actionUrl: "/pitches/voting",
       });
+
+      // Send email notification (checks user preference)
+      const prefs = user.notificationPreferences;
+      if (!prefs || prefs.votingRoundEmail !== false) {
+        await ctx.scheduler.runAfter(0, internal.email.sendNotification, {
+          to: user.email,
+          recipientName: user.fullName.split(" ")[0],
+          subject: `Voting is Open — ${monthYear}`,
+          heading: "Voting is Open!",
+          body: `The ${monthYear} voting round is now open. Cast your votes before the 8th!`,
+          ctaLabel: "Vote Now",
+          ctaUrl: "/pitches/voting",
+        });
+      }
     }
 
     console.log(
@@ -223,21 +238,41 @@ export const closeAndFinalize = internalMutation({
       }
     }
 
-    // Create notifications for winners
+    // Create notifications for winners + send email
     const placeLabels = ["1st", "2nd", "3rd"];
     for (const winner of winners) {
       if (winner.userId) {
         const submission = await ctx.db.get(
           winner.submissionId as Id<"submissions">
         );
+        const winnerUser = await ctx.db.get(winner.userId);
+        const title = `Congratulations! You placed ${placeLabels[winner.place - 1]}!`;
+        const body = `Your submission "${submission?.title ?? "Unknown"}" won ${placeLabels[winner.place - 1]} place in the ${round.monthYear} voting round! You earned +${winner.points} points.`;
+
         await ctx.db.insert("notifications", {
           userId: winner.userId,
           type: "voting_winner",
-          title: `Congratulations! You placed ${placeLabels[winner.place - 1]}!`,
-          body: `Your submission "${submission?.title ?? "Unknown"}" won ${placeLabels[winner.place - 1]} place in the ${round.monthYear} voting round! You earned +${winner.points} points.`,
+          title,
+          body,
           read: false,
-          actionUrl: "/hall-of-fame",
+          actionUrl: "/pitches/results",
         });
+
+        // Send winner email
+        if (winnerUser) {
+          const prefs = winnerUser.notificationPreferences;
+          if (!prefs || prefs.winnersEmail !== false) {
+            await ctx.scheduler.runAfter(0, internal.email.sendNotification, {
+              to: winnerUser.email,
+              recipientName: winnerUser.fullName.split(" ")[0],
+              subject: `You placed ${placeLabels[winner.place - 1]} — ${round.monthYear}!`,
+              heading: title,
+              body,
+              ctaLabel: "View Results",
+              ctaUrl: "/pitches/results",
+            });
+          }
+        }
       }
     }
 

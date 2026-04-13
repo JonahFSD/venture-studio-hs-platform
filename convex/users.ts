@@ -176,6 +176,60 @@ export const updateAvatar = mutation({
 });
 
 /**
+ * Get the current user's notification preferences.
+ */
+export const getNotificationPreferences = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthUser(ctx);
+    return (
+      user.notificationPreferences ?? {
+        aiScoringEmail: true,
+        aiScoringSms: true,
+        votingRoundEmail: true,
+        votingRoundSms: true,
+        winnersEmail: true,
+        winnersSms: true,
+        monthlyRecapEmail: true,
+        monthlyRecapSms: false,
+        newMessagesEmail: true,
+        newMessagesSms: true,
+        communityUpdatesEmail: true,
+        communityUpdatesSms: false,
+      }
+    );
+  },
+});
+
+/**
+ * Update the current user's notification preferences.
+ */
+export const updateNotificationPreferences = mutation({
+  args: {
+    preferences: v.object({
+      aiScoringEmail: v.boolean(),
+      aiScoringSms: v.boolean(),
+      votingRoundEmail: v.boolean(),
+      votingRoundSms: v.boolean(),
+      winnersEmail: v.boolean(),
+      winnersSms: v.boolean(),
+      monthlyRecapEmail: v.boolean(),
+      monthlyRecapSms: v.boolean(),
+      newMessagesEmail: v.boolean(),
+      newMessagesSms: v.boolean(),
+      communityUpdatesEmail: v.boolean(),
+      communityUpdatesSms: v.boolean(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthUser(ctx);
+    await ctx.db.patch(user._id, {
+      notificationPreferences: args.preferences,
+    });
+  },
+});
+
+/**
  * Update the current user's profile.
  */
 export const updateProfile = mutation({
@@ -200,6 +254,7 @@ export const updateProfile = mutation({
       )
     ),
     bqResultsUrl: v.optional(v.string()),
+    linkedinUrl: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {

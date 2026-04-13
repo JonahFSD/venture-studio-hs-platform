@@ -1,8 +1,10 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 
 /**
- * Get all past prize pool rounds for the Hall of Fame.
+ * Get all past prize pool rounds for the Hall of Fame / Results page.
+ * Includes winner user info AND winning submission details.
  */
 export const getPastRounds = query({
   args: {},
@@ -12,9 +14,58 @@ export const getPastRounds = query({
       .order("desc")
       .collect();
 
-    // Attach winner user info
+    // Get all votes to determine winning submissions per round
+    const allVotes = await ctx.db.query("votes").collect();
+    const allRounds = await ctx.db.query("votingRounds").collect();
+
     const withWinners = await Promise.all(
       pools.map(async (pool) => {
+        // Find the voting round for this month
+        const round = allRounds.find((r) => r.monthYear === pool.monthYear);
+
+        // Tally votes for this round to find winning submissions
+        let winningSubmissions: {
+          place: number;
+          submissionId: string;
+          title: string;
+          score: number;
+        }[] = [];
+
+        if (round) {
+          const roundVotes = allVotes.filter(
+            (v) => v.votingRoundId === round._id
+          );
+          const tallies: Record<string, number> = {};
+          for (const vote of roundVotes) {
+            const key = vote.submissionId as string;
+            tallies[key] = (tallies[key] ?? 0) + 1;
+          }
+          const ranked = Object.entries(tallies)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 3);
+
+          winningSubmissions = await Promise.all(
+            ranked.map(async ([subId], i) => {
+              const submission = await ctx.db.get(subId as Id<"submissions">);
+              const aiScore = submission
+                ? await ctx.db
+                    .query("aiScores")
+                    .withIndex("by_submissionId", (q) =>
+                      q.eq("submissionId", submission._id)
+                    )
+                    .first()
+                : null;
+              return {
+                place: i + 1,
+                submissionId: subId,
+                title: submission?.title ?? "Unknown",
+                score: aiScore?.overallScore ?? 0,
+              };
+            })
+          );
+        }
+
+        // Resolve winner user info
         const first = pool.firstPlaceUserId
           ? await ctx.db.get(pool.firstPlaceUserId)
           : null;
@@ -25,8 +76,16 @@ export const getPastRounds = query({
           ? await ctx.db.get(pool.thirdPlaceUserId)
           : null;
 
+        // Find the user with most points earned this month
+        // (approximate: use pointsThisMonth if available, else use first place)
+        const allUsers = await ctx.db.query("users").collect();
+        const topPointsUser = allUsers
+          .filter((u) => u.role !== "superadmin")
+          .sort((a, b) => (b.pointsThisMonth ?? 0) - (a.pointsThisMonth ?? 0))[0];
+
         return {
           ...pool,
+          winningSubmissions,
           firstPlaceUser: first
             ? { _id: first._id, fullName: first.fullName, schoolName: first.schoolName }
             : null,
@@ -35,6 +94,13 @@ export const getPastRounds = query({
             : null,
           thirdPlaceUser: third
             ? { _id: third._id, fullName: third.fullName, schoolName: third.schoolName }
+            : null,
+          mostPointsUser: topPointsUser
+            ? {
+                _id: topPointsUser._id,
+                fullName: topPointsUser.fullName,
+                monthlyPoints: topPointsUser.pointsThisMonth ?? 0,
+              }
             : null,
         };
       })

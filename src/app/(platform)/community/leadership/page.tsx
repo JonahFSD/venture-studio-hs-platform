@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,53 +32,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
   MapPin, GraduationCap, Calendar, Plus, Send,
-  CheckCircle, MessageCircle, ChevronDown, ChevronUp, Building2, Briefcase,
+  CheckCircle, ChevronDown, ChevronUp, Building2, Briefcase,
 } from "lucide-react";
-interface Region {
+
+/* ─── US regions with their states (static config — the positions are dynamic) ─── */
+const REGIONS = [
+  { name: "New England", states: ["Connecticut", "Maine", "Massachusetts", "New Hampshire", "New York", "Rhode Island", "Vermont"] },
+  { name: "Mid-Atlantic", states: ["Delaware", "Maryland", "New Jersey", "North Carolina", "Pennsylvania", "Virginia", "West Virginia"] },
+  { name: "Southeast", states: ["Alabama", "Florida", "Georgia", "Kentucky", "Louisiana", "Mississippi", "South Carolina", "Tennessee"] },
+  { name: "Midwest", states: ["Illinois", "Indiana", "Iowa", "Michigan", "Minnesota", "Missouri", "Ohio", "Wisconsin"] },
+  { name: "South Central", states: ["Arkansas", "Kansas", "Nebraska", "North Dakota", "Oklahoma", "South Dakota", "Texas"] },
+  { name: "Mountain West", states: ["Arizona", "Colorado", "Idaho", "Montana", "New Mexico", "Utah", "Wyoming"] },
+  { name: "Pacific", states: ["Alaska", "California", "Hawaii", "Nevada", "Oregon", "Washington"] },
+];
+
+type ExecutiveLeader = {
+  _id: string;
   name: string;
-  states: string[];
-  director: { name: string; school: string; graduation: number } | null;
-}
-
-type ExecutiveLeader =
-  | { name: string; role: string; school: string; graduation: number }
-  | { name: string; role: string; company: string; jobTitle: string };
-
-const regions: Region[] = [
-  { name: "New England", states: ["Connecticut", "Maine", "Massachusetts", "New Hampshire", "New York", "Rhode Island", "Vermont"], director: { name: "Ava Martinez", school: "Cornerstone Academy", graduation: 2028 } },
-  { name: "Mid-Atlantic", states: ["Delaware", "Maryland", "New Jersey", "North Carolina", "Pennsylvania", "Virginia", "West Virginia"], director: { name: "Noah Williams", school: "Heritage Christian", graduation: 2028 } },
-  { name: "Southeast", states: ["Alabama", "Florida", "Georgia", "Kentucky", "Louisiana", "Mississippi", "South Carolina", "Tennessee"], director: { name: "Sophia Lee", school: "Trinity Christian", graduation: 2029 } },
-  { name: "Midwest", states: ["Illinois", "Indiana", "Iowa", "Michigan", "Minnesota", "Missouri", "Ohio", "Wisconsin"], director: { name: "Caleb Johnson", school: "Redeemer Prep", graduation: 2028 } },
-  { name: "South Central", states: ["Arkansas", "Kansas", "Nebraska", "North Dakota", "Oklahoma", "South Dakota", "Texas"], director: { name: "Isaiah Brown", school: "Victory Christian", graduation: 2028 } },
-  { name: "Mountain West", states: ["Arizona", "Colorado", "Idaho", "Montana", "New Mexico", "Utah", "Wyoming"], director: null },
-  { name: "Pacific", states: ["Alaska", "California", "Hawaii", "Nevada", "Oregon", "Washington"], director: null },
-];
-
-const leaders: ExecutiveLeader[] = [
-  { name: "Sarah Chen", role: "President", school: "Grace Academy", graduation: 2027 },
-  { name: "David Park", role: "VP Marketing", school: "Covenant Prep", graduation: 2027 },
-  { name: "Maria Garcia", role: "VP Technology", school: "Hope Academy", graduation: 2028 },
-  { name: "Elijah Thompson", role: "VP Recruitment", school: "Liberty Christian", graduation: 2028 },
-  { name: "Grace Kim", role: "VP Operations", school: "Faith Lutheran", graduation: 2029 },
-  { name: "Maya Patel", role: "VP Finance", school: "Heritage Christian", graduation: 2028 },
-  { name: "Jake Oswald", role: "Advisor", company: "Austin Christian U", jobTitle: "Accelerator Director" },
-  { name: "Lars Ostervold", role: "Advisor", company: "Austin Christian U", jobTitle: "CTO" },
-];
-
-const filledAmbassadors: Record<string, { name: string; school: string; graduation: number }> = {
-  "California": { name: "Maria Garcia", school: "Hope Academy", graduation: 2028 },
-  "Florida": { name: "Elijah Thompson", school: "Liberty Christian", graduation: 2028 },
-  "New York": { name: "Grace Kim", school: "Faith Lutheran", graduation: 2029 },
-  "Texas": { name: "Noah Williams", school: "Heritage Christian", graduation: 2028 },
-  "Georgia": { name: "Sophia Johnson", school: "Trinity Prep", graduation: 2029 },
-  "Illinois": { name: "Liam Carter", school: "Cornerstone Academy", graduation: 2028 },
-  "Ohio": { name: "Emma Davis", school: "Beacon Christian", graduation: 2029 },
-  "Virginia": { name: "Aiden Brooks", school: "Covenant Christian", graduation: 2028 },
+  role: string;
+  userId?: string;
+  school?: string;
+  graduation?: number;
+  company?: string;
+  jobTitle?: string;
+  avatarUrl?: string | null;
 };
 
-function ExecutiveTeamMemberContent(props: ExecutiveLeader & { avatarUrl?: string }) {
+function ExecutiveTeamMemberContent(props: ExecutiveLeader) {
   const { name, role, avatarUrl } = props;
-  const meta = "company" in props ? (
+  const meta = props.company ? (
     <div className="mt-1 flex flex-col items-start gap-1 text-sm text-text-secondary">
       <span className="flex items-center gap-1.5">
         <Building2 className="h-3.5 w-3.5 shrink-0 text-brand-500" />
@@ -91,20 +73,24 @@ function ExecutiveTeamMemberContent(props: ExecutiveLeader & { avatarUrl?: strin
     </div>
   ) : (
     <div className="mt-1 flex flex-col items-start gap-1 text-sm text-text-secondary">
-      <span className="flex items-center gap-1.5">
-        <GraduationCap className="h-3.5 w-3.5 shrink-0 text-brand-500" />
-        {props.school}
-      </span>
-      <span className="flex items-center gap-1.5">
-        <Calendar className="h-3.5 w-3.5 shrink-0 text-brand-500" />
-        Class of {props.graduation}
-      </span>
+      {props.school && (
+        <span className="flex items-center gap-1.5">
+          <GraduationCap className="h-3.5 w-3.5 shrink-0 text-brand-500" />
+          {props.school}
+        </span>
+      )}
+      {props.graduation && (
+        <span className="flex items-center gap-1.5">
+          <Calendar className="h-3.5 w-3.5 shrink-0 text-brand-500" />
+          Class of {props.graduation}
+        </span>
+      )}
     </div>
   );
 
   return (
     <div className="flex flex-row items-start gap-3 sm:gap-4">
-      <Avatar src={avatarUrl} name={name} size="lg" className="shrink-0" />
+      <Avatar src={avatarUrl ?? undefined} name={name} size="lg" className="shrink-0" />
       <div className="min-w-0 flex-1 text-left">
         <h3 className="mb-1.5 text-base font-bold leading-snug text-text-primary">
           {name}
@@ -121,7 +107,7 @@ function ExecutiveTeamMemberContent(props: ExecutiveLeader & { avatarUrl?: strin
   );
 }
 
-function ExecutiveTeamGrid({ leaders, profileIdByName, avatarUrlByName }: { leaders: ExecutiveLeader[]; profileIdByName: Map<string, string>; avatarUrlByName: Map<string, string> }) {
+function ExecutiveTeamGrid({ leaders }: { leaders: ExecutiveLeader[] }) {
   const gridCols = useResponsiveGridColumnCount(BOUNTIES_GRID_BREAKPOINTS);
   const rows = useMemo(
     () => chunkIntoRows(leaders, gridCols),
@@ -142,8 +128,7 @@ function ExecutiveTeamGrid({ leaders, profileIdByName, avatarUrlByName }: { lead
 
           const cells = row.map((leader, i) => {
             const index = rowIndex * gridCols + i;
-            const userId = profileIdByName.get(leader.name);
-            const href = userId ? `/community/${userId}` : undefined;
+            const href = leader.userId ? `/community/${leader.userId}` : undefined;
 
             const tile = (
               <Card
@@ -154,13 +139,13 @@ function ExecutiveTeamGrid({ leaders, profileIdByName, avatarUrlByName }: { lead
                   "flex h-full min-h-[11rem] min-w-0 flex-1 flex-col overflow-hidden p-4 sm:min-h-0 sm:p-5 md:p-[30px]"
                 )}
               >
-                <ExecutiveTeamMemberContent {...leader} avatarUrl={avatarUrlByName.get(leader.name)} />
+                <ExecutiveTeamMemberContent {...leader} />
               </Card>
             );
 
             return (
               <div
-                key={leader.name}
+                key={leader._id}
                 className={cn(
                   "min-w-0 flex flex-col",
                   platformPaneGridCellFillClass,
@@ -232,17 +217,13 @@ function ExecutiveTeamGrid({ leaders, profileIdByName, avatarUrlByName }: { lead
 }
 
 function RegionalDirectorsPane({
-  regions: regionList,
-  filledAmbassadors: ambassadors,
+  directors,
+  ambassadors,
   onApply,
-  profileIdByName,
-  avatarUrlByName,
 }: {
-  regions: Region[];
-  filledAmbassadors: Record<string, { name: string; school: string; graduation: number }>;
+  directors: Map<string, ExecutiveLeader>;
+  ambassadors: Map<string, ExecutiveLeader>;
   onApply: (state: string) => void;
-  profileIdByName: Map<string, string>;
-  avatarUrlByName: Map<string, string>;
 }) {
   return (
     <div
@@ -252,7 +233,7 @@ function RegionalDirectorsPane({
       )}
     >
       <div className={platformPaneGridRowsStackClass}>
-        {regionList.map((region, regionIndex) => (
+        {REGIONS.map((region, regionIndex) => (
           <div
             key={region.name}
             className={platformPaneGridRowFullClass}
@@ -261,16 +242,15 @@ function RegionalDirectorsPane({
             <div
               className={cn(
                 platformPaneGridCellFillClass,
-                regionIndex === regionList.length - 1 &&
+                regionIndex === REGIONS.length - 1 &&
                   platformPaneGridHangingCellBottomClass
               )}
             >
               <RegionRow
                 region={region}
-                filledAmbassadors={ambassadors}
+                director={directors.get(region.name)}
+                ambassadors={ambassadors}
                 onApply={onApply}
-                profileIdByName={profileIdByName}
-                avatarUrlByName={avatarUrlByName}
               />
             </div>
           </div>
@@ -282,16 +262,14 @@ function RegionalDirectorsPane({
 
 function RegionRow({
   region,
-  filledAmbassadors: ambassadors,
+  director,
+  ambassadors,
   onApply,
-  profileIdByName,
-  avatarUrlByName,
 }: {
-  region: Region;
-  filledAmbassadors: Record<string, { name: string; school: string; graduation: number }>;
+  region: { name: string; states: string[] };
+  director?: ExecutiveLeader;
+  ambassadors: Map<string, ExecutiveLeader>;
   onApply: (state: string) => void;
-  profileIdByName: Map<string, string>;
-  avatarUrlByName: Map<string, string>;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -305,21 +283,18 @@ function RegionRow({
           "hover:bg-surface-card-hover"
         )}
       >
-        {region.director ? (
-          (() => {
-            const directorHref = profileIdByName.get(region.director!.name);
-            return directorHref ? (
-              <Link
-                href={`/community/${directorHref}`}
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0 hover:opacity-80 transition-opacity"
-              >
-                <Avatar src={avatarUrlByName.get(region.director!.name)} name={region.director!.name} size="md" />
-              </Link>
-            ) : (
-              <Avatar src={avatarUrlByName.get(region.director!.name)} name={region.director!.name} size="md" />
-            );
-          })()
+        {director ? (
+          director.userId ? (
+            <Link
+              href={`/community/${director.userId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 hover:opacity-80 transition-opacity"
+            >
+              <Avatar src={director.avatarUrl ?? undefined} name={director.name} size="md" />
+            </Link>
+          ) : (
+            <Avatar src={director.avatarUrl ?? undefined} name={director.name} size="md" />
+          )
         ) : (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-border-strong text-text-muted">
             <MapPin className="h-4 w-4" />
@@ -327,22 +302,12 @@ function RegionRow({
         )}
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-bold text-text-primary">{region.name}</h3>
-          {region.director ? (
-            (() => {
-              const directorHref = profileIdByName.get(region.director!.name);
-              const content = <>{region.director!.name} &bull; {region.director!.school}&apos;{String(region.director!.graduation).slice(2)}</>;
-              return directorHref ? (
-                <Link
-                  href={`/community/${directorHref}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="mt-0.5 block truncate text-[10px] text-text-muted hover:text-brand-500 transition-colors"
-                >
-                  {content}
-                </Link>
-              ) : (
-                <p className="mt-0.5 truncate text-[10px] text-text-muted">{content}</p>
-              );
-            })()
+          {director ? (
+            <p className="mt-0.5 truncate text-[10px] text-text-muted">
+              {director.name}
+              {director.school && <> &bull; {director.school}</>}
+              {director.graduation && <>&apos;{String(director.graduation).slice(2)}</>}
+            </p>
           ) : (
             <p className="mt-0.5 text-[10px] italic text-text-muted">
               Regional Director — position open
@@ -360,34 +325,29 @@ function RegionRow({
         <div className="border-t border-solid border-border-default">
           <div className={platformPaneStackGapClass}>
             {region.states.map((state) => {
-              const ambassador = ambassadors[state];
+              const ambassador = ambassadors.get(state);
               if (ambassador) {
-                const ambHref = profileIdByName.get(ambassador.name);
                 return (
                   <div
                     key={state}
                     className="flex items-center gap-3 bg-surface-primary px-4 py-3 transition-colors duration-200 hover:bg-surface-card-hover sm:px-5 md:px-[30px]"
                   >
-                    {ambHref ? (
-                      <Link href={`/community/${ambHref}`} className="shrink-0 hover:opacity-80 transition-opacity">
-                        <Avatar src={avatarUrlByName.get(ambassador.name)} name={ambassador.name} size="md" />
+                    {ambassador.userId ? (
+                      <Link href={`/community/${ambassador.userId}`} className="shrink-0 hover:opacity-80 transition-opacity">
+                        <Avatar src={ambassador.avatarUrl ?? undefined} name={ambassador.name} size="md" />
                       </Link>
                     ) : (
-                      <Avatar src={avatarUrlByName.get(ambassador.name)} name={ambassador.name} size="md" />
+                      <Avatar src={ambassador.avatarUrl ?? undefined} name={ambassador.name} size="md" />
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-text-secondary">
                         {state}
                       </p>
-                      {ambHref ? (
-                        <Link href={`/community/${ambHref}`} className="mt-0.5 block truncate text-[10px] text-text-muted hover:text-brand-500 transition-colors">
-                          {ambassador.name} &bull; {ambassador.school}&apos;{String(ambassador.graduation).slice(2)}
-                        </Link>
-                      ) : (
-                        <p className="mt-0.5 truncate text-[10px] text-text-muted">
-                          {ambassador.name} &bull; {ambassador.school}&apos;{String(ambassador.graduation).slice(2)}
-                        </p>
-                      )}
+                      <p className="mt-0.5 truncate text-[10px] text-text-muted">
+                        {ambassador.name}
+                        {ambassador.school && <> &bull; {ambassador.school}</>}
+                        {ambassador.graduation && <>&apos;{String(ambassador.graduation).slice(2)}</>}
+                      </p>
                     </div>
                   </div>
                 );
@@ -430,44 +390,117 @@ export default function LeadershipPage() {
   const [applyState, setApplyState] = useState("");
   const [applied, setApplied] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [whyStatement, setWhyStatement] = useState("");
+  const [leadershipExperience, setLeadershipExperience] = useState("");
+  const [city, setCity] = useState("");
 
-  const members = useQuery(api.users.listMembers, {});
-  const profileIdByName = useMemo(() => {
-    const m = new Map<string, string>();
-    if (!members) return m;
-    for (const u of members) {
-      if (!m.has(u.fullName)) m.set(u.fullName, u._id);
+  const leadershipData = useQuery(api.leadership.list);
+  const submitApplication = useMutation(api.leadership.submitAmbassadorApplication);
+
+  // Build lookup maps from leadership positions
+  const executives: ExecutiveLeader[] = useMemo(
+    () =>
+      (leadershipData?.executives ?? []).map((p) => ({
+        _id: p._id,
+        name: p.name,
+        role: p.role,
+        userId: p.userId ?? undefined,
+        school: p.school ?? undefined,
+        graduation: p.graduation ?? undefined,
+        company: p.company ?? undefined,
+        jobTitle: p.jobTitle ?? undefined,
+        avatarUrl: p.avatarUrl,
+      })),
+    [leadershipData]
+  );
+
+  const directorsByRegion = useMemo(() => {
+    const m = new Map<string, ExecutiveLeader>();
+    for (const d of leadershipData?.regionalDirectors ?? []) {
+      if (d.region) {
+        m.set(d.region, {
+          _id: d._id,
+          name: d.name,
+          role: d.role,
+          userId: d.userId ?? undefined,
+          school: d.school ?? undefined,
+          graduation: d.graduation ?? undefined,
+          avatarUrl: d.avatarUrl,
+        });
+      }
     }
     return m;
-  }, [members]);
+  }, [leadershipData]);
 
-  const avatarUrlByName = useMemo(() => {
-    const m = new Map<string, string>();
-    if (!members) return m;
-    for (const u of members) {
-      if (u.avatarUrl && !m.has(u.fullName)) m.set(u.fullName, u.avatarUrl);
+  const ambassadorsByState = useMemo(() => {
+    const m = new Map<string, ExecutiveLeader>();
+    for (const a of leadershipData?.ambassadors ?? []) {
+      if (a.state) {
+        m.set(a.state, {
+          _id: a._id,
+          name: a.name,
+          role: a.role,
+          userId: a.userId ?? undefined,
+          school: a.school ?? undefined,
+          graduation: a.graduation ?? undefined,
+          avatarUrl: a.avatarUrl,
+        });
+      }
     }
     return m;
-  }, [members]);
+  }, [leadershipData]);
 
-  const handleApply = (state: string) => { setApplyState(state); setApplied(false); setApplyModalOpen(true); };
-  const handleSubmitApplication = () => { setIsSubmitting(true); setTimeout(() => { setIsSubmitting(false); setApplied(true); }, 1500); };
+  const handleApply = (state: string) => {
+    setApplyState(state);
+    setApplied(false);
+    setWhyStatement("");
+    setLeadershipExperience("");
+    setCity("");
+    setApplyModalOpen(true);
+  };
+
+  const handleSubmitApplication = async () => {
+    if (!whyStatement.trim() || !leadershipExperience.trim() || !city.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await submitApplication({
+        state: applyState,
+        whyStatement,
+        leadershipExperience,
+        city,
+      });
+      setApplied(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (leadershipData === undefined) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-circle border-2 border-brand-500 border-t-transparent" />
+          <p className="text-sm text-text-secondary">Loading leadership...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-bold text-text-primary mb-4">Executive Team</h2>
-        <ExecutiveTeamGrid leaders={leaders} profileIdByName={profileIdByName} avatarUrlByName={avatarUrlByName} />
+        <ExecutiveTeamGrid leaders={executives} />
       </div>
 
       <div className="pt-[25px]">
         <h2 className="text-lg font-bold text-text-primary mb-4">Regional Directors &amp; State Ambassadors</h2>
         <RegionalDirectorsPane
-          regions={regions}
-          filledAmbassadors={filledAmbassadors}
+          directors={directorsByRegion}
+          ambassadors={ambassadorsByState}
           onApply={handleApply}
-          profileIdByName={profileIdByName}
-          avatarUrlByName={avatarUrlByName}
         />
       </div>
 
@@ -484,9 +517,9 @@ export default function LeadershipPage() {
               <div className="flex items-center gap-2 text-sm"><MapPin className="h-4 w-4 text-brand-500" /><span className="font-medium text-text-primary">{applyState}</span><Badge variant="brand">Ambassador</Badge></div>
             </div>
             <p className="text-sm text-text-secondary">As a State Ambassador, you&apos;ll represent the ACU Youth Venture community in your state, recruit new members, organize local events, and serve as a liaison between your region and the leadership team.</p>
-            <Textarea label="Why do you want to represent this state?" placeholder="Tell us about your connection to this state and why you'd be a great ambassador..." rows={4} required />
-            <Textarea label="Leadership experience" placeholder="Describe any relevant leadership, community involvement, or entrepreneurial experience..." rows={3} required />
-            <Input label="City / Metro Area" placeholder="e.g., Austin, Dallas, Houston" required />
+            <Textarea label="Why do you want to represent this state?" placeholder="Tell us about your connection to this state and why you'd be a great ambassador..." rows={4} required value={whyStatement} onChange={(e) => setWhyStatement(e.target.value)} />
+            <Textarea label="Leadership experience" placeholder="Describe any relevant leadership, community involvement, or entrepreneurial experience..." rows={3} required value={leadershipExperience} onChange={(e) => setLeadershipExperience(e.target.value)} />
+            <Input label="City / Metro Area" placeholder="e.g., Austin, Dallas, Houston" required value={city} onChange={(e) => setCity(e.target.value)} />
             <div className="p-3 rounded-lg bg-warning/5 border border-warning/10 text-xs text-text-secondary"><span className="font-medium text-warning">Note:</span> Sophomores and above are eligible for Ambassador roles. Applications are reviewed during the November interview cycle, announced in December, and new ambassadors begin their term on January 1.</div>
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-border-default">
               <Button variant="ghost" onClick={() => setApplyModalOpen(false)}>Cancel</Button>

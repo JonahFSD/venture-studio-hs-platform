@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { requireAdmin } from "./helpers";
 
@@ -126,6 +127,17 @@ export const reviewApplication = mutation({
         .withIndex("by_email", (q) => q.eq("email", application.userEmail))
         .first();
 
+      // Look up referrer first so we can set referredBy on the new user
+      let referrer = null;
+      if (application.referralCode) {
+        referrer = await ctx.db
+          .query("users")
+          .withIndex("by_referralCode", (q) =>
+            q.eq("referralCode", application.referralCode)
+          )
+          .first();
+      }
+
       if (!existingUser) {
         await ctx.db.insert("users", {
           email: application.userEmail,
@@ -144,23 +156,38 @@ export const reviewApplication = mutation({
           city: application.city,
           state: application.state,
           phone: application.phone,
+          ...(referrer ? { referredBy: referrer._id } : {}),
         });
       }
 
-      // Award referrer 500 points if this application used a referral code
-      if (application.referralCode) {
-        const referrer = await ctx.db
-          .query("users")
-          .withIndex("by_referralCode", (q) =>
-            q.eq("referralCode", application.referralCode)
-          )
-          .first();
-        if (referrer) {
-          await ctx.db.patch(referrer._id, {
-            points: (referrer.points ?? 0) + 500,
-          });
-        }
+      // Award referrer 500 points (all-time + monthly)
+      if (referrer) {
+        await ctx.db.patch(referrer._id, {
+          points: (referrer.points ?? 0) + 500,
+          pointsThisMonth: (referrer.pointsThisMonth ?? 0) + 500,
+        });
       }
+    }
+
+    // Send email notification for approval/rejection
+    if (args.decision === "approved") {
+      await ctx.scheduler.runAfter(0, internal.email.sendNotification, {
+        to: application.userEmail,
+        recipientName: application.fullName.split(" ")[0],
+        subject: "Welcome to ACU Youth Venture!",
+        heading: "Your application has been approved!",
+        body: "Congratulations! You've been accepted into the ACU Youth Venture community. Sign in to get started with your first pitch submission.",
+        ctaLabel: "Sign In",
+        ctaUrl: "/login",
+      });
+    } else if (args.decision === "rejected") {
+      await ctx.scheduler.runAfter(0, internal.email.sendNotification, {
+        to: application.userEmail,
+        recipientName: application.fullName.split(" ")[0],
+        subject: "ACU Youth Venture Application Update",
+        heading: "Application update",
+        body: "Thank you for your interest in ACU Youth Venture. Unfortunately, we are unable to offer you a spot at this time. We encourage you to apply again in the future.",
+      });
     }
 
     // Log the action

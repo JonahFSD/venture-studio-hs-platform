@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { getAuthUser } from "./helpers";
 
@@ -166,6 +167,34 @@ export const send = mutation({
       recipientUserId: args.recipientUserId,
       body: args.body,
     });
+
+    // Notify the recipient (in-app)
+    const preview =
+      args.body.length > 80 ? args.body.slice(0, 80) + "..." : args.body;
+    await ctx.scheduler.runAfter(0, internal.notifications.create, {
+      userId: args.recipientUserId,
+      type: "new_message",
+      title: `New message from ${user.fullName}`,
+      body: preview,
+      actionUrl: `/community/messages/${threadId}`,
+    });
+
+    // Send email notification (if recipient has it enabled)
+    const recipient = await ctx.db.get(args.recipientUserId);
+    if (recipient) {
+      const prefs = recipient.notificationPreferences;
+      if (!prefs || prefs.newMessagesEmail !== false) {
+        await ctx.scheduler.runAfter(0, internal.email.sendNotification, {
+          to: recipient.email,
+          recipientName: recipient.fullName.split(" ")[0],
+          subject: `New message from ${user.fullName}`,
+          heading: `Message from ${user.fullName}`,
+          body: preview,
+          ctaLabel: "Reply",
+          ctaUrl: `/community/messages/${threadId}`,
+        });
+      }
+    }
   },
 });
 

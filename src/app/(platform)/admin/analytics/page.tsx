@@ -1,29 +1,37 @@
 "use client";
 
-import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useQuery } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { Progress } from "@/components/ui/progress";
 import {
-  ArrowLeft,
   Users,
   DollarSign,
   Video,
   Vote,
-  TrendingUp,
 } from "lucide-react";
 
-const monthlyData = [
-  { month: "Oct", members: 120, submissions: 32, revenue: 1200 },
-  { month: "Nov", members: 145, submissions: 38, revenue: 1450 },
-  { month: "Dec", members: 165, submissions: 41, revenue: 1650 },
-  { month: "Jan", members: 180, submissions: 45, revenue: 1800 },
-  { month: "Feb", members: 197, submissions: 52, revenue: 1970 },
-  { month: "Mar", members: 210, submissions: 58, revenue: 2100 },
-];
+const AdminPlatformTrendsChart = dynamic(
+  () =>
+    import("@/components/admin/admin-platform-trends-chart").then(
+      (m) => m.AdminPlatformTrendsChart
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-full min-h-[16rem] rounded-xl border border-border-default bg-surface-card/50 animate-pulse" />
+    ),
+  }
+);
 
 export default function AnalyticsPage() {
-  const maxRevenue = Math.max(...monthlyData.map((d) => d.revenue));
+  const stats = useQuery(api.admin.getDashboardStats);
+  const trends = useQuery(api.admin.getAnalyticsTrends);
+
+  // Use last 6 months of trends for the growth chart
+  const monthlyData = (trends ?? []).slice(-6);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -31,68 +39,36 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Members"
-          value="210"
-          change={15}
-          changeLabel="this month"
+          value={stats ? String(stats.totalMembers) : "—"}
+          change={stats?.currentMonthSubmissions ?? 0}
+          changeLabel="submissions this month"
           icon={<Users className="h-5 w-5" />}
         />
         <StatCard
           label="Submissions This Month"
-          value="58"
-          change={12}
-          changeLabel="vs last month"
+          value={stats ? String(stats.currentMonthSubmissions) : "—"}
           icon={<Video className="h-5 w-5" />}
         />
         <StatCard
           label="Votes Cast"
-          value="342"
-          change={18}
-          changeLabel="vs last month"
+          value={stats ? String(stats.totalVotes) : "—"}
           icon={<Vote className="h-5 w-5" />}
         />
         <StatCard
           label="Total Revenue"
-          value="$12.4k"
-          change={22}
-          changeLabel="vs last quarter"
+          value={
+            stats
+              ? `$${stats.totalRevenue >= 1000 ? `${(stats.totalRevenue / 1000).toFixed(1)}k` : stats.totalRevenue}`
+              : "—"
+          }
           icon={<DollarSign className="h-5 w-5" />}
         />
       </div>
 
-      {/* Revenue Chart (Simplified Bar Chart) */}
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Monthly Revenue</CardTitle>
-            <p className="text-xs text-text-muted mt-1">
-              Last 6 months &bull; $10/member/month
-            </p>
-          </div>
-          <div className="flex items-center gap-1 text-sm font-semibold text-success">
-            <TrendingUp className="h-4 w-4" />
-            +75%
-          </div>
-        </CardHeader>
-
-        <div className="flex items-end gap-3 h-48 mt-4">
-          {monthlyData.map((data) => (
-            <div key={data.month} className="flex-1 flex flex-col items-center gap-2">
-              <span className="text-xs font-mono text-text-muted">
-                ${(data.revenue / 1000).toFixed(1)}k
-              </span>
-              <div className="w-full relative">
-                <div
-                  className="w-full rounded-t-lg bg-gradient-to-t from-brand-600 to-brand-400 transition-all duration-500"
-                  style={{
-                    height: `${(data.revenue / maxRevenue) * 140}px`,
-                  }}
-                />
-              </div>
-              <span className="text-xs text-text-muted">{data.month}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
+      {/* Platform Trends (filterable time-series) */}
+      <div className="min-h-[22rem]">
+        <AdminPlatformTrendsChart className="h-full min-h-0" />
+      </div>
 
       {/* Growth Metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -102,13 +78,13 @@ export default function AnalyticsPage() {
           </CardHeader>
           <div className="space-y-4 mt-2">
             {monthlyData.map((data) => (
-              <div key={data.month} className="flex items-center gap-4">
+              <div key={data.monthKey} className="flex items-center gap-4">
                 <span className="text-xs text-text-muted w-8">
-                  {data.month}
+                  {data.label}
                 </span>
                 <Progress
                   value={data.members}
-                  max={250}
+                  max={Math.max(250, ...monthlyData.map((d) => d.members))}
                   size="sm"
                   className="flex-1"
                 />
@@ -136,31 +112,43 @@ export default function AnalyticsPage() {
               <span className="text-sm text-text-secondary">
                 Avg submissions per member
               </span>
-              <span className="text-sm font-bold text-text-primary">0.28</span>
+              <span className="text-sm font-bold text-text-primary">
+                {stats && stats.totalMembers > 0
+                  ? (stats.totalSubmissions / stats.totalMembers).toFixed(2)
+                  : "—"}
+              </span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-surface-elevated">
               <span className="text-sm text-text-secondary">
                 Avg AI score
               </span>
-              <span className="text-sm font-bold text-brand-500">82.4</span>
+              <span className="text-sm font-bold text-brand-500">
+                {stats ? stats.avgAiScore || "—" : "—"}
+              </span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-surface-elevated">
               <span className="text-sm text-text-secondary">
-                Score trend
+                Total submissions
               </span>
-              <span className="text-sm font-bold text-success">+3.2% MoM</span>
+              <span className="text-sm font-bold text-text-primary">
+                {stats ? stats.totalSubmissions : "—"}
+              </span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-surface-elevated">
               <span className="text-sm text-text-secondary">
-                Voting participation
+                Total votes
               </span>
-              <span className="text-sm font-bold text-text-primary">68%</span>
+              <span className="text-sm font-bold text-text-primary">
+                {stats ? stats.totalVotes : "—"}
+              </span>
             </div>
             <div className="flex items-center justify-between p-3 rounded-lg bg-surface-elevated">
               <span className="text-sm text-text-secondary">
-                Avg votes per submission
+                Pending applications
               </span>
-              <span className="text-sm font-bold text-text-primary">41</span>
+              <span className="text-sm font-bold text-text-primary">
+                {stats ? stats.pendingApplications : "—"}
+              </span>
             </div>
           </div>
         </Card>

@@ -168,6 +168,70 @@ export const listByMonth = query({
 });
 
 /**
+ * List all submitted/scored submissions across all months, with optional search.
+ * Used by the Explore page.
+ */
+export const listAll = query({
+  args: { search: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const submissions = await ctx.db.query("submissions").order("desc").collect();
+
+    let filtered = submissions.filter(
+      (s) => s.status === "submitted" || s.status === "scored"
+    );
+
+    if (args.search && args.search.trim() !== "") {
+      const q = args.search.toLowerCase();
+      // Pre-fetch user names for filtering
+      const userMap = new Map<string, string>();
+      for (const sub of filtered) {
+        if (!userMap.has(sub.userId as string)) {
+          const user = await ctx.db.get(sub.userId);
+          userMap.set(sub.userId as string, user?.fullName ?? "");
+        }
+      }
+      filtered = filtered.filter((s) => {
+        const userName = userMap.get(s.userId as string) ?? "";
+        return (
+          s.title.toLowerCase().includes(q) ||
+          s.description.toLowerCase().includes(q) ||
+          userName.toLowerCase().includes(q)
+        );
+      });
+    }
+
+    // Limit to 50 for performance
+    const limited = filtered.slice(0, 50);
+
+    const result = await Promise.all(
+      limited.map(async (sub) => {
+        const user = await ctx.db.get(sub.userId);
+        const score = await ctx.db
+          .query("aiScores")
+          .withIndex("by_submissionId", (q) => q.eq("submissionId", sub._id))
+          .first();
+        return {
+          ...sub,
+          user: user
+            ? {
+                _id: user._id,
+                fullName: user.fullName,
+                schoolName: user.schoolName,
+                avatarUrl: user.avatarStorageId
+                  ? await ctx.storage.getUrl(user.avatarStorageId)
+                  : null,
+              }
+            : null,
+          aiScore: score ?? undefined,
+        };
+      })
+    );
+
+    return result;
+  },
+});
+
+/**
  * Create a new draft submission.
  */
 export const create = mutation({

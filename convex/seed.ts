@@ -1151,6 +1151,76 @@ export const insertAll = internalMutation({
 
     console.log("   ✅ Created audit log entries");
 
+    // ============================================
+    // LEADERSHIP POSITIONS
+    // ============================================
+    await ctx.db.insert("leadershipPositions", {
+      type: "executive", name: "Sarah Chen", userId: users.sarah, role: "President",
+      school: "Grace Academy", graduation: 2027, sortOrder: 1,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "executive", name: "David Park", userId: users.david, role: "VP Marketing",
+      school: "Covenant Prep", graduation: 2027, sortOrder: 2,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "executive", name: "Maria Garcia", userId: users.maria, role: "VP Technology",
+      school: "Hope Academy", graduation: 2028, sortOrder: 3,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "executive", name: "Elijah Thompson", userId: users.elijah, role: "VP Recruitment",
+      school: "Liberty Christian", graduation: 2028, sortOrder: 4,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "executive", name: "Grace Kim", userId: users.grace, role: "VP Operations",
+      school: "Faith Lutheran", graduation: 2029, sortOrder: 5,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "executive", name: "Jake Oswald", userId: users.jake, role: "Advisor",
+      company: "Austin Christian U", jobTitle: "Accelerator Director", sortOrder: 7,
+    });
+
+    // Regional Directors
+    await ctx.db.insert("leadershipPositions", {
+      type: "regional_director", name: "Ava Martinez", userId: users.ava, role: "Regional Director",
+      region: "New England", school: "Cornerstone Academy", graduation: 2028, sortOrder: 1,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "regional_director", name: "Noah Williams", userId: users.noah, role: "Regional Director",
+      region: "Mid-Atlantic", school: "Heritage Christian", graduation: 2028, sortOrder: 2,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "regional_director", name: "Sophia Lee", userId: users.sophia, role: "Regional Director",
+      region: "Southeast", school: "Trinity Christian", graduation: 2029, sortOrder: 3,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "regional_director", name: "Caleb Johnson", userId: users.caleb, role: "Regional Director",
+      region: "Midwest", school: "Redeemer Prep", graduation: 2028, sortOrder: 4,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "regional_director", name: "Isaiah Brown", userId: users.isaiah, role: "Regional Director",
+      region: "South Central", school: "Victory Christian", graduation: 2028, sortOrder: 5,
+    });
+
+    // State Ambassadors
+    await ctx.db.insert("leadershipPositions", {
+      type: "ambassador", name: "Maria Garcia", userId: users.maria, role: "Ambassador",
+      state: "California", school: "Hope Academy", graduation: 2028, sortOrder: 1,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "ambassador", name: "Elijah Thompson", userId: users.elijah, role: "Ambassador",
+      state: "Florida", school: "Liberty Christian", graduation: 2028, sortOrder: 2,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "ambassador", name: "Grace Kim", userId: users.grace, role: "Ambassador",
+      state: "New York", school: "Faith Lutheran", graduation: 2029, sortOrder: 3,
+    });
+    await ctx.db.insert("leadershipPositions", {
+      type: "ambassador", name: "Noah Williams", userId: users.noah, role: "Ambassador",
+      state: "Texas", school: "Heritage Christian", graduation: 2028, sortOrder: 4,
+    });
+
+    console.log("   ✅ Created leadership positions");
+
     console.log("\n🎉 Seed complete! All demo data is live.");
     console.log("   View it at: https://dashboard.convex.dev/d/energetic-okapi-601");
   },
@@ -1165,6 +1235,7 @@ export const clearAll = internalMutation({
   args: {},
   handler: async (ctx) => {
     const tables = [
+      "ambassadorApplications", "leadershipPositions",
       "auditLog", "ventureStudioFlags", "bountySubmissions", "bounties",
       "notifications", "messages", "votes", "prizePools", "votingRounds",
       "aiScores", "submissionCollaborators", "submissions", "applications",

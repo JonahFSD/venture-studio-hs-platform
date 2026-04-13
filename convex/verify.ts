@@ -19,6 +19,8 @@ export const counts = query({
       bountySubmissions: (await ctx.db.query("bountySubmissions").collect()).length,
       ventureStudioFlags: (await ctx.db.query("ventureStudioFlags").collect()).length,
       auditLog: (await ctx.db.query("auditLog").collect()).length,
+      leadershipPositions: (await ctx.db.query("leadershipPositions").collect()).length,
+      ambassadorApplications: (await ctx.db.query("ambassadorApplications").collect()).length,
     };
     return tables;
   },

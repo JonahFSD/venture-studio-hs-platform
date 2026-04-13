@@ -175,35 +175,32 @@ export default function ResultsPage() {
 
   const pastRounds: MonthRound[] = (rawRounds ?? []).map((pool) => {
     const placements: PitchPlacement[] = [];
+    const winSubs = pool.winningSubmissions ?? [];
+    const placeUsers = [pool.firstPlaceUser, pool.secondPlaceUser, pool.thirdPlaceUser];
 
-    if (pool.firstPlaceUser) {
-      placements.push({
-        place: 1, projectId: pool._id, title: pool.firstPlaceUser.fullName, score: 0,
-        team: [{ id: pool.firstPlaceUser._id, name: pool.firstPlaceUser.fullName }],
-      });
-    }
-    if (pool.secondPlaceUser) {
-      placements.push({
-        place: 2, projectId: pool._id, title: pool.secondPlaceUser.fullName, score: 0,
-        team: [{ id: pool.secondPlaceUser._id, name: pool.secondPlaceUser.fullName }],
-      });
-    }
-    if (pool.thirdPlaceUser) {
-      placements.push({
-        place: 3, projectId: pool._id, title: pool.thirdPlaceUser.fullName, score: 0,
-        team: [{ id: pool.thirdPlaceUser._id, name: pool.thirdPlaceUser.fullName }],
-      });
+    for (let i = 0; i < 3; i++) {
+      const user = placeUsers[i];
+      const sub = winSubs.find((s) => s.place === i + 1);
+      if (user) {
+        placements.push({
+          place: (i + 1) as 1 | 2 | 3,
+          projectId: sub?.submissionId ?? pool._id,
+          title: sub?.title ?? user.fullName,
+          score: sub?.score ?? 0,
+          team: [{ id: user._id, name: user.fullName }],
+        });
+      }
     }
 
-    const mostPointsUser = pool.firstPlaceUser;
+    const mp = pool.mostPointsUser;
     return {
       month: formatMonthYear(pool.monthYear),
       grossPool: pool.totalCollected,
       placements,
       mostPoints: {
-        userId: mostPointsUser?._id ?? "",
-        name: mostPointsUser?.fullName ?? "N/A",
-        monthlyPoints: 0,
+        userId: mp?._id ?? "",
+        name: mp?.fullName ?? "N/A",
+        monthlyPoints: mp?.monthlyPoints ?? 0,
       },
     };
   });

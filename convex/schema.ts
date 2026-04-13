@@ -51,6 +51,23 @@ export default defineSchema({
     authSubject: v.optional(v.string()),
     /** Last time the user opened the Bounties list (for "new since last visit" sidebar badge). */
     lastViewedBountiesAt: v.optional(v.number()),
+    /** Per-channel notification preferences (true = enabled). */
+    notificationPreferences: v.optional(
+      v.object({
+        aiScoringEmail: v.boolean(),
+        aiScoringSms: v.boolean(),
+        votingRoundEmail: v.boolean(),
+        votingRoundSms: v.boolean(),
+        winnersEmail: v.boolean(),
+        winnersSms: v.boolean(),
+        monthlyRecapEmail: v.boolean(),
+        monthlyRecapSms: v.boolean(),
+        newMessagesEmail: v.boolean(),
+        newMessagesSms: v.boolean(),
+        communityUpdatesEmail: v.boolean(),
+        communityUpdatesSms: v.boolean(),
+      })
+    ),
   })
     .index("by_email", ["email"])
     .index("by_authSubject", ["authSubject"])
@@ -281,6 +298,58 @@ export default defineSchema({
   }).index("by_adminUserId", ["adminUserId"]),
 
   // ============================================
+  // LEADERSHIP POSITIONS — executive team, regional directors, ambassadors
+  // ============================================
+  leadershipPositions: defineTable({
+    type: v.union(
+      v.literal("executive"),
+      v.literal("regional_director"),
+      v.literal("ambassador")
+    ),
+    /** Display name (used when no userId link). */
+    name: v.string(),
+    /** Link to a platform member (optional — advisors may not have accounts). */
+    userId: v.optional(v.id("users")),
+    /** e.g. "President", "VP Marketing", "Advisor", "Regional Director", "Ambassador" */
+    role: v.string(),
+    /** Region name for directors (e.g. "New England"). */
+    region: v.optional(v.string()),
+    /** US state for ambassadors. */
+    state: v.optional(v.string()),
+    /** School name (for students). */
+    school: v.optional(v.string()),
+    /** Graduation year (for students). */
+    graduation: v.optional(v.number()),
+    /** Company name (for advisors). */
+    company: v.optional(v.string()),
+    /** Job title (for advisors). */
+    jobTitle: v.optional(v.string()),
+    /** Controls display order within each type. */
+    sortOrder: v.number(),
+  })
+    .index("by_type", ["type"])
+    .index("by_state", ["state"]),
+
+  // ============================================
+  // AMBASSADOR APPLICATIONS
+  // ============================================
+  ambassadorApplications: defineTable({
+    userId: v.id("users"),
+    state: v.string(),
+    whyStatement: v.string(),
+    leadershipExperience: v.string(),
+    city: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("rejected")
+    ),
+    reviewedAt: v.optional(v.number()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_status", ["status"]),
+
+  // ============================================
   // BOUNTIES — marketplace funding opportunities
   // ============================================
   bounties: defineTable({
@@ -292,6 +361,7 @@ export default defineSchema({
     dueDate: v.number(),
     status: v.union(
       v.literal("needs_review"),
+      v.literal("reviewing"),
       v.literal("active"),
       v.literal("completed"),
       v.literal("archived"),
@@ -299,7 +369,7 @@ export default defineSchema({
     ),
     requirements: v.array(v.string()),
     winnerSubmissionId: v.optional(v.id("bountySubmissions")),
-    creatorUserId: v.id("users"),
+    creatorUserId: v.optional(v.id("users")),
     reviewToken: v.optional(v.string()),
     stripePaymentIntentId: v.optional(v.string()),
     stripeCheckoutSessionId: v.optional(v.string()),
