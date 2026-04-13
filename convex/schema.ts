@@ -81,12 +81,12 @@ export default defineSchema({
   applications: defineTable({
     userEmail: v.string(),
     fullName: v.string(),
-    birthdate: v.string(), // ISO date string e.g. "2010-03-15"
+    birthdate: v.optional(v.string()), // ISO date string e.g. "2010-03-15"
     school: v.string(),
     graduationYear: v.number(),
     faithStatement: v.string(),
-    parentFirstName: v.string(),
-    parentLastName: v.string(),
+    parentFirstName: v.optional(v.string()),
+    parentLastName: v.optional(v.string()),
     parentEmail: v.string(),
     parentPhone: v.string(),
     status: v.union(
