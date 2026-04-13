@@ -47,7 +47,7 @@ export const insertAll = internalMutation({
 
     // Admin user (Jake / you)
     users.jake = await ctx.db.insert("users", {
-      email: "jakeoswald12@gmail.com",
+      email: "jake@austinchristianu.org",
       fullName: "Jake Oswald",
       bio: "Platform founder. Building the future of youth entrepreneurship at the intersection of faith and innovation.",
       schoolName: "Austin Christian University",
@@ -62,6 +62,23 @@ export const insertAll = internalMutation({
       points: 18750,
       totalEarnings: 5670,
       networkCount: 24,
+    });
+
+    // Connor Dore — President
+    users.connor = await ctx.db.insert("users", {
+      email: "connordore36@gmail.com",
+      fullName: "Connor Dore",
+      schoolName: "Jupiter Christian School",
+      city: "Jupiter",
+      graduationYear: 2027,
+      state: "FL",
+      role: "member",
+      skills: [],
+      lookingForCofounders: false,
+      points: 0,
+      pointsThisMonth: 0,
+      totalEarnings: 0,
+      networkCount: 0,
     });
 
     // Sarah Chen — top performer, frequent collaborator
@@ -1155,8 +1172,8 @@ export const insertAll = internalMutation({
     // LEADERSHIP POSITIONS
     // ============================================
     await ctx.db.insert("leadershipPositions", {
-      type: "executive", name: "Sarah Chen", userId: users.sarah, role: "President",
-      school: "Grace Academy", graduation: 2027, sortOrder: 1,
+      type: "executive", name: "Connor Dore", userId: users.connor, role: "President",
+      sortOrder: 1,
     });
     await ctx.db.insert("leadershipPositions", {
       type: "executive", name: "David Park", userId: users.david, role: "VP Marketing",
