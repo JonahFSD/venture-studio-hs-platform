@@ -7,7 +7,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Zap, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Swords, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function LoginPage() {
       if (err instanceof Error) {
         // If no auth account exists yet, auto-create one via signUp flow.
         // The createOrUpdateUser callback links to the existing seed user by email.
-        if (err.message.includes("InvalidAccountId")) {
+        if (err.message.includes("InvalidAccountId") || err.message.includes("Cannot read properties of null")) {
           try {
             await signIn("password", { email, password, flow: "signUp" });
             router.push("/dashboard");
@@ -63,10 +63,10 @@ export default function LoginPage() {
       {/* Logo */}
       <div className="flex items-center justify-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center">
-          <Zap className="h-6 w-6 text-black" />
+          <Swords className="h-6 w-6 text-black" />
         </div>
         <span className="text-xl font-bold text-text-primary">
-          ACU Youth Venture
+          The Arena
         </span>
       </div>
 
