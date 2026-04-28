@@ -1,6 +1,28 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 
+/** Escape HTML special characters so untrusted strings render as text. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Resolve a CTA URL against the site origin; return path+search+hash if same-origin, else null. */
+function safeSameOriginPath(url: string, siteUrl: string): string | null {
+  try {
+    const resolved = new URL(url, siteUrl);
+    const base = new URL(siteUrl);
+    if (resolved.origin !== base.origin) return null;
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Send an email via Resend.
  * Called by other Convex functions via ctx.scheduler.runAfter().
@@ -65,9 +87,15 @@ export const sendNotification = internalAction({
   },
   handler: async (ctx, args) => {
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://acuyouthventure.com";
-    const ctaBlock = args.ctaLabel && args.ctaUrl
-      ? `<p style="margin-top:24px"><a href="${siteUrl}${args.ctaUrl}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#000;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px">${args.ctaLabel}</a></p>`
-      : "";
+    let ctaBlock = "";
+    if (args.ctaLabel && args.ctaUrl) {
+      const safePath = safeSameOriginPath(args.ctaUrl, siteUrl);
+      if (safePath) {
+        const safeHref = escapeHtml(siteUrl + safePath);
+        const safeLabel = escapeHtml(args.ctaLabel);
+        ctaBlock = `<p style="margin-top:24px"><a href="${safeHref}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#000;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px">${safeLabel}</a></p>`;
+      }
+    }
 
     const html = `
 <!DOCTYPE html>
@@ -79,9 +107,9 @@ export const sendNotification = internalAction({
       <strong style="color:#f59e0b;font-size:16px">ACU Youth Venture</strong>
     </div>
     <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:32px 24px">
-      <p style="color:#ccc;font-size:14px;margin:0 0 8px">Hey ${args.recipientName},</p>
-      <h2 style="color:#fff;font-size:20px;margin:0 0 16px">${args.heading}</h2>
-      <p style="color:#999;font-size:14px;line-height:1.6;margin:0">${args.body}</p>
+      <p style="color:#ccc;font-size:14px;margin:0 0 8px">Hey ${escapeHtml(args.recipientName)},</p>
+      <h2 style="color:#fff;font-size:20px;margin:0 0 16px">${escapeHtml(args.heading)}</h2>
+      <p style="color:#999;font-size:14px;line-height:1.6;margin:0">${escapeHtml(args.body)}</p>
       ${ctaBlock}
     </div>
     <p style="color:#555;font-size:11px;margin-top:24px;text-align:center">
