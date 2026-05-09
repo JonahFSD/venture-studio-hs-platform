@@ -612,37 +612,28 @@
 
   async function initOrb(canvas) {
     /* ---------- tuning ---------- */
-    const N_CANDIDATES   = 55000;  // sphere candidate points
-    const RADIUS         = 1.45;
-    const OCEAN_KEEP     = 0.20;   // share of ocean candidates kept (sparse base layer)
-    const LAND_KEEP      = 0.92;   // share of land candidates kept (dense continents)
-    const ICE_KEEP       = 0.10;   // share of polar ice — minimal, keeps silhouette
-    const RADIAL_VARIANCE= 0.012;  // ±1.2% radius randomization for layered "thickness"
-    const OCEAN_SIZE     = 0.022;
-    const LAND_SIZE      = 0.034;
-    const USA_SIZE       = 0.038;
-    const MARKER_SIZE    = 0.18;
-    const ROT_SPEED_Y    = 0.0012;
+    const N_CANDIDATES = 14000;   // uniform Fibonacci dots — same density everywhere
+    const RADIUS       = 1.45;
+    const POINT_SIZE   = 0.024;   // world-unit-ish; shader uses 300/dist factor
+    const ROT_SPEED_Y  = 0.0010;
     const DRAG_SENSITIVITY = 0.006;
-    const MARKER_PULSE_PERIOD = 3.8;  // seconds per marker pulse cycle
+    const STAR_COUNT   = 320;
+    const MARKER_SIZE  = 0.045;
 
-    /* USA continental bounding box (lat 24-50, lon -125 to -66).
-       Particles sampled in this region get the "highlight" tier. */
-    const USA_LAT_MIN = 24, USA_LAT_MAX = 50;
-    const USA_LON_MIN = -125, USA_LON_MAX = -66;
+    /* Brightness tiers — applied uniformly via shader, not via density.
+       Same dots everywhere, ocean = dim, land = brighter, silhouette = brightest.
+       Back-facing particles are culled in the shader so the orb reads solid. */
+    const OCEAN_BRIGHTNESS = 0.14;
+    const LAND_BRIGHTNESS  = 0.36;
+    const RIM_POWER        = 2.4;
+    const RIM_BOOST        = 0.65;
 
-    /* Marker locations (lat, lon). No labels per design. */
+    /* Marker locations (lat, lon) — no labels per design, just gold dots. */
     const MARKER_LOCATIONS = [
-      [33.95,  -84.34],   // Atlanta GA
-      [26.94,  -80.09],   // Jupiter FL
-      [36.16,  -86.78],   // Nashville TN
-      [32.78,  -96.80],   // Dallas TX
-      [35.23,  -80.84],   // Charlotte NC
-      [40.71,  -74.01],   // NYC
-      [41.88,  -87.63],   // Chicago IL
-      [34.05, -118.24],   // Los Angeles CA
-      [29.76,  -95.37],   // Houston TX
-      [39.95,  -75.16],   // Philadelphia PA
+      [33.95,  -84.34], [26.94,  -80.09], [36.16,  -86.78],
+      [32.78,  -96.80], [35.23,  -80.84], [40.71,  -74.01],
+      [41.88,  -87.63], [34.05, -118.24], [29.76,  -95.37],
+      [39.95,  -75.16], [38.91,  -77.03], [42.36,  -71.06],
     ];
 
     /* ---------- THREE setup ---------- */
@@ -652,17 +643,14 @@
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    /* ---------- Load Earth + sample three tiers ---------- */
+    /* ---------- Load Earth + sample land mask ---------- */
     const earthMask = await loadEarthMask(TEX_URL);
 
-    /* Generate candidates and bin into three pools. Each pool gets its own
-       Points object with its own size/color so the visual hierarchy is real:
-         - oceanPool: small, dim cream — "base layer of dots on the oceans"
-         - landPool: regular size, warm cream — "deeper topographical" continents
-         - usaPool: largest non-marker dot, bright gold-cream — USA highlight */
-    const oceanPool = [];
-    const landPool  = [];
-    const usaPool   = [];
+    /* Generate uniform Fibonacci sphere; per-vertex aLand attribute distinguishes
+       land from ocean. Density is identical everywhere — the visual difference
+       between land and ocean is BRIGHTNESS in the shader. */
+    const positions = new Float32Array(N_CANDIDATES * 3);
+    const landFlags = new Float32Array(N_CANDIDATES);
 
     for (let i = 0; i < N_CANDIDATES; i++) {
       const phi = Math.acos(1 - 2 * (i + 0.5) / N_CANDIDATES);
@@ -671,6 +659,10 @@
       const dy = Math.sin(theta) * Math.sin(phi);
       const dz = Math.cos(phi);
 
+      positions[3*i]     = dx * RADIUS;
+      positions[3*i + 1] = dy * RADIUS;
+      positions[3*i + 2] = dz * RADIUS;
+
       const lat = Math.asin(dy);
       const lon = Math.atan2(dz, dx);
       const u = (lon / (2 * Math.PI)) + 0.5;
@@ -678,56 +670,88 @@
       const px = earthMask.sample(u, v);
 
       const isOcean = px.b > px.r + 14 && px.b > px.g + 4;
-      const isIce = px.r > 220 && px.g > 220 && px.b > 220;
-      const latDeg = lat * 180 / Math.PI;
-      const lonDeg = lon * 180 / Math.PI;
-      const isUSA = !isOcean && !isIce
-                    && latDeg > USA_LAT_MIN && latDeg < USA_LAT_MAX
-                    && lonDeg > USA_LON_MIN && lonDeg < USA_LON_MAX;
-
-      /* Per-particle radius variance — gives the "layered" thickness feel */
-      const rJitter = 1 + (Math.random() - 0.5) * 2 * RADIAL_VARIANCE;
-      const r = RADIUS * rJitter;
-      const x = dx * r, y = dy * r, z = dz * r;
-
-      if (isUSA) {
-        if (Math.random() < LAND_KEEP) usaPool.push(x, y, z);
-      } else if (isIce) {
-        if (Math.random() < ICE_KEEP) oceanPool.push(x, y, z);  // ice goes into "base" pool
-      } else if (isOcean) {
-        if (Math.random() < OCEAN_KEEP) oceanPool.push(x, y, z);
-      } else {
-        if (Math.random() < LAND_KEEP) landPool.push(x, y, z);
-      }
+      const isIce   = px.r > 220 && px.g > 220 && px.b > 220;
+      landFlags[i]  = (isOcean || isIce) ? 0.0 : 1.0;
     }
 
-    const circleTex = makeCircleTexture();
+    const dotsGeom = new THREE.BufferGeometry();
+    dotsGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    dotsGeom.setAttribute('aLand',    new THREE.BufferAttribute(landFlags, 1));
 
-    /* Helper to build a Points object from a flat number-list pool */
-    function buildPool(pool, size, color, opacity) {
-      const arr = new Float32Array(pool);
-      const g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-      const m = new THREE.PointsMaterial({
-        map: circleTex, size, color,
-        transparent: true, opacity,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false, sizeAttenuation: true,
-      });
-      return new THREE.Points(g, m);
-    }
+    /* Custom shader — fresnel rim + land/ocean brightness mix.
+       The fresnel boost is what creates Anduril's signature silhouette halo.  */
+    const dotsMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uMap:             { value: makeCircleTexture() },
+        uPointSize:       { value: POINT_SIZE },
+        uPixelRatio:      { value: Math.min(window.devicePixelRatio, 2) },
+        uOceanBrightness: { value: OCEAN_BRIGHTNESS },
+        uLandBrightness:  { value: LAND_BRIGHTNESS },
+        uRimPower:        { value: RIM_POWER },
+        uRimBoost:        { value: RIM_BOOST },
+        uColor:           { value: new THREE.Color(0xF5EFE0) },
+      },
+      vertexShader: /* glsl */ `
+        attribute float aLand;
+        varying float vBrightness;
 
-    /* Three pools — sizes and colors chosen so the visual hierarchy is:
-         ocean (faintest) < land (mid) < USA (brightest) < markers (popping)  */
-    const oceanPoints = buildPool(oceanPool, OCEAN_SIZE, 0x6B5B40, 0.55);
-    const landPoints  = buildPool(landPool,  LAND_SIZE,  0xB89970, 0.95);
-    const usaPoints   = buildPool(usaPool,   USA_SIZE,   0xE8C46E, 1.00);
+        uniform float uPointSize;
+        uniform float uPixelRatio;
+        uniform float uOceanBrightness;
+        uniform float uLandBrightness;
+        uniform float uRimPower;
+        uniform float uRimBoost;
 
-    /* ---------- Marker points ---------- */
+        void main() {
+          vec4 worldPos4 = modelMatrix * vec4(position, 1.0);
+          vec3 worldPos  = worldPos4.xyz;
+          vec3 worldN    = normalize(worldPos);
+          vec3 viewDir   = normalize(cameraPosition - worldPos);
+
+          /* ndotv: 1 when facing camera, 0 at silhouette, negative when on far side */
+          float ndotv = dot(viewDir, worldN);
+
+          /* Cull back-facing particles via brightness multiplier (smooth fade
+             through the silhouette band). Without this all 32k dots render. */
+          float front = smoothstep(-0.05, 0.10, ndotv);
+
+          /* Fresnel rim — peaks at silhouette (ndotv≈0), zero when facing camera */
+          float rim = pow(1.0 - clamp(ndotv, 0.0, 1.0), uRimPower);
+
+          float baseBrightness = mix(uOceanBrightness, uLandBrightness, aLand);
+          vBrightness = (baseBrightness + rim * uRimBoost) * front;
+
+          vec4 mvPosition = viewMatrix * worldPos4;
+          gl_Position = projectionMatrix * mvPosition;
+          /* Match Three.js PointsMaterial size attenuation convention. */
+          gl_PointSize = uPointSize * uPixelRatio * (300.0 / -mvPosition.z);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying float vBrightness;
+        uniform sampler2D uMap;
+        uniform vec3 uColor;
+
+        void main() {
+          /* Skip back-facing particles entirely (vertex shader sets vBrightness≈0) */
+          if (vBrightness < 0.01) discard;
+          vec4 tex = texture2D(uMap, gl_PointCoord);
+          if (tex.a < 0.05) discard;
+          gl_FragColor = vec4(uColor * vBrightness, tex.a);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,
+    });
+
+    const dots = new THREE.Points(dotsGeom, dotsMat);
+
+    /* ---------- Markers (gold, no labels) ---------- */
     const markerDirs = MARKER_LOCATIONS.map(([la, lo]) => latLonToVec3(la, lo));
     const NM = markerDirs.length;
     const markerPositions = new Float32Array(NM * 3);
-    const MARKER_R = RADIUS * 1.022;
+    const MARKER_R = RADIUS * 1.012;
     for (let m = 0; m < NM; m++) {
       const md = markerDirs[m];
       markerPositions[3*m]   = md.x * MARKER_R;
@@ -737,21 +761,27 @@
     const markerGeom = new THREE.BufferGeometry();
     markerGeom.setAttribute('position', new THREE.BufferAttribute(markerPositions, 3));
     const markerMat = new THREE.PointsMaterial({
-      map: circleTex, size: MARKER_SIZE, color: 0xFFD060,
-      transparent: true, opacity: 1.0,
-      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+      map: makeCircleTexture(),
+      size: MARKER_SIZE,
+      color: 0xFFD040,
+      transparent: true,
+      opacity: 1.0,
+      depthWrite: false,
+      sizeAttenuation: true,
     });
     const markerPoints = new THREE.Points(markerGeom, markerMat);
 
-    /* ---------- Group everything so rotation applies uniformly ---------- */
+    /* ---------- Orb group (rotates) ---------- */
     const orbGroup = new THREE.Group();
-    orbGroup.add(oceanPoints);
-    orbGroup.add(landPoints);
-    orbGroup.add(usaPoints);
+    orbGroup.add(dots);
     orbGroup.add(markerPoints);
     scene.add(orbGroup);
 
-    /* ---------- Drag-to-rotate (no cursor disruption anymore) ---------- */
+    /* ---------- Background starfield (does NOT rotate with the orb) ---------- */
+    const stars = makeStarfield(STAR_COUNT);
+    scene.add(stars);
+
+    /* ---------- Drag-to-rotate ---------- */
     let isDragging = false;
     let dragLastX = 0, dragLastY = 0;
     canvas.style.cursor = 'grab';
@@ -779,21 +809,12 @@
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
     });
 
-    /* ---------- animation loop — rotation + marker pulse only ---------- */
+    /* ---------- animation loop ---------- */
     function tick() {
       requestAnimationFrame(tick);
-
-      /* Marker pulse — alpha breathing so the highlight dots "report" */
-      const t = performance.now() * 0.001;
-      const pulse = 0.78 + 0.22 * (Math.sin(t * (Math.PI * 2 / MARKER_PULSE_PERIOD)) + 1) * 0.5;
-      markerMat.opacity = pulse;
-
       if (!isDragging) {
         orbGroup.rotation.y += ROT_SPEED_Y;
-        const xTarget = Math.sin(performance.now() * 0.00012) * 0.06;
-        orbGroup.rotation.x += (xTarget - orbGroup.rotation.x) * 0.03;
       }
-
       renderer.render(scene, camera);
     }
 
@@ -804,10 +825,36 @@
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      dotsMat.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
     }
     window.addEventListener('resize', onResize);
     onResize();
     tick();
+  }
+
+  /* Background starfield — random points on an outer shell, doesn't rotate. */
+  function makeStarfield(count) {
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const u = Math.random() * 2 - 1;
+      const phi = Math.random() * Math.PI * 2;
+      const s = Math.sqrt(1 - u * u);
+      const r = 6 + Math.random() * 3;  // radius 6-9, well outside orb
+      positions[3*i]   = r * s * Math.cos(phi);
+      positions[3*i+1] = r * s * Math.sin(phi);
+      positions[3*i+2] = r * u;
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+      color: 0xFFFFFF,
+      size: 0.012,
+      transparent: true,
+      opacity: 0.55,
+      sizeAttenuation: true,
+      depthWrite: false,
+    });
+    return new THREE.Points(geom, mat);
   }
 
   /* ---------- helpers ---------- */
@@ -850,15 +897,17 @@
     };
   }
 
-  /* Soft circular point texture (procedural) */
+  /* Crisp circular dot texture — solid center, sharp edge, slight feather to
+     antialias. Sharper than a soft glow because Anduril's dots read as crisp,
+     not bloomy. The fresnel rim does the glow work in the shader instead. */
   function makeCircleTexture() {
     const c = document.createElement('canvas');
     c.width = c.height = 64;
     const ctx = c.getContext('2d');
     const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
     g.addColorStop(0,    'rgba(255,255,255,1.0)');
-    g.addColorStop(0.30, 'rgba(255,255,255,0.85)');
-    g.addColorStop(0.65, 'rgba(255,255,255,0.25)');
+    g.addColorStop(0.62, 'rgba(255,255,255,1.0)');
+    g.addColorStop(0.85, 'rgba(255,255,255,0.4)');
     g.addColorStop(1,    'rgba(255,255,255,0.0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 64, 64);
