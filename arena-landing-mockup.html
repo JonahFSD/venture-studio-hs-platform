@@ -603,13 +603,13 @@
 
   function initOrb(canvas) {
     /* ---------- tuning ---------- */
-    const N             = 6500;    // particle count
+    const N             = 9500;    // particle count (denser cloud)
     const RADIUS        = 1.45;    // sphere radius in world units
-    const POINT_SIZE    = 0.045;   // visible point diameter
-    const REPEL_RADIUS  = 0.55;    // how far the cursor pushes
-    const REPEL_FORCE   = 0.022;   // how hard it pushes
-    const SPRING        = 0.012;   // pull-back-to-home strength
-    const DAMPING       = 0.88;    // velocity decay per frame
+    const POINT_SIZE    = 0.040;   // visible point diameter (smaller to compensate for density)
+    const REPEL_RADIUS  = 0.38;    // how far the cursor pushes
+    const REPEL_FORCE   = 0.048;   // how hard it pushes (snappier reaction)
+    const SPRING        = 0.014;   // pull-back-to-home strength
+    const DAMPING       = 0.86;    // velocity decay per frame
     const ROT_SPEED_Y   = 0.0014;  // ambient rotation
     /* --------------------------- */
 
@@ -622,21 +622,27 @@
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    /* Particle positions: Fibonacci spiral for even sphere distribution */
+    /* Particle positions: Fibonacci spiral for even sphere distribution.
+       unitDirs stores each particle's unit direction from origin so the
+       breath cycle can recompute originals[] each frame to a new radius. */
     const positions  = new Float32Array(N * 3);
     const originals  = new Float32Array(N * 3);
     const velocities = new Float32Array(N * 3);
     const colors     = new Float32Array(N * 3);
+    const unitDirs   = new Float32Array(N * 3);
 
     for (let i = 0; i < N; i++) {
       const phi   = Math.acos(1 - 2 * (i + 0.5) / N);
       const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-      const x = RADIUS * Math.cos(theta) * Math.sin(phi);
-      const y = RADIUS * Math.sin(theta) * Math.sin(phi);
-      const z = RADIUS * Math.cos(phi);
-      positions[3*i]   = originals[3*i]   = x;
-      positions[3*i+1] = originals[3*i+1] = y;
-      positions[3*i+2] = originals[3*i+2] = z;
+      const dx = Math.cos(theta) * Math.sin(phi);
+      const dy = Math.sin(theta) * Math.sin(phi);
+      const dz = Math.cos(phi);
+      unitDirs[3*i]   = dx;
+      unitDirs[3*i+1] = dy;
+      unitDirs[3*i+2] = dz;
+      positions[3*i]   = originals[3*i]   = dx * RADIUS;
+      positions[3*i+1] = originals[3*i+1] = dy * RADIUS;
+      positions[3*i+2] = originals[3*i+2] = dz * RADIUS;
 
       /* Color tiers, palette-aligned:
            5%  gold accent   ≈ --gold-bright (#E5C07B)
@@ -670,34 +676,94 @@
     const points = new THREE.Points(geom, material);
     scene.add(points);
 
-    /* ---------- mouse tracking ---------- */
+    /* ---------- mouse tracking + drag-to-rotate ---------- */
     const mouseNDC   = new THREE.Vector2(999, 999);
     const raycaster  = new THREE.Raycaster();
     const sphereHit  = new THREE.Sphere(new THREE.Vector3(0, 0, 0), RADIUS);
     const hitPoint   = new THREE.Vector3();
     let mouseActive  = false;
 
+    let isDragging = false;
+    let dragLastX = 0, dragLastY = 0;
+    const DRAG_SENSITIVITY = 0.006;  // radians per pixel
+
+    canvas.style.cursor = 'grab';
+
+    canvas.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      dragLastX = e.clientX;
+      dragLastY = e.clientY;
+      canvas.style.cursor = 'grabbing';
+      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+
     window.addEventListener('pointermove', (e) => {
+      if (isDragging) {
+        const dx = e.clientX - dragLastX;
+        const dy = e.clientY - dragLastY;
+        points.rotation.y += dx * DRAG_SENSITIVITY;
+        points.rotation.x += dy * DRAG_SENSITIVITY;
+        dragLastX = e.clientX;
+        dragLastY = e.clientY;
+      }
       const rect = canvas.getBoundingClientRect();
       mouseNDC.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
       mouseNDC.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
       mouseActive = true;
     });
+
+    window.addEventListener('pointerup', (e) => {
+      if (isDragging) {
+        isDragging = false;
+        canvas.style.cursor = 'grab';
+        try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+    });
     window.addEventListener('pointerleave', () => { mouseActive = false; });
     document.addEventListener('mouseleave', () => { mouseActive = false; });
 
     /* ---------- color flash + breathing constants ---------- */
-    const FLASH_SPEED = 0.011;   // velocity threshold for full flash
+    const FLASH_SPEED = 0.013;   // velocity threshold for full flash
     const FLASH_R = 1.00, FLASH_G = 0.86, FLASH_B = 0.55;  // bright gold flash target
-    const BREATH_AMP    = 0.022;                 // ±2.2% radius
-    const BREATH_PERIOD = 5.5;                   // seconds per breath
+
+    /* Breath is now PRIMARILY radial — the cloud physically expands and
+       contracts (edges visibly move). Y-axis gets a slight extra emphasis
+       on a phase-shifted cycle so it also "gets taller" — feels organic
+       instead of perfectly uniform. Brightness/size pulse is dialed way
+       back to a subtle accent. */
+    const BREATH_PERIOD   = 5.4;    // seconds per breath cycle
+    const RADIAL_AMP      = 0.055;  // ±5.5% radius — physical expansion
+    const Y_EMPHASIS_AMP  = 0.008;  // extra ±0.8% Y on slightly different phase (subtle)
+    const Y_EMPHASIS_LAG  = 0.55;   // radians phase lag — makes Y feel "delayed"
+    const BREATH_SIZE_AMP = 0.04;   // ±4% point size (subtle accent)
+    const BREATH_OPA_LOW  = 0.92;   // dim end of brightness pulse (subtle)
+    const BREATH_OPA_HIGH = 1.00;   // bright end
 
     /* ---------- animation loop ---------- */
     function tick() {
       requestAnimationFrame(tick);
 
+      /* Radial breath — recompute spring targets each frame.
+         Originals[] move outward and inward; particles spring toward the
+         moving target with natural lag. Hit sphere updates to match so
+         the cursor still hits the visible silhouette. */
+      const t = performance.now() * 0.001;
+      const phase = t * (Math.PI * 2 / BREATH_PERIOD);
+      const radialWave = Math.sin(phase);
+      const yWave      = Math.sin(phase + Y_EMPHASIS_LAG);
+      const breathR    = RADIUS * (1 + RADIAL_AMP * radialWave);
+      const yBoost     = 1 + Y_EMPHASIS_AMP * yWave;
+      sphereHit.radius = breathR * Math.max(1, yBoost);
+
+      for (let i = 0; i < N; i++) {
+        const ix = 3*i, iy = 3*i+1, iz = 3*i+2;
+        originals[ix] = unitDirs[ix] * breathR;
+        originals[iy] = unitDirs[iy] * breathR * yBoost;
+        originals[iz] = unitDirs[iz] * breathR;
+      }
+
       let hasHit = false;
-      if (mouseActive) {
+      if (mouseActive && !isDragging) {
         raycaster.setFromCamera(mouseNDC, camera);
         hasHit = raycaster.ray.intersectSphere(sphereHit, hitPoint) !== null;
       }
@@ -756,15 +822,22 @@
       geom.attributes.position.needsUpdate = true;
       geom.attributes.color.needsUpdate = true;
 
-      /* Idle breathing — whole orb gently scales on a slow sine cycle.
-         Hit sphere stays at RADIUS so cursor interaction is unaffected by
-         the visual scale (the discrepancy is sub-pixel at this amplitude). */
-      const t = performance.now() * 0.001;
-      const breath = 1 + BREATH_AMP * Math.sin(t * (Math.PI * 2 / BREATH_PERIOD));
-      points.scale.setScalar(breath);
+      /* Subtle accent — point size + opacity track the same breath wave
+         already used for the radial expansion. Dialed way down so it's a
+         secondary cue rather than the primary breathing signal. */
+      const pulse01 = (radialWave + 1) * 0.5;
+      material.size    = POINT_SIZE * (1 + BREATH_SIZE_AMP * radialWave);
+      material.opacity = BREATH_OPA_LOW + (BREATH_OPA_HIGH - BREATH_OPA_LOW) * pulse01;
 
-      points.rotation.y += ROT_SPEED_Y;
-      points.rotation.x = Math.sin(performance.now() * 0.00012) * 0.07;
+      /* Ambient rotation pauses while dragging. After release, X eases back
+         toward its sine wobble target (lerp) instead of snapping — keeps the
+         feel continuous. Y just keeps incrementing from wherever the user
+         left it. */
+      if (!isDragging) {
+        points.rotation.y += ROT_SPEED_Y;
+        const xTarget = Math.sin(performance.now() * 0.00012) * 0.07;
+        points.rotation.x += (xTarget - points.rotation.x) * 0.04;
+      }
 
       renderer.render(scene, camera);
     }
