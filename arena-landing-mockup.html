@@ -638,11 +638,15 @@
       positions[3*i+1] = originals[3*i+1] = y;
       positions[3*i+2] = originals[3*i+2] = z;
 
-      /* Color: mostly soft cream, some warm cream, rare gold accents */
+      /* Color tiers, palette-aligned:
+           5%  gold accent   ≈ --gold-bright (#E5C07B)
+           20% cream highlight ≈ --cream     (#F0E6CE) slightly dimmed for additive
+           75% warm base — between --gold and --cream-muted, pushed orange-warm
+              so the cloud reads as "warm cream/gold" not "gray tan" */
       const r = Math.random();
-      if (r < 0.04)        { colors[3*i]=0.94; colors[3*i+1]=0.78; colors[3*i+2]=0.50; }
-      else if (r < 0.22)   { colors[3*i]=0.96; colors[3*i+1]=0.88; colors[3*i+2]=0.69; }
-      else                 { colors[3*i]=0.78; colors[3*i+1]=0.72; colors[3*i+2]=0.58; }
+      if (r < 0.05)        { colors[3*i]=0.90; colors[3*i+1]=0.75; colors[3*i+2]=0.48; }
+      else if (r < 0.25)   { colors[3*i]=0.88; colors[3*i+1]=0.78; colors[3*i+2]=0.64; }
+      else                 { colors[3*i]=0.62; colors[3*i+1]=0.48; colors[3*i+2]=0.30; }
     }
 
     const geom = new THREE.BufferGeometry();
@@ -689,16 +693,14 @@
         hasHit = raycaster.ray.intersectSphere(sphereHit, hitPoint) !== null;
       }
 
-      /* When points rotate, the cursor's "world hit point" needs to be
-         expressed in the rotating frame so the repulsion targets the
-         visually-near points. Rotate the hit by the inverse of points.rotation. */
+      /* Transform world-space hit point into the points' local frame so
+         repulsion targets visually-near points (accounts for both Y rotation
+         and X wobble in one call — no manual matrix math). */
       let hx = 0, hy = 0, hz = 0;
       if (hasHit) {
-        const cosY = Math.cos(-points.rotation.y);
-        const sinY = Math.sin(-points.rotation.y);
-        hx = hitPoint.x * cosY - hitPoint.z * sinY;
-        hz = hitPoint.x * sinY + hitPoint.z * cosY;
-        hy = hitPoint.y;
+        points.updateMatrixWorld();
+        const localHit = points.worldToLocal(hitPoint.clone());
+        hx = localHit.x; hy = localHit.y; hz = localHit.z;
       }
 
       const pos = geom.attributes.position.array;
