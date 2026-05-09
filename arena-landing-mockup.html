@@ -649,6 +649,9 @@
       else                 { colors[3*i]=0.62; colors[3*i+1]=0.48; colors[3*i+2]=0.30; }
     }
 
+    /* Snapshot of starting colors — color flash blends toward FLASH_* and back */
+    const baseColors = new Float32Array(colors);
+
     const geom = new THREE.BufferGeometry();
     geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geom.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
@@ -683,6 +686,12 @@
     window.addEventListener('pointerleave', () => { mouseActive = false; });
     document.addEventListener('mouseleave', () => { mouseActive = false; });
 
+    /* ---------- color flash + breathing constants ---------- */
+    const FLASH_SPEED = 0.011;   // velocity threshold for full flash
+    const FLASH_R = 1.00, FLASH_G = 0.86, FLASH_B = 0.55;  // bright gold flash target
+    const BREATH_AMP    = 0.022;                 // ±2.2% radius
+    const BREATH_PERIOD = 5.5;                   // seconds per breath
+
     /* ---------- animation loop ---------- */
     function tick() {
       requestAnimationFrame(tick);
@@ -704,6 +713,7 @@
       }
 
       const pos = geom.attributes.position.array;
+      const col = geom.attributes.color.array;
       for (let i = 0; i < N; i++) {
         const ix = 3*i, iy = 3*i+1, iz = 3*i+2;
 
@@ -734,8 +744,24 @@
         pos[ix] += velocities[ix];
         pos[iy] += velocities[iy];
         pos[iz] += velocities[iz];
+
+        /* Color flash: speed → blend toward bright gold; decays as velocity damps */
+        const vx = velocities[ix], vy = velocities[iy], vz = velocities[iz];
+        const speed = Math.sqrt(vx*vx + vy*vy + vz*vz);
+        const flash = speed >= FLASH_SPEED ? 1 : speed / FLASH_SPEED;
+        col[ix] = baseColors[ix] + (FLASH_R - baseColors[ix]) * flash;
+        col[iy] = baseColors[iy] + (FLASH_G - baseColors[iy]) * flash;
+        col[iz] = baseColors[iz] + (FLASH_B - baseColors[iz]) * flash;
       }
       geom.attributes.position.needsUpdate = true;
+      geom.attributes.color.needsUpdate = true;
+
+      /* Idle breathing — whole orb gently scales on a slow sine cycle.
+         Hit sphere stays at RADIUS so cursor interaction is unaffected by
+         the visual scale (the discrepancy is sub-pixel at this amplitude). */
+      const t = performance.now() * 0.001;
+      const breath = 1 + BREATH_AMP * Math.sin(t * (Math.PI * 2 / BREATH_PERIOD));
+      points.scale.setScalar(breath);
 
       points.rotation.y += ROT_SPEED_Y;
       points.rotation.x = Math.sin(performance.now() * 0.00012) * 0.07;
