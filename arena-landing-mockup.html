@@ -106,9 +106,15 @@
     animation: orbIntro 1.6s var(--ease-out) .15s backwards;
   }
   .orb-canvas {
+    /* Canvas extends 12.5% beyond the .orb on each side so flares have room
+       to reach without hitting the canvas boundary. Camera is pulled back to
+       z=5 to keep the orb at the same apparent size. */
+    position: absolute;
+    top: -12.5%;
+    left: -12.5%;
+    width: 125%;
+    height: 125%;
     display: block;
-    width: 100%;
-    height: 100%;
     pointer-events: auto;
   }
   @keyframes orbIntro {
@@ -584,109 +590,170 @@
 </script>
 
 <!-- ============================================================
-     ORB v4 — WebGL point cloud with mouse repulsion
-     ~6500 particles distributed via Fibonacci spiral on a sphere.
-     Each frame:
-       - Raycast cursor onto sphere of influence
-       - Apply quadratic-falloff repulsion to nearby points
-       - Spring-back force toward original position
-       - Velocity damping
-     Tuning constants are at the top of initOrb() — REPEL_RADIUS,
-     REPEL_FORCE, SPRING, DAMPING control how aggressive the disturb
-     and how fast the recovery.
+     ORB v5 — Earth-shaped point cloud with markers + connection lines
+     - Particles distributed across the sphere only where Earth's
+       land masses are (sampled from an equirectangular Earth image).
+     - Yellow markers placed at specific lat/lon coordinates.
+     - Faint connection lines between near-neighbor land particles
+       (skipped across oceans via distance threshold), updating per
+       frame so the mesh deforms with mouse interaction and breath.
+     - Mouse repulsion + drag-to-rotate + idle breath retained.
+     - CME flares removed.
 ============================================================ -->
 <script type="module">
   import * as THREE from 'three';
 
+  const TEX_URL = 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg';
+
   const canvas = document.querySelector('.orb-canvas');
-  if (canvas) initOrb(canvas);
+  if (canvas) {
+    initOrb(canvas).catch(err => console.warn('Orb init failed:', err));
+  }
 
-  function initOrb(canvas) {
+  async function initOrb(canvas) {
     /* ---------- tuning ---------- */
-    const N             = 9500;    // particle count (denser cloud)
-    const RADIUS        = 1.45;    // sphere radius in world units
-    const POINT_SIZE    = 0.040;   // visible point diameter (smaller to compensate for density)
-    const REPEL_RADIUS  = 0.38;    // how far the cursor pushes
-    const REPEL_FORCE   = 0.048;   // how hard it pushes (snappier reaction)
-    const SPRING        = 0.014;   // pull-back-to-home strength
-    const DAMPING       = 0.86;    // velocity decay per frame
-    const ROT_SPEED_Y   = 0.0014;  // ambient rotation
-    /* --------------------------- */
+    const N_CANDIDATES   = 55000;  // sphere candidate points
+    const RADIUS         = 1.45;
+    const OCEAN_KEEP     = 0.20;   // share of ocean candidates kept (sparse base layer)
+    const LAND_KEEP      = 0.92;   // share of land candidates kept (dense continents)
+    const ICE_KEEP       = 0.10;   // share of polar ice — minimal, keeps silhouette
+    const RADIAL_VARIANCE= 0.012;  // ±1.2% radius randomization for layered "thickness"
+    const OCEAN_SIZE     = 0.022;
+    const LAND_SIZE      = 0.034;
+    const USA_SIZE       = 0.038;
+    const MARKER_SIZE    = 0.18;
+    const ROT_SPEED_Y    = 0.0012;
+    const DRAG_SENSITIVITY = 0.006;
+    const MARKER_PULSE_PERIOD = 3.8;  // seconds per marker pulse cycle
 
+    /* USA continental bounding box (lat 24-50, lon -125 to -66).
+       Particles sampled in this region get the "highlight" tier. */
+    const USA_LAT_MIN = 24, USA_LAT_MAX = 50;
+    const USA_LON_MIN = -125, USA_LON_MAX = -66;
+
+    /* Marker locations (lat, lon). No labels per design. */
+    const MARKER_LOCATIONS = [
+      [33.95,  -84.34],   // Atlanta GA
+      [26.94,  -80.09],   // Jupiter FL
+      [36.16,  -86.78],   // Nashville TN
+      [32.78,  -96.80],   // Dallas TX
+      [35.23,  -80.84],   // Charlotte NC
+      [40.71,  -74.01],   // NYC
+      [41.88,  -87.63],   // Chicago IL
+      [34.05, -118.24],   // Los Angeles CA
+      [29.76,  -95.37],   // Houston TX
+      [39.95,  -75.16],   // Philadelphia PA
+    ];
+
+    /* ---------- THREE setup ---------- */
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 0, 4);
-
-    const renderer = new THREE.WebGLRenderer({
-      canvas, alpha: true, antialias: true
-    });
+    camera.position.set(0, 0, 5);
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    /* Particle positions: Fibonacci spiral for even sphere distribution.
-       unitDirs stores each particle's unit direction from origin so the
-       breath cycle can recompute originals[] each frame to a new radius. */
-    const positions  = new Float32Array(N * 3);
-    const originals  = new Float32Array(N * 3);
-    const velocities = new Float32Array(N * 3);
-    const colors     = new Float32Array(N * 3);
-    const unitDirs   = new Float32Array(N * 3);
+    /* ---------- Load Earth + sample three tiers ---------- */
+    const earthMask = await loadEarthMask(TEX_URL);
 
-    for (let i = 0; i < N; i++) {
-      const phi   = Math.acos(1 - 2 * (i + 0.5) / N);
+    /* Generate candidates and bin into three pools. Each pool gets its own
+       Points object with its own size/color so the visual hierarchy is real:
+         - oceanPool: small, dim cream — "base layer of dots on the oceans"
+         - landPool: regular size, warm cream — "deeper topographical" continents
+         - usaPool: largest non-marker dot, bright gold-cream — USA highlight */
+    const oceanPool = [];
+    const landPool  = [];
+    const usaPool   = [];
+
+    for (let i = 0; i < N_CANDIDATES; i++) {
+      const phi = Math.acos(1 - 2 * (i + 0.5) / N_CANDIDATES);
       const theta = Math.PI * (1 + Math.sqrt(5)) * i;
       const dx = Math.cos(theta) * Math.sin(phi);
       const dy = Math.sin(theta) * Math.sin(phi);
       const dz = Math.cos(phi);
-      unitDirs[3*i]   = dx;
-      unitDirs[3*i+1] = dy;
-      unitDirs[3*i+2] = dz;
-      positions[3*i]   = originals[3*i]   = dx * RADIUS;
-      positions[3*i+1] = originals[3*i+1] = dy * RADIUS;
-      positions[3*i+2] = originals[3*i+2] = dz * RADIUS;
 
-      /* Color tiers, palette-aligned:
-           5%  gold accent   ≈ --gold-bright (#E5C07B)
-           20% cream highlight ≈ --cream     (#F0E6CE) slightly dimmed for additive
-           75% warm base — between --gold and --cream-muted, pushed orange-warm
-              so the cloud reads as "warm cream/gold" not "gray tan" */
-      const r = Math.random();
-      if (r < 0.05)        { colors[3*i]=0.90; colors[3*i+1]=0.75; colors[3*i+2]=0.48; }
-      else if (r < 0.25)   { colors[3*i]=0.88; colors[3*i+1]=0.78; colors[3*i+2]=0.64; }
-      else                 { colors[3*i]=0.62; colors[3*i+1]=0.48; colors[3*i+2]=0.30; }
+      const lat = Math.asin(dy);
+      const lon = Math.atan2(dz, dx);
+      const u = (lon / (2 * Math.PI)) + 0.5;
+      const v = lat / Math.PI + 0.5;
+      const px = earthMask.sample(u, v);
+
+      const isOcean = px.b > px.r + 14 && px.b > px.g + 4;
+      const isIce = px.r > 220 && px.g > 220 && px.b > 220;
+      const latDeg = lat * 180 / Math.PI;
+      const lonDeg = lon * 180 / Math.PI;
+      const isUSA = !isOcean && !isIce
+                    && latDeg > USA_LAT_MIN && latDeg < USA_LAT_MAX
+                    && lonDeg > USA_LON_MIN && lonDeg < USA_LON_MAX;
+
+      /* Per-particle radius variance — gives the "layered" thickness feel */
+      const rJitter = 1 + (Math.random() - 0.5) * 2 * RADIAL_VARIANCE;
+      const r = RADIUS * rJitter;
+      const x = dx * r, y = dy * r, z = dz * r;
+
+      if (isUSA) {
+        if (Math.random() < LAND_KEEP) usaPool.push(x, y, z);
+      } else if (isIce) {
+        if (Math.random() < ICE_KEEP) oceanPool.push(x, y, z);  // ice goes into "base" pool
+      } else if (isOcean) {
+        if (Math.random() < OCEAN_KEEP) oceanPool.push(x, y, z);
+      } else {
+        if (Math.random() < LAND_KEEP) landPool.push(x, y, z);
+      }
     }
 
-    /* Snapshot of starting colors — color flash blends toward FLASH_* and back */
-    const baseColors = new Float32Array(colors);
+    const circleTex = makeCircleTexture();
 
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geom.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+    /* Helper to build a Points object from a flat number-list pool */
+    function buildPool(pool, size, color, opacity) {
+      const arr = new Float32Array(pool);
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+      const m = new THREE.PointsMaterial({
+        map: circleTex, size, color,
+        transparent: true, opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false, sizeAttenuation: true,
+      });
+      return new THREE.Points(g, m);
+    }
 
-    const material = new THREE.PointsMaterial({
-      map:             makeCircleTexture(),
-      size:            POINT_SIZE,
-      vertexColors:    true,
-      transparent:     true,
-      opacity:         1.0,
-      blending:        THREE.AdditiveBlending,
-      depthWrite:      false,
-      sizeAttenuation: true,
+    /* Three pools — sizes and colors chosen so the visual hierarchy is:
+         ocean (faintest) < land (mid) < USA (brightest) < markers (popping)  */
+    const oceanPoints = buildPool(oceanPool, OCEAN_SIZE, 0x6B5B40, 0.55);
+    const landPoints  = buildPool(landPool,  LAND_SIZE,  0xB89970, 0.95);
+    const usaPoints   = buildPool(usaPool,   USA_SIZE,   0xE8C46E, 1.00);
+
+    /* ---------- Marker points ---------- */
+    const markerDirs = MARKER_LOCATIONS.map(([la, lo]) => latLonToVec3(la, lo));
+    const NM = markerDirs.length;
+    const markerPositions = new Float32Array(NM * 3);
+    const MARKER_R = RADIUS * 1.022;
+    for (let m = 0; m < NM; m++) {
+      const md = markerDirs[m];
+      markerPositions[3*m]   = md.x * MARKER_R;
+      markerPositions[3*m+1] = md.y * MARKER_R;
+      markerPositions[3*m+2] = md.z * MARKER_R;
+    }
+    const markerGeom = new THREE.BufferGeometry();
+    markerGeom.setAttribute('position', new THREE.BufferAttribute(markerPositions, 3));
+    const markerMat = new THREE.PointsMaterial({
+      map: circleTex, size: MARKER_SIZE, color: 0xFFD060,
+      transparent: true, opacity: 1.0,
+      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
     });
+    const markerPoints = new THREE.Points(markerGeom, markerMat);
 
-    const points = new THREE.Points(geom, material);
-    scene.add(points);
+    /* ---------- Group everything so rotation applies uniformly ---------- */
+    const orbGroup = new THREE.Group();
+    orbGroup.add(oceanPoints);
+    orbGroup.add(landPoints);
+    orbGroup.add(usaPoints);
+    orbGroup.add(markerPoints);
+    scene.add(orbGroup);
 
-    /* ---------- mouse tracking + drag-to-rotate ---------- */
-    const mouseNDC   = new THREE.Vector2(999, 999);
-    const raycaster  = new THREE.Raycaster();
-    const sphereHit  = new THREE.Sphere(new THREE.Vector3(0, 0, 0), RADIUS);
-    const hitPoint   = new THREE.Vector3();
-    let mouseActive  = false;
-
+    /* ---------- Drag-to-rotate (no cursor disruption anymore) ---------- */
     let isDragging = false;
     let dragLastX = 0, dragLastY = 0;
-    const DRAG_SENSITIVITY = 0.006;  // radians per pixel
-
     canvas.style.cursor = 'grab';
 
     canvas.addEventListener('pointerdown', (e) => {
@@ -696,147 +763,35 @@
       canvas.style.cursor = 'grabbing';
       try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
     });
-
     window.addEventListener('pointermove', (e) => {
-      if (isDragging) {
-        const dx = e.clientX - dragLastX;
-        const dy = e.clientY - dragLastY;
-        points.rotation.y += dx * DRAG_SENSITIVITY;
-        points.rotation.x += dy * DRAG_SENSITIVITY;
-        dragLastX = e.clientX;
-        dragLastY = e.clientY;
-      }
-      const rect = canvas.getBoundingClientRect();
-      mouseNDC.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
-      mouseNDC.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
-      mouseActive = true;
+      if (!isDragging) return;
+      const dx = e.clientX - dragLastX;
+      const dy = e.clientY - dragLastY;
+      orbGroup.rotation.y += dx * DRAG_SENSITIVITY;
+      orbGroup.rotation.x += dy * DRAG_SENSITIVITY;
+      dragLastX = e.clientX;
+      dragLastY = e.clientY;
     });
-
     window.addEventListener('pointerup', (e) => {
-      if (isDragging) {
-        isDragging = false;
-        canvas.style.cursor = 'grab';
-        try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
-      }
+      if (!isDragging) return;
+      isDragging = false;
+      canvas.style.cursor = 'grab';
+      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
     });
-    window.addEventListener('pointerleave', () => { mouseActive = false; });
-    document.addEventListener('mouseleave', () => { mouseActive = false; });
 
-    /* ---------- color flash + breathing constants ---------- */
-    const FLASH_SPEED = 0.013;   // velocity threshold for full flash
-    const FLASH_R = 1.00, FLASH_G = 0.86, FLASH_B = 0.55;  // bright gold flash target
-
-    /* Breath is now PRIMARILY radial — the cloud physically expands and
-       contracts (edges visibly move). Y-axis gets a slight extra emphasis
-       on a phase-shifted cycle so it also "gets taller" — feels organic
-       instead of perfectly uniform. Brightness/size pulse is dialed way
-       back to a subtle accent. */
-    const BREATH_PERIOD   = 5.4;    // seconds per breath cycle
-    const RADIAL_AMP      = 0.032;  // ±3.2% radius — physical expansion
-    const Y_EMPHASIS_AMP  = 0.005;  // extra ±0.5% Y on slightly different phase (subtle)
-    const Y_EMPHASIS_LAG  = 0.55;   // radians phase lag — makes Y feel "delayed"
-    const BREATH_SIZE_AMP = 0.04;   // ±4% point size (subtle accent)
-    const BREATH_OPA_LOW  = 0.92;   // dim end of brightness pulse (subtle)
-    const BREATH_OPA_HIGH = 1.00;   // bright end
-
-    /* ---------- animation loop ---------- */
+    /* ---------- animation loop — rotation + marker pulse only ---------- */
     function tick() {
       requestAnimationFrame(tick);
 
-      /* Radial breath — recompute spring targets each frame.
-         Originals[] move outward and inward; particles spring toward the
-         moving target with natural lag. Hit sphere updates to match so
-         the cursor still hits the visible silhouette. */
+      /* Marker pulse — alpha breathing so the highlight dots "report" */
       const t = performance.now() * 0.001;
-      const phase = t * (Math.PI * 2 / BREATH_PERIOD);
-      const radialWave = Math.sin(phase);
-      const yWave      = Math.sin(phase + Y_EMPHASIS_LAG);
-      const breathR    = RADIUS * (1 + RADIAL_AMP * radialWave);
-      const yBoost     = 1 + Y_EMPHASIS_AMP * yWave;
-      sphereHit.radius = breathR * Math.max(1, yBoost);
+      const pulse = 0.78 + 0.22 * (Math.sin(t * (Math.PI * 2 / MARKER_PULSE_PERIOD)) + 1) * 0.5;
+      markerMat.opacity = pulse;
 
-      for (let i = 0; i < N; i++) {
-        const ix = 3*i, iy = 3*i+1, iz = 3*i+2;
-        originals[ix] = unitDirs[ix] * breathR;
-        originals[iy] = unitDirs[iy] * breathR * yBoost;
-        originals[iz] = unitDirs[iz] * breathR;
-      }
-
-      let hasHit = false;
-      if (mouseActive && !isDragging) {
-        raycaster.setFromCamera(mouseNDC, camera);
-        hasHit = raycaster.ray.intersectSphere(sphereHit, hitPoint) !== null;
-      }
-
-      /* Transform world-space hit point into the points' local frame so
-         repulsion targets visually-near points (accounts for both Y rotation
-         and X wobble in one call — no manual matrix math). */
-      let hx = 0, hy = 0, hz = 0;
-      if (hasHit) {
-        points.updateMatrixWorld();
-        const localHit = points.worldToLocal(hitPoint.clone());
-        hx = localHit.x; hy = localHit.y; hz = localHit.z;
-      }
-
-      const pos = geom.attributes.position.array;
-      const col = geom.attributes.color.array;
-      for (let i = 0; i < N; i++) {
-        const ix = 3*i, iy = 3*i+1, iz = 3*i+2;
-
-        if (hasHit) {
-          const dx = pos[ix] - hx;
-          const dy = pos[iy] - hy;
-          const dz = pos[iz] - hz;
-          const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-          if (dist < REPEL_RADIUS && dist > 0.0001) {
-            const f = 1 - dist / REPEL_RADIUS;
-            const force = f * f * REPEL_FORCE;  // quadratic falloff
-            const inv = 1 / dist;
-            velocities[ix] += dx * inv * force;
-            velocities[iy] += dy * inv * force;
-            velocities[iz] += dz * inv * force;
-          }
-        }
-
-        /* Spring back toward home + damping */
-        velocities[ix] += (originals[ix] - pos[ix]) * SPRING;
-        velocities[iy] += (originals[iy] - pos[iy]) * SPRING;
-        velocities[iz] += (originals[iz] - pos[iz]) * SPRING;
-
-        velocities[ix] *= DAMPING;
-        velocities[iy] *= DAMPING;
-        velocities[iz] *= DAMPING;
-
-        pos[ix] += velocities[ix];
-        pos[iy] += velocities[iy];
-        pos[iz] += velocities[iz];
-
-        /* Color flash: speed → blend toward bright gold; decays as velocity damps */
-        const vx = velocities[ix], vy = velocities[iy], vz = velocities[iz];
-        const speed = Math.sqrt(vx*vx + vy*vy + vz*vz);
-        const flash = speed >= FLASH_SPEED ? 1 : speed / FLASH_SPEED;
-        col[ix] = baseColors[ix] + (FLASH_R - baseColors[ix]) * flash;
-        col[iy] = baseColors[iy] + (FLASH_G - baseColors[iy]) * flash;
-        col[iz] = baseColors[iz] + (FLASH_B - baseColors[iz]) * flash;
-      }
-      geom.attributes.position.needsUpdate = true;
-      geom.attributes.color.needsUpdate = true;
-
-      /* Subtle accent — point size + opacity track the same breath wave
-         already used for the radial expansion. Dialed way down so it's a
-         secondary cue rather than the primary breathing signal. */
-      const pulse01 = (radialWave + 1) * 0.5;
-      material.size    = POINT_SIZE * (1 + BREATH_SIZE_AMP * radialWave);
-      material.opacity = BREATH_OPA_LOW + (BREATH_OPA_HIGH - BREATH_OPA_LOW) * pulse01;
-
-      /* Ambient rotation pauses while dragging. After release, X eases back
-         toward its sine wobble target (lerp) instead of snapping — keeps the
-         feel continuous. Y just keeps incrementing from wherever the user
-         left it. */
       if (!isDragging) {
-        points.rotation.y += ROT_SPEED_Y;
-        const xTarget = Math.sin(performance.now() * 0.00012) * 0.07;
-        points.rotation.x += (xTarget - points.rotation.x) * 0.04;
+        orbGroup.rotation.y += ROT_SPEED_Y;
+        const xTarget = Math.sin(performance.now() * 0.00012) * 0.06;
+        orbGroup.rotation.x += (xTarget - orbGroup.rotation.x) * 0.03;
       }
 
       renderer.render(scene, camera);
@@ -850,13 +805,52 @@
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }
-
     window.addEventListener('resize', onResize);
     onResize();
     tick();
   }
 
-  /* Procedural soft-edged circular point texture — avoids square pixels at large sizes */
+  /* ---------- helpers ---------- */
+
+  /* Load Earth image, draw to canvas, expose pixel sampler.
+     Image must be CORS-friendly; threejs.org serves with proper headers. */
+  async function loadEarthMask(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const W = img.width, H = img.height;
+        const c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, W, H).data;
+        resolve({
+          sample(u, v) {
+            const x = Math.min(W - 1, Math.max(0, Math.floor(u * W)));
+            const y = Math.min(H - 1, Math.max(0, Math.floor((1 - v) * H)));
+            const i = (y * W + x) * 4;
+            return { r: data[i], g: data[i+1], b: data[i+2] };
+          }
+        });
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  /* Lat/lon → unit vector on sphere (matches our equirect UV convention). */
+  function latLonToVec3(lat, lon) {
+    const phi = (90 - lat) * Math.PI / 180;
+    const theta = (lon + 180) * Math.PI / 180;
+    return {
+      x: -Math.sin(phi) * Math.cos(theta),
+      y:  Math.cos(phi),
+      z:  Math.sin(phi) * Math.sin(theta),
+    };
+  }
+
+  /* Soft circular point texture (procedural) */
   function makeCircleTexture() {
     const c = document.createElement('canvas');
     c.width = c.height = 64;
