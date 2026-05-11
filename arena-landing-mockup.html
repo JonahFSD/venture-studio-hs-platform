@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Newsreader:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
+  }
+}
+</script>
+<style>
+  /* =========================================================
+     THE ARENA — landing mockup v1
+     Three pages. Max aura. HF0 register, our palette, our orb.
+     ========================================================= */
+  :root {
+    --bg:          #0a0807;
+    --bg-deep:     #050403;
+    --cream:       #F0E6CE;
+    --cream-soft:  #C8BFA8;
+    --cream-muted: #8a7e64;
+    --cream-faint: #5a5142;
+    --gold:        #C9A961;
+    --red:         #C8322C;
+    --border:      #221d18;
+    --border-soft: #181410;
+
+    --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Newsreader', Georgia, serif;
+    --ease-out:   cubic-bezier(.2, .7, .2, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--cream-soft);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* Page-level layout: each page is full-viewport, centered.
+     Bottom nav and corner link are persistent across pages. */
+  .stage {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ========== TOP-RIGHT CORNER (press flex slot) ========== */
+  .corner-link {
+    position: fixed;
+    top: 28px; right: 32px;
+    font-size: 13px;
+    color: var(--cream-soft);
+    letter-spacing: -0.005em;
+    z-index: 10;
+    transition: color .2s var(--ease-out);
+    /* hidden until you have a press link to drop in */
+    opacity: 0; pointer-events: none;
+  }
+  .corner-link.is-visible { opacity: 1; pointer-events: auto; }
+  .corner-link:hover { color: var(--cream); }
+  .corner-link u { text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ========== NOMINATOR REQUEST MODAL ========== */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    z-index: 30;
+    background: rgba(5, 4, 3, 0.78);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: modalFade .25s var(--ease-out);
+  }
+  .modal-backdrop.is-open { display: flex; }
+  @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal-card {
+    background: #0e0b09;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    animation: modalRise .35s var(--ease-out);
+  }
+  @keyframes modalRise {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-title { font-size: 22px; font-weight: 500; color: var(--cream); letter-spacing: -0.015em; margin: 0 0 6px; }
+  .modal-subtitle { font-size: 13px; color: var(--cream-muted); line-height: 1.55; margin: 0 0 22px; }
+  .modal-form { display: flex; flex-direction: column; gap: 14px; }
+  .modal-field { display: flex; flex-direction: column; gap: 5px; }
+  .modal-field > span { font-size: 11px; font-weight: 500; color: var(--cream-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  .modal-field input, .modal-field textarea {
+    font-family: var(--font-sans); font-size: 14px;
+    background: rgba(255, 255, 255, 0.02); color: var(--cream);
+    border: 1px solid var(--border); border-radius: 7px;
+    padding: 9px 11px; resize: vertical;
+    transition: border-color .15s var(--ease-out), background .15s var(--ease-out);
+  }
+  .modal-field input::placeholder, .modal-field textarea::placeholder { color: var(--cream-faint); }
+  .modal-field input:focus, .modal-field textarea:focus { outline: none; border-color: var(--gold); background: rgba(255,255,255,0.035); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+  .modal-primary, .modal-secondary {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+    padding: 9px 16px; border-radius: 7px; cursor: pointer;
+    transition: all .15s var(--ease-out); letter-spacing: -0.005em;
+  }
+  .modal-primary { background: var(--gold); color: #1a1410; border: 1px solid var(--gold); }
+  .modal-primary:hover { background: #d6b66f; border-color: #d6b66f; }
+  .modal-secondary { background: transparent; color: var(--cream-soft); border: 1px solid var(--border); }
+  .modal-secondary:hover { color: var(--cream); border-color: var(--cream-faint); }
+  .modal-success { text-align: center; padding: 12px 0 4px; display: none; }
+  .modal-backdrop.is-success .modal-form { display: none; }
+  .modal-backdrop.is-success .modal-success { display: block; }
+
+  /* ========== ORB MARKER TOOLTIP ========== */
+  .orb-tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 20;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cream);
+    background: rgba(10, 8, 7, 0.88);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translate(12px, -8px);
+    transition: opacity .15s var(--ease-out);
+    backdrop-filter: blur(4px);
+  }
+  .orb-tooltip.is-visible { opacity: 1; }
+
+  /* ========== PAGES ========== */
+  .page {
+    display: none;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 32px 140px;
+    animation: pageFade .5s var(--ease-out);
+  }
+  .page.is-active { display: flex; }
+  @keyframes pageFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ========== HOME ========== */
+  .home {
+    flex-direction: column;
+    gap: 88px;
+  }
+  /* ============================================================
+     ORB v4 — WebGL point cloud (Three.js)
+     The CSS-3D wireframe rules below this are kept as dead code for
+     reference / quick rollback. The canvas inside .orb takes over.
+     ============================================================ */
+  .orb {
+    --d: clamp(320px, 42vw, 480px);
+    width: var(--d);
+    height: var(--d);
+    position: relative;
+    animation: orbIntro 1.6s var(--ease-out) .15s backwards;
+  }
+  .orb-canvas {
+    /* Canvas extends 12.5% beyond the .orb on each side so flares have room
+       to reach without hitting the canvas boundary. Camera is pulled back to
+       z=5 to keep the orb at the same apparent size. */
+    position: absolute;
+    top: -12.5%;
+    left: -12.5%;
+    width: 125%;
+    height: 125%;
+    display: block;
+    pointer-events: auto;
+  }
+  @keyframes orbIntro {
+    0%   { opacity: 0; transform: scale(0.84); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* outer halo — faint atmosphere, paints behind everything */
+  .orb__halo {
+    position: absolute;
+    inset: -10%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle,
+      rgba(240, 230, 206, 0) 48%,
+      rgba(240, 230, 206, 0.06) 56%,
+      rgba(240, 230, 206, 0) 78%);
+    filter: blur(2px);
+  }
+
+  /* the 3D scene — slight axial tilt, like Earth */
+  .orb__scene {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transform: rotateX(8deg) rotateZ(-14deg);
+  }
+
+  /* inner volumetric glow — sits at scene center, no rotation */
+  .orb__core {
+    position: absolute;
+    inset: 22%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle,
+      rgba(240, 230, 206, 0.10) 0%,
+      rgba(201, 169, 97, 0.05) 45%,
+      transparent 72%);
+    filter: blur(10px);
+  }
+
+  /* static silhouette rim — slightly stronger so the sphere has a defined edge */
+  .orb__rim {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(240, 230, 206, 0.28);
+    pointer-events: none;
+  }
+
+  /* spinning sphere mesh — meridians + parallels live in here */
+  .orb__sphere {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    animation: sphereSpin 32s linear infinite;
+  }
+  @keyframes sphereSpin { to { transform: rotateY(360deg); } }
+
+  /* meridians — vertical great circles, each at a fixed longitude */
+  .meridian {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(240, 230, 206, 0.16);
+    pointer-events: none;
+    transform: rotateY(var(--lon, 0deg));
+  }
+
+  /* parallels — horizontal discs at fixed latitudes
+     Math: at latitude φ, disc center sits at y = sin(φ) * R, radius = cos(φ) * R
+     translateZ in the post-rotateX(90deg) frame becomes world-Y, so we just plug in. */
+  .parallel {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(240, 230, 206, 0.13);
+    pointer-events: none;
+  }
+  .parallel--eq  { transform: rotateX(90deg); }
+  .parallel--p30 { transform: rotateX(90deg) translateZ(calc(var(--d) *  0.250)) scale(0.866); }
+  .parallel--m30 { transform: rotateX(90deg) translateZ(calc(var(--d) * -0.250)) scale(0.866); }
+  .parallel--p60 { transform: rotateX(90deg) translateZ(calc(var(--d) *  0.433)) scale(0.500); }
+  .parallel--m60 { transform: rotateX(90deg) translateZ(calc(var(--d) * -0.433)) scale(0.500); }
+
+  /* inclined orbital plane — does NOT spin with the sphere */
+  .orbit {
+    position: absolute;
+    inset: -3%;
+    transform-style: preserve-3d;
+    transform: rotateX(72deg) rotateZ(22deg);
+    pointer-events: none;
+  }
+  .orbit__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 169, 97, 0.32);
+  }
+  .orbit__spin {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    animation: orbitSpin 22s linear infinite;
+  }
+  @keyframes orbitSpin { to { transform: rotateZ(360deg); } }
+
+  /* each pin-arm rotates the pin into position on the orbit perimeter */
+  .pin-arm {
+    position: absolute;
+    inset: 0;
+    transform: rotate(var(--ang, 0deg));
+    pointer-events: none;
+  }
+  .pin-arm__dot {
+    position: absolute;
+    top: 0; left: 50%;
+    width: 8px; height: 8px;
+    margin: -4px 0 0 -4px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 14px rgba(201, 169, 97, 0.7);
+    animation: pinPulse 2.6s ease-in-out infinite;
+  }
+  .pin-arm--secondary .pin-arm__dot {
+    width: 5px; height: 5px;
+    margin: -2.5px 0 0 -2.5px;
+    box-shadow: 0 0 8px rgba(201, 169, 97, 0.5);
+    opacity: .75;
+  }
+  .pin-arm--tertiary .pin-arm__dot {
+    width: 4px; height: 4px;
+    margin: -2px 0 0 -2px;
+    box-shadow: 0 0 6px rgba(240, 230, 206, 0.4);
+    background: var(--cream-soft);
+    opacity: .6;
+  }
+  @keyframes pinPulse {
+    0%, 100% { opacity: .55; }
+    50%      { opacity: 1; }
+  }
+
+  /* ========== HOME PLAQUE (HF0-style card) ========== */
+  .plaque {
+    position: relative;
+    background: rgba(255, 255, 255, 0.018);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 56px;
+    min-width: 360px;
+    text-align: center;
+    backdrop-filter: blur(2px);
+    animation: plaqueIntro 1s var(--ease-out) .5s backwards;
+  }
+  @keyframes plaqueIntro {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* license-plate screws */
+  .plaque::before, .plaque::after {
+    content: '';
+    position: absolute; top: 12px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--cream-faint);
+    opacity: .55;
+  }
+  .plaque::before { left: 14px; }
+  .plaque::after  { right: 14px; }
+
+  .plaque__line {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--cream);
+    letter-spacing: -0.005em;
+    margin: 4px 0 18px;
+  }
+  .plaque__date {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 13px;
+    color: var(--cream-muted);
+    letter-spacing: 0.02em;
+  }
+  .plaque__dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 10px rgba(200, 50, 44, 0.7);
+    animation: dotPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes dotPulse {
+    0%, 100% { opacity: .6; transform: scale(1); }
+    50%      { opacity: 1; transform: scale(1.15); }
+  }
+
+  /* ========== THESIS ========== */
+  .thesis {
+    flex-direction: column;
+  }
+  .thesis__word {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: clamp(56px, 8vw, 96px);
+    color: var(--cream);
+    letter-spacing: -0.025em;
+    margin: 0;
+    animation: wordIntro 1s var(--ease-out) .2s backwards;
+  }
+  @keyframes wordIntro {
+    from { opacity: 0; letter-spacing: 0.04em; }
+    to   { opacity: 1; letter-spacing: -0.025em; }
+  }
+
+  /* ========== TEAM ========== */
+  .team {
+    flex-direction: column;
+    align-items: center;
+  }
+  .team__grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 56px 64px;
+    text-align: center;
+  }
+  .team__member { width: 220px; }
+  .team__member {
+    animation: memberIntro .9s var(--ease-out) backwards;
+  }
+  .team__member:nth-child(1) { animation-delay: .15s; }
+  .team__member:nth-child(2) { animation-delay: .25s; }
+  .team__member:nth-child(3) { animation-delay: .35s; }
+  @keyframes memberIntro {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .team__name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--cream);
+    letter-spacing: -0.005em;
+    margin: 0 0 4px;
+  }
+  .team__role {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--cream-muted);
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  /* ========== BOTTOM NAV ========== */
+  .nav {
+    position: fixed;
+    bottom: 36px; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 36px;
+    z-index: 10;
+  }
+  .nav a {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--cream-muted);
+    letter-spacing: -0.003em;
+    transition: color .2s var(--ease-out);
+  }
+  .nav a:hover { color: var(--cream-soft); }
+  .nav a.is-active { color: var(--cream); font-weight: 500; }
+
+  /* ========== NOMINATOR REQUEST (whisper link) ========== */
+  .whisper {
+    position: fixed;
+    bottom: 12px; left: 0; right: 0;
+    text-align: center;
+    z-index: 10;
+  }
+  .whisper a {
+    font-size: 11px;
+    color: var(--cream-faint);
+    letter-spacing: 0.04em;
+    text-transform: lowercase;
+    transition: color .2s var(--ease-out);
+  }
+  .whisper a:hover { color: var(--cream-muted); }
+
+  /* ========== BACKGROUND LAYERS ==========
+     Three stacked layers, all behind content:
+       body::before  — drifting warm radial gradients (the "atmosphere")
+       .horizon      — a near-invisible line at ~70vh giving spatial anchor
+       body::after   — fine SVG noise grain (HF0-style paper texture)
+     Plus a subtle vignette via box-shadow on .stage for edge depth.
+  ============================================ */
+  body::before {
+    content: '';
+    position: fixed; inset: -10%;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(1100px 720px at 22% 28%, rgba(240,230,206,0.045), transparent 62%),
+      radial-gradient(900px 640px at 78% 72%, rgba(201,169,97,0.030), transparent 62%),
+      radial-gradient(700px 500px at 50% 50%, rgba(200,50,44,0.012), transparent 70%);
+    animation: drift 40s ease-in-out infinite alternate;
+    filter: blur(0.5px);
+  }
+  @keyframes drift {
+    0%   { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(-3%, 2%) scale(1.06); }
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.94  0 0 0 0 0.82  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-size: 180px 180px;
+  }
+
+  .horizon {
+    position: fixed;
+    left: 0; right: 0;
+    top: 72%;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(240, 230, 206, 0.04) 22%,
+      rgba(240, 230, 206, 0.08) 50%,
+      rgba(240, 230, 206, 0.04) 78%,
+      transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Diagonal light beam — single element, three stacked soft radial gradients.
+     No clip-path. The "narrow-top, wider-bottom" shape emerges from positioning
+     three ellipses of increasing size down the beam axis. Each is edgeless on
+     its own; together they form a continuous, organic light envelope.
+       Pool 1 — small, intense, high on the beam   (the defined shaft)
+       Pool 2 — mid size, mid intensity, halfway   (the transition)
+       Pool 3 — large, faint, near bottom          (the diffuse spread)
+
+     Tuning knobs:
+       .beam transform: rotate(15deg)   — beam axis
+       .beam left, top                   — entry point of beam
+       Pool 1 ellipse size (90px 30vh)  — width/length of defined top
+       Pool 3 ellipse size (320px 60vh) — width/spread of bottom diffusion
+       Gradient peak alphas              — intensity per pool
+       filter: blur                      — overall softness
+  ---------------------------------------------------------------- */
+  .beam {
+    position: fixed;
+    top: -10%;
+    left: 30%;
+    width: 700px;
+    height: 135vh;
+    transform-origin: top center;
+    transform: rotate(15deg);
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: screen;
+    background:
+      radial-gradient(ellipse 90px 30vh  at 50%   5vh,
+        rgba(250, 232, 188, 0.22) 0%,
+        rgba(248, 226, 178, 0.12) 35%,
+        transparent 80%),
+      radial-gradient(ellipse 180px 50vh at 50%  45vh,
+        rgba(245, 220, 170, 0.10) 0%,
+        rgba(240, 213, 160, 0.04) 45%,
+        transparent 80%),
+      radial-gradient(ellipse 320px 60vh at 50% 100vh,
+        rgba(238, 210, 158, 0.045) 0%,
+        rgba(232, 202, 150, 0.018) 50%,
+        transparent 80%);
+    filter: blur(28px);
+  }
+  /* edge vignette — subtle depth, paints over noise but under content */
+  .stage::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    box-shadow: inset 0 0 220px 40px rgba(5, 4, 3, 0.7);
+  }
+
+  .stage > * { position: relative; z-index: 1; }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 720px) {
+    .team__grid { grid-template-columns: 1fr; gap: 36px; }
+    .plaque { min-width: 0; padding: 22px 36px; }
+    .corner-link { top: 18px; right: 18px; font-size: 12px; }
+    .page { padding: 60px 24px 160px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="corner-link" href="#"><u>NY Times</u></a>
+<div class="orb-tooltip" aria-hidden="true"></div>
+
+<div class="beam" aria-hidden="true"></div>
+<div class="horizon" aria-hidden="true"></div>
+
+<div class="stage">
+
+  <!-- ===================== HOME ===================== -->
+  <section id="home" class="page home is-active">
+    <div class="orb">
+      <canvas class="orb-canvas" aria-hidden="true"></canvas>
+    </div>
+
+    <div class="plaque">
+      <div class="plaque__line">By nomination only.</div>
+      <div class="plaque__date">
+        <span class="plaque__dot"></span>
+        S1 Demo Day: TBA
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== THESIS ===================== -->
+  <section id="thesis" class="page thesis">
+    <h1 class="thesis__word">Worthy.</h1>
+  </section>
+
+  <!-- ===================== TEAM ===================== -->
+  <section id="team" class="page team">
+    <div class="team__grid">
+      <div class="team__member">
+        <p class="team__name">Jake Oswald</p>
+        <p class="team__role">Founder</p>
+      </div>
+      <div class="team__member">
+        <p class="team__name">Braden Peays</p>
+        <p class="team__role">General Partner</p>
+      </div>
+      <div class="team__member">
+        <p class="team__name">Connor Doore</p>
+        <p class="team__role">General Partner</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ===================== BOTTOM NAV ===================== -->
+<nav class="nav" aria-label="primary">
+  <a href="#home" data-page="home">Home</a>
+  <a href="#thesis" data-page="thesis">Thesis</a>
+  <a href="#team" data-page="team">Team</a>
+  <a href="/">Login</a>
+</nav>
+
+<!-- ===================== WHISPER LINK ===================== -->
+<div class="whisper">
+  <a href="#" data-action="nominate">request to nominate</a>
+</div>
+
+<!-- ===================== NOMINATOR REQUEST MODAL ===================== -->
+<div class="modal-backdrop" data-modal="nominator" role="presentation">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="nom-modal-title">
+    <form class="modal-form" data-nom-form>
+      <h2 class="modal-title" id="nom-modal-title">Request to nominate</h2>
+      <p class="modal-subtitle">Tell us who you are. If you check out, you&rsquo;ll get a private link to nominate students.</p>
+
+      <label class="modal-field">
+        <span>Name</span>
+        <input type="text" name="fullName" required autofocus placeholder="First Last">
+      </label>
+      <label class="modal-field">
+        <span>Email</span>
+        <input type="email" name="email" required placeholder="you@example.com">
+      </label>
+      <label class="modal-field">
+        <span>Phone</span>
+        <input type="tel" name="phone" placeholder="optional">
+      </label>
+      <label class="modal-field">
+        <span>LinkedIn</span>
+        <input type="url" name="linkedinUrl" placeholder="linkedin.com/in/…">
+      </label>
+      <label class="modal-field">
+        <span>Who would you nominate?</span>
+        <textarea name="note" rows="3" placeholder="optional — names, schools, anything that helps"></textarea>
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" class="modal-secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="modal-primary">Send request</button>
+      </div>
+    </form>
+
+    <div class="modal-success">
+      <h2 class="modal-title">Got it.</h2>
+      <p class="modal-subtitle">We&rsquo;ll be in touch.</p>
+      <button type="button" class="modal-primary" data-modal-close>Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Hash-based page switching. No build step. Easy to port to Next/React later.
+  const pages = document.querySelectorAll('.page');
+  const navLinks = document.querySelectorAll('.nav a');
+
+  function activate(id) {
+    const target = id || 'home';
+    pages.forEach(p => p.classList.toggle('is-active', p.id === target));
+    navLinks.forEach(a => a.classList.toggle('is-active', a.dataset.page === target));
+  }
+
+  function fromHash() {
+    const id = (location.hash || '#home').slice(1);
+    activate(['home', 'thesis', 'team'].includes(id) ? id : 'home');
+  }
+
+  window.addEventListener('hashchange', fromHash);
+  document.addEventListener('DOMContentLoaded', fromHash);
+
+  // Whisper link → open the nominator-request modal.
+  const nominatorModal = document.querySelector('[data-modal="nominator"]');
+  const nominatorForm  = nominatorModal.querySelector('[data-nom-form]');
+
+  function openNominatorModal() {
+    nominatorModal.classList.remove('is-success');
+    nominatorForm.reset();
+    nominatorModal.classList.add('is-open');
+    setTimeout(() => nominatorForm.querySelector('input[name="fullName"]')?.focus(), 50);
+  }
+  function closeNominatorModal() { nominatorModal.classList.remove('is-open'); }
+
+  document.querySelector('[data-action="nominate"]').addEventListener('click', e => {
+    e.preventDefault();
+    openNominatorModal();
+  });
+  nominatorModal.addEventListener('click', e => {
+    if (e.target === nominatorModal) closeNominatorModal();
+  });
+  nominatorModal.querySelectorAll('[data-modal-close]').forEach(btn => {
+    btn.addEventListener('click', closeNominatorModal);
+  });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && nominatorModal.classList.contains('is-open')) closeNominatorModal();
+  });
+  nominatorForm.addEventListener('submit', e => {
+    e.preventDefault();
+    // Standalone mockup — no backend. Real submit lives in the Next.js port.
+    const data = Object.fromEntries(new FormData(nominatorForm).entries());
+    console.log('[mockup] nominator request:', data);
+    nominatorModal.classList.add('is-success');
+  });
+</script>
+
+<!-- ============================================================
+     ORB v5 — Earth-shaped point cloud with markers + connection lines
+     - Particles distributed across the sphere only where Earth's
+       land masses are (sampled from an equirectangular Earth image).
+     - Yellow markers placed at specific lat/lon coordinates.
+     - Faint connection lines between near-neighbor land particles
+       (skipped across oceans via distance threshold), updating per
+       frame so the mesh deforms with mouse interaction and breath.
+     - Mouse repulsion + drag-to-rotate + idle breath retained.
+     - CME flares removed.
+============================================================ -->
+<script type="module">
+  import * as THREE from 'three';
+
+  /* Use the specular map (ocean = white, land = black, NO clouds) as our
+     land/sea mask. The previous earth_atmos texture had clouds baked in, which
+     polluted the mask and turned continent edges into mush. */
+  const TEX_URL = 'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg';
+
+  const canvas = document.querySelector('.orb-canvas');
+  if (canvas) {
+    initOrb(canvas).catch(err => console.warn('Orb init failed:', err));
+  }
+
+  async function initOrb(canvas) {
+    /* ---------- tuning ----------
+       Anduril-style approach: soft glow dots + additive blending. Each dot
+       is a tiny gaussian-ish point of light; overlapping dots accumulate
+       brightness in the framebuffer, which (a) fills the inter-dot space on
+       land so continents read as solid luminous shapes, and (b) makes the
+       silhouette accumulate to a bright halo "for free" because of how many
+       surface dots project to the edge pixels under spherical projection.
+       Per-dot brightness is intentionally MODEST — accumulation does the
+       heavy lifting. */
+    const N_CANDIDATES = 60000;
+    const RADIUS       = 1.45;
+    const POINT_SIZE   = 0.026;   // soft dots need more pixels to glow through
+    const ROT_SPEED_Y  = 0.0010;
+    const DRAG_SENSITIVITY = 0.006;
+    const STAR_COUNT   = 320;
+    const MARKER_SIZE  = 0.045;
+
+    /* With additive blending, framebuffer values clip at 1.0 — so set per-dot
+       brightness lower than you'd expect and let overlap saturate to white. */
+    const OCEAN_BRIGHTNESS = 0.16;
+    const LAND_BRIGHTNESS  = 0.70;
+    const LAND_SIZE_BOOST  = 0.55;
+    const RIM_POWER        = 1.6;
+    const RIM_BOOST        = 0.55;
+
+    /* Marker hover animation — when the cursor is over a marker, that
+       specific marker grows and brightens. State is per-marker (one progress
+       value per pin) animated via a per-vertex BufferAttribute. */
+    const MARKER_HOVER_SIZE_BOOST  = 0.9;  // 1 + this = max scale (≈1.9×)
+    const MARKER_HOVER_BRIGHT_BOOST = 0.5; // 1 + this = max brightness mult
+    const MARKER_HOVER_LERP        = 0.20; // per-frame ease toward target
+
+    /* Marker locations: [lat, lon, label]. Tooltip shows label on hover. */
+    const MARKER_LOCATIONS = [
+      [26.93,  -80.09, 'Jupiter, FL'],
+      [30.52,  -87.90, 'Fairhope, AL'],
+      [30.27,  -97.74, 'Austin, TX'],
+    ];
+
+    /* ---------- THREE setup ---------- */
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.set(0, 0, 5);
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    /* ---------- Load Earth + sample land mask ---------- */
+    const earthMask = await loadEarthMask(TEX_URL);
+
+    /* Generate uniform Fibonacci sphere; per-vertex aLand attribute distinguishes
+       land from ocean. Density is identical everywhere — the visual difference
+       between land and ocean is BRIGHTNESS in the shader. */
+    const positions = new Float32Array(N_CANDIDATES * 3);
+    const landFlags = new Float32Array(N_CANDIDATES);
+
+    for (let i = 0; i < N_CANDIDATES; i++) {
+      const phi = Math.acos(1 - 2 * (i + 0.5) / N_CANDIDATES);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+      const dx = Math.cos(theta) * Math.sin(phi);
+      const dy = Math.sin(theta) * Math.sin(phi);
+      const dz = Math.cos(phi);
+
+      positions[3*i]     = dx * RADIUS;
+      positions[3*i + 1] = dy * RADIUS;
+      positions[3*i + 2] = dz * RADIUS;
+
+      const lat = Math.asin(dy);
+      /* Longitude convention: we want the +z hemisphere (facing the camera)
+         to show the western longitudes (Americas), so that east appears on
+         the observer's right and west on the left — i.e. how every world
+         map is drawn. That means lon = atan2(-z, x), not atan2(z, x). The
+         placement function latLonToVec3 below mirrors this with -sin(lon)
+         on the z component; both have to agree or dots and markers drift. */
+      const lon = Math.atan2(-dz, dx);
+      const u = (lon / (2 * Math.PI)) + 0.5;
+      const v = lat / Math.PI + 0.5;
+      const px = earthMask.sample(u, v);
+
+      /* Specular map: ocean is bright (reflective), land is dark.
+         A simple luminance threshold cleanly separates the two. */
+      const lum = (px.r + px.g + px.b) / 3;
+      landFlags[i] = lum < 100 ? 1.0 : 0.0;
+    }
+
+    const dotsGeom = new THREE.BufferGeometry();
+    dotsGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    dotsGeom.setAttribute('aLand',    new THREE.BufferAttribute(landFlags, 1));
+
+    /* Custom shader — fresnel rim + land/ocean brightness mix.
+       The fresnel boost is what creates Anduril's signature silhouette halo.  */
+    const dotsMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uMap:             { value: makeSoftDotTexture() },
+        uPointSize:       { value: POINT_SIZE },
+        uPixelRatio:      { value: Math.min(window.devicePixelRatio, 2) },
+        uOceanBrightness: { value: OCEAN_BRIGHTNESS },
+        uLandBrightness:  { value: LAND_BRIGHTNESS },
+        uLandSizeBoost:   { value: LAND_SIZE_BOOST },
+        uRimPower:        { value: RIM_POWER },
+        uRimBoost:        { value: RIM_BOOST },
+        uBreath:          { value: 1.0 },
+        uColor:           { value: new THREE.Color(0xF5EFE0) },
+      },
+      vertexShader: /* glsl */ `
+        attribute float aLand;
+        varying float vBrightness;
+
+        uniform float uPointSize;
+        uniform float uPixelRatio;
+        uniform float uOceanBrightness;
+        uniform float uLandBrightness;
+        uniform float uLandSizeBoost;
+        uniform float uRimPower;
+        uniform float uRimBoost;
+        uniform float uBreath;
+
+        void main() {
+          vec4 worldPos4 = modelMatrix * vec4(position, 1.0);
+          vec3 worldPos  = worldPos4.xyz;
+          vec3 worldN    = normalize(worldPos);
+          vec3 viewDir   = normalize(cameraPosition - worldPos);
+
+          /* ndotv: 1 when facing camera, 0 at silhouette, negative when on far side */
+          float ndotv = dot(viewDir, worldN);
+
+          /* Cull back-facing particles via brightness multiplier (smooth fade
+             through the silhouette band). Without this all dots render. */
+          float front = smoothstep(-0.05, 0.10, ndotv);
+
+          /* Fresnel rim — peaks at silhouette (ndotv≈0), zero when facing camera */
+          float rim = pow(1.0 - clamp(ndotv, 0.0, 1.0), uRimPower);
+
+          float baseBrightness = mix(uOceanBrightness, uLandBrightness, aLand);
+          vBrightness = (baseBrightness + rim * uRimBoost) * front * uBreath;
+
+          vec4 mvPosition = viewMatrix * worldPos4;
+          gl_Position = projectionMatrix * mvPosition;
+          /* Land dots are bigger than ocean dots so coastlines read sharper. */
+          float sizeMul = 1.0 + uLandSizeBoost * aLand;
+          gl_PointSize = uPointSize * sizeMul * uPixelRatio * (300.0 / -mvPosition.z);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying float vBrightness;
+        uniform sampler2D uMap;
+        uniform vec3 uColor;
+
+        void main() {
+          /* Skip back-facing particles entirely (vertex shader sets vBrightness≈0) */
+          if (vBrightness < 0.01) discard;
+          vec4 tex = texture2D(uMap, gl_PointCoord);
+          if (tex.a < 0.01) discard;
+          /* Additive blending: emit RGB scaled by alpha, alpha=1. Overlapping
+             dots accumulate brightness, soft edges feather into background. */
+          vec3 col = uColor * vBrightness * tex.a;
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const dots = new THREE.Points(dotsGeom, dotsMat);
+
+    /* ---------- Markers (gold, no labels) ---------- */
+    const markerDirs = MARKER_LOCATIONS.map(([la, lo]) => latLonToVec3(la, lo));
+    const NM = markerDirs.length;
+    const markerPositions = new Float32Array(NM * 3);
+    const MARKER_R = RADIUS * 1.012;
+    for (let m = 0; m < NM; m++) {
+      const md = markerDirs[m];
+      markerPositions[3*m]   = md.x * MARKER_R;
+      markerPositions[3*m+1] = md.y * MARKER_R;
+      markerPositions[3*m+2] = md.z * MARKER_R;
+    }
+    /* Per-marker hover progress (one float per pin, 0 = idle, 1 = hovered).
+       Lerped in tick() and written back to the buffer attribute, which the
+       marker shader reads to scale size and brightness on hover. */
+    const markerHoverProgress = new Float32Array(NM); // zeros by default
+    const markerGeom = new THREE.BufferGeometry();
+    markerGeom.setAttribute('position', new THREE.BufferAttribute(markerPositions, 3));
+    markerGeom.setAttribute('aHover', new THREE.BufferAttribute(markerHoverProgress, 1));
+
+    const markerMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uMap:              { value: makeCircleTexture() },
+        uSize:             { value: MARKER_SIZE },
+        uPixelRatio:       { value: Math.min(window.devicePixelRatio, 2) },
+        uHoverSizeBoost:   { value: MARKER_HOVER_SIZE_BOOST },
+        uHoverBrightBoost: { value: MARKER_HOVER_BRIGHT_BOOST },
+        uColor:            { value: new THREE.Color(0xFFD040) },
+      },
+      vertexShader: /* glsl */ `
+        attribute float aHover;
+        varying float vHover;
+
+        uniform float uSize;
+        uniform float uPixelRatio;
+        uniform float uHoverSizeBoost;
+
+        void main() {
+          vHover = aHover;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
+          float sizeMul = 1.0 + aHover * uHoverSizeBoost;
+          gl_PointSize = uSize * sizeMul * uPixelRatio * (300.0 / -mvPosition.z);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        varying float vHover;
+        uniform sampler2D uMap;
+        uniform vec3 uColor;
+        uniform float uHoverBrightBoost;
+
+        void main() {
+          vec4 tex = texture2D(uMap, gl_PointCoord);
+          if (tex.a < 0.05) discard;
+          float brightness = 1.0 + vHover * uHoverBrightBoost;
+          gl_FragColor = vec4(uColor * brightness, tex.a);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+    });
+    const markerPoints = new THREE.Points(markerGeom, markerMat);
+
+    /* ---------- Orb group (rotates) ---------- */
+    const orbGroup = new THREE.Group();
+    orbGroup.add(dots);
+    orbGroup.add(markerPoints);
+    scene.add(orbGroup);
+
+    /* ---------- Background starfield (does NOT rotate with the orb) ---------- */
+    const stars = makeStarfield(STAR_COUNT);
+    scene.add(stars);
+
+    /* ---------- Drag-to-rotate ---------- */
+    let isDragging = false;
+    let dragLastX = 0, dragLastY = 0;
+    canvas.style.cursor = 'grab';
+
+    canvas.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      dragLastX = e.clientX;
+      dragLastY = e.clientY;
+      canvas.style.cursor = 'grabbing';
+      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - dragLastX;
+      const dy = e.clientY - dragLastY;
+      orbGroup.rotation.y += dx * DRAG_SENSITIVITY;
+      orbGroup.rotation.x += dy * DRAG_SENSITIVITY;
+      dragLastX = e.clientX;
+      dragLastY = e.clientY;
+    });
+    window.addEventListener('pointerup', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      canvas.style.cursor = 'grab';
+      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    });
+
+    /* ---------- Marker hover tooltips + cursor displacement ----------
+       One raycaster, two jobs per pointermove:
+         1. Intersect markerPoints → drive the tooltip.
+         2. Intersect an invisible sphere at the orb's surface → set the
+            uMouseTarget uniform so the shader can lift nearby dots.
+       Marker buffer is in the same order as MARKER_LOCATIONS, so hit.index
+       maps directly back to the label. */
+    const tooltipEl  = document.querySelector('.orb-tooltip');
+    const raycaster  = new THREE.Raycaster();
+    raycaster.params.Points.threshold = 0.08;
+    const mouseNDC   = new THREE.Vector2();
+    const tmpWorld   = new THREE.Vector3();
+    const tmpToCam   = new THREE.Vector3();
+    const tmpNormal  = new THREE.Vector3();
+
+    /* Index of the currently hovered marker (-1 = none). Drives the per-marker
+       size/brightness animation; the actual lerp happens in tick(). */
+    let hoveredMarkerIdx = -1;
+
+    function updateHover(clientX, clientY) {
+      if (isDragging || !tooltipEl) {
+        if (tooltipEl) tooltipEl.classList.remove('is-visible');
+        hoveredMarkerIdx = -1;
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      mouseNDC.x =  ((clientX - rect.left) / rect.width)  * 2 - 1;
+      mouseNDC.y = -((clientY - rect.top)  / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouseNDC, camera);
+      const hits = raycaster.intersectObject(markerPoints);
+
+      for (const hit of hits) {
+        const idx = hit.index;
+        tmpWorld.fromBufferAttribute(markerGeom.attributes.position, idx);
+        markerPoints.localToWorld(tmpWorld);
+        tmpNormal.copy(tmpWorld).normalize();
+        tmpToCam.subVectors(camera.position, tmpWorld).normalize();
+        if (tmpNormal.dot(tmpToCam) > 0.1) {
+          hoveredMarkerIdx = idx;
+          tooltipEl.textContent = MARKER_LOCATIONS[idx][2] || '';
+          tooltipEl.style.left = `${clientX}px`;
+          tooltipEl.style.top  = `${clientY}px`;
+          tooltipEl.classList.add('is-visible');
+          return;
+        }
+      }
+      hoveredMarkerIdx = -1;
+      tooltipEl.classList.remove('is-visible');
+    }
+
+    canvas.addEventListener('pointermove', (e) => updateHover(e.clientX, e.clientY));
+    canvas.addEventListener('pointerleave', () => {
+      if (tooltipEl) tooltipEl.classList.remove('is-visible');
+      hoveredMarkerIdx = -1;
+    });
+
+    /* ---------- animation loop ---------- */
+    const BREATH_PERIOD = 7.0;     // seconds per cycle
+    const BREATH_AMPLITUDE = 0.05; // ±5% brightness
+    const breathOmega = (2 * Math.PI) / BREATH_PERIOD;
+
+    function tick() {
+      requestAnimationFrame(tick);
+      if (!isDragging) {
+        orbGroup.rotation.y += ROT_SPEED_Y;
+      }
+      const t = performance.now() / 1000;
+      dotsMat.uniforms.uBreath.value = 1.0 + Math.sin(t * breathOmega) * BREATH_AMPLITUDE;
+
+      /* Lerp each marker's hover progress toward its target. The hovered
+         marker eases toward 1, all others toward 0 — so animations cleanly
+         cross-fade when the cursor moves between pins. */
+      let hoverDirty = false;
+      for (let i = 0; i < NM; i++) {
+        const target = (i === hoveredMarkerIdx && !isDragging) ? 1.0 : 0.0;
+        const curr = markerHoverProgress[i];
+        const next = curr + (target - curr) * MARKER_HOVER_LERP;
+        if (Math.abs(next - curr) > 0.0001) {
+          markerHoverProgress[i] = next;
+          hoverDirty = true;
+        }
+      }
+      if (hoverDirty) {
+        markerGeom.attributes.aHover.needsUpdate = true;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function onResize() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      if (w === 0 || h === 0) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      dotsMat.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
+    }
+    window.addEventListener('resize', onResize);
+    onResize();
+    tick();
+  }
+
+  /* Background starfield — random points on an outer shell, doesn't rotate. */
+  function makeStarfield(count) {
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const u = Math.random() * 2 - 1;
+      const phi = Math.random() * Math.PI * 2;
+      const s = Math.sqrt(1 - u * u);
+      const r = 6 + Math.random() * 3;  // radius 6-9, well outside orb
+      positions[3*i]   = r * s * Math.cos(phi);
+      positions[3*i+1] = r * s * Math.sin(phi);
+      positions[3*i+2] = r * u;
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+      color: 0xFFFFFF,
+      size: 0.012,
+      transparent: true,
+      opacity: 0.55,
+      sizeAttenuation: true,
+      depthWrite: false,
+    });
+    return new THREE.Points(geom, mat);
+  }
+
+  /* ---------- helpers ---------- */
+
+  /* Load Earth image, draw to canvas, expose pixel sampler.
+     Image must be CORS-friendly; threejs.org serves with proper headers. */
+  async function loadEarthMask(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const W = img.width, H = img.height;
+        const c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, W, H).data;
+        resolve({
+          sample(u, v) {
+            const x = Math.min(W - 1, Math.max(0, Math.floor(u * W)));
+            const y = Math.min(H - 1, Math.max(0, Math.floor((1 - v) * H)));
+            const i = (y * W + x) * 4;
+            return { r: data[i], g: data[i+1], b: data[i+2] };
+          }
+        });
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  /* Lat/lon → unit vector on sphere. Must match the earth-mask sampler above,
+     which uses lon = atan2(-z, x). That puts Greenwich at +x, the date line
+     at -x, +90°E at -z (back of orb), and -90° (Americas longitude) at +z
+     (facing the camera). End result: standard map orientation — looking at
+     the orb head-on shows the Americas with the Pacific on the left and the
+     Atlantic on the right. */
+  function latLonToVec3(lat, lon) {
+    const latR = lat * Math.PI / 180;
+    const lonR = lon * Math.PI / 180;
+    return {
+      x:  Math.cos(latR) * Math.cos(lonR),
+      y:  Math.sin(latR),
+      z: -Math.cos(latR) * Math.sin(lonR),
+    };
+  }
+
+  /* Soft gaussian-ish dot texture for the main orb particles. No solid core
+     — alpha falls off smoothly from center to edge. Paired with additive
+     blending, neighbouring dot halos overlap and fill in the inter-dot space
+     so continents read as continuous luminous shapes rather than dot patterns. */
+  function makeSoftDotTexture() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0.00, 'rgba(255,255,255,1.00)');
+    g.addColorStop(0.18, 'rgba(255,255,255,0.78)');
+    g.addColorStop(0.40, 'rgba(255,255,255,0.36)');
+    g.addColorStop(0.70, 'rgba(255,255,255,0.08)');
+    g.addColorStop(1.00, 'rgba(255,255,255,0.00)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    const tex = new THREE.CanvasTexture(c);
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  /* Crisp circular dot texture — solid center, sharp edge. Used for the gold
+     location markers so they read as distinct pins, not glow blobs. */
+  function makeCircleTexture() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0,    'rgba(255,255,255,1.0)');
+    g.addColorStop(0.62, 'rgba(255,255,255,1.0)');
+    g.addColorStop(0.85, 'rgba(255,255,255,0.4)');
+    g.addColorStop(1,    'rgba(255,255,255,0.0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    const tex = new THREE.CanvasTexture(c);
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
+    return tex;
+  }
+</script>
+
+</body>
+</html>
